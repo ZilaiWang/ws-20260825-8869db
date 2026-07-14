@@ -12,7 +12,7 @@
 ## 实验输出命名
 
 ```
-outputs/YYYYMMDD-owner-task-model-tag/
+outputs/YYYYMMDD-task-model-tag/
 ├── config.yaml
 ├── meta.json
 ├── metrics.json

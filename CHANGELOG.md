@@ -12,7 +12,7 @@
 - 推理计时框架 (runtime.py)
 - CLI 脚本框架 (train, infer, evaluate, benchmark, analyze_dataset)
 - 项目文档框架 (6 个阶段规划)
-- 团队角色和协作规范
+- 协作规范
 - 标准 COCO detection 列表解析测试
 - 可提交的数据划分 manifest 目录
 
@@ -20,7 +20,7 @@
 
 - 官方指标按配置把 25 个细类归并为舰船、飞机、车辆
 - 滑窗最后一行和最后一列改为完整 tile 贴边
-- README、团队分工和 Gitee 模板改为可直接执行的简明版本
+- README 和 Gitee 模板改为可直接执行的简明版本
 
 ### Fixed
 
@@ -32,3 +32,4 @@
 ### Removed
 
 - 删除 Gitee 自动生成且未填写的英文 README
+- 删除不属于代码仓库的组织信息

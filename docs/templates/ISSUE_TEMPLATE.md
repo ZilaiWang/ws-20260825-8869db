@@ -3,8 +3,6 @@
 ```markdown
 **标题**: [feat/fix/exp/docs] 简短描述
 
-**负责人**: @username
-
 **背景**: 为什么要做
 
 **目标**: 完成什么

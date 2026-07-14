@@ -35,7 +35,7 @@
 | `src/rsdet/` | 数据契约、切片、模型接口、评估与工具代码 |
 | `scripts/` | 数据审计、训练、推理、评估、测速入口 |
 | `tests/` | 无 GPU、无原始数据也能运行的测试 |
-| `docs/` | 计划、分工、数据和实验规范 |
+| `docs/` | 计划、数据和实验规范 |
 | `reports/` | 脱敏数据报告和小型实验汇总 |
 | `data/`、`outputs/` | 本地数据和实验产物，默认不提交 |
 
@@ -49,7 +49,7 @@ cp configs/local.example.yaml configs/local.yaml
 python -m pytest -q
 ```
 
-新成员依次阅读：`README.md` → `AGENTS.md` → `docs/PROJECT_PLAN.md` → `docs/TEAM_ROLES.md` → `docs/DEVELOPMENT_WORKFLOW.md`。
+阅读顺序：`README.md` → `AGENTS.md` → `docs/PROJECT_PLAN.md` → `docs/DEVELOPMENT_WORKFLOW.md`。
 
 ## 常用命令
 
@@ -74,4 +74,4 @@ python scripts/evaluate.py --gt gt.json --pred pred.json --output outputs/metric
 4. 记录 Recall、FDR、端到端耗时、显存和失败结论；只报 mAP 不足以决策。
 5. 原始数据、测试集、权重、密钥、个人路径和大型日志不得提交。
 
-分工见 [`docs/TEAM_ROLES.md`](docs/TEAM_ROLES.md)，开发细则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
+开发细则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。

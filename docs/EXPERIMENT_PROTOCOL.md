@@ -5,7 +5,6 @@
 | 字段 | 说明 |
 |------|------|
 | `experiment_id` | 唯一实验 ID |
-| `owner` | 负责人 |
 | `date` | 运行日期 (YYYY-MM-DD) |
 | `git_commit` | 代码 commit hash |
 | `dataset_version` | 数据集版本 |
@@ -36,7 +35,7 @@
 ## 输出目录
 
 ```
-outputs/YYYYMMDD-owner-task-model-tag/
+outputs/YYYYMMDD-task-model-tag/
 ├── config.yaml
 ├── meta.json
 ├── metrics.json
