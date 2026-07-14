@@ -1,92 +1,77 @@
-# 基于不均衡小样本学习的遥感陆上小目标检测系统
+# XH-202625 遥感小目标检测
 
-## 赛题背景
+## 项目目标
 
-揭榜挂帅 XH-202625：基于不均衡小样本学习的光学遥感卫星陆上目标检测识别。
+用不均衡小样本遥感影像检测舰船、飞机和车辆，并满足比赛硬指标：
 
-## 检测目标
+| 指标 | 要求 |
+|---|---:|
+| Overall Recall | ≥ 0.85 |
+| Overall FDR | ≤ 0.20 |
+| 10000×10000 图像端到端推理 | ≤ 20 秒，参考 RTX 3090 |
+| IoU | 舰船/飞机 0.50，车辆 0.35 |
 
-| 类别 | 英文名 | IoU 阈值 |
-|------|--------|----------|
-| 舰船 | ship | 0.50 |
-| 飞机 | aircraft | 0.50 |
-| 车辆 | vehicle | 0.35 |
+预测按分数降序贪心匹配，每个 GT 只能匹配一次，重复框计为 FP。最终提交标准 COCO detection JSON。
 
-## 核心指标
+## 当前进度
 
-- **Overall Recall ≥ 0.85**, **FDR ≤ 0.20**
-- **10000×10000 推理 ≤ 20s**（RTX 3090）
-- 预测按 score 降序，greedy matching，每 GT 匹配一次
-- 重复检测框计为 FP，最终提交标准 COCO JSON
+- 仓库、数据契约、切片坐标和官方指标骨架已建立。
+- 数据审计已完成；4481 张训练图、20933 个框、官方验证集为空。见 [`reports/data/DATASET_BRIEF.md`](reports/data/DATASET_BRIEF.md)。
+- 25 个训练细类已在 [`configs/project.yaml`](configs/project.yaml) 中归并为三大评测类。
+- 基线模型、训练器、推理流水线和完整测速尚未接入。`DummyDetector` 只用于接口测试，不是基线。
 
-## 当前阶段
+主流程：
 
-**Phase 0 — 仓库和评估基础设施**（已完成）
-
-后续：Phase 1 数据审计 → Phase 2 基线检测器 → Phase 3 错误归因 → Phase 4 创新 → Phase 5 速度优化 → Phase 6 交付
-
-## 总体流程
-
-```
-数据审计 → 数据划分 → 模型训练 → 大图切片 → tile推理
+```text
+数据审计 → 数据划分 → 模型训练 → 大图切片 → tile 推理
 → 坐标恢复 → 跨切片融合 → 分数校准 → 官方评估 → COCO JSON
 ```
 
 ## 目录
 
-```
-├── README.md / AGENTS.md / CONTRIBUTING.md
-├── configs/        YAML 配置
-├── src/rsdet/      核心 Python 库
-├── scripts/        CLI 脚本
-├── tests/          单元测试
-├── docs/           项目文档
-├── data/           本地数据（不入 Git）
-└── outputs/        实验输出（不入 Git）
-```
+| 路径 | 用途 |
+|---|---|
+| `configs/` | 可提交的通用配置；个人路径写入忽略的 `local.yaml` |
+| `src/rsdet/` | 数据契约、切片、模型接口、评估与工具代码 |
+| `scripts/` | 数据审计、训练、推理、评估、测速入口 |
+| `tests/` | 无 GPU、无原始数据也能运行的测试 |
+| `docs/` | 计划、分工、数据和实验规范 |
+| `reports/` | 脱敏数据报告和小型实验汇总 |
+| `data/`、`outputs/` | 本地数据和实验产物，默认不提交 |
 
-## 新成员阅读顺序
-
-README → AGENTS.md → docs/PROJECT_PLAN.md → docs/TEAM_ROLES.md → docs/DEVELOPMENT_WORKFLOW.md → 自己模块
-
-## 环境安装
+## 开始使用
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e . && pip install -r requirements-dev.txt
-cp configs/local.example.yaml configs/local.yaml  # 填写本地路径
+python -m venv .venv
+source .venv/bin/activate                 # Windows: .venv\Scripts\activate
+python -m pip install -e ".[dev]"
+cp configs/local.example.yaml configs/local.yaml
+python -m pytest -q
 ```
+
+新成员依次阅读：`README.md` → `AGENTS.md` → `docs/PROJECT_PLAN.md` → `docs/TEAM_ROLES.md` → `docs/DEVELOPMENT_WORKFLOW.md`。
 
 ## 常用命令
 
 ```bash
-python scripts/analyze_dataset.py --data-root /path/to/data
+# 可用：基础数据统计
+python scripts/analyze_dataset.py --data-root /path/to/data --output-dir outputs/audit
+
+# 接口已预留：接入基线前会明确返回“未实现”，不会生成假结果
 python scripts/train.py --config configs/train.example.yaml
 python scripts/infer.py --config configs/infer.example.yaml
-python scripts/evaluate.py --gt gt.json --pred pred.json
 python scripts/benchmark.py --config configs/infer.example.yaml
-python -m pytest -q
+
+# 可用：COCO GT + 标准 COCO detection 列表
+python scripts/evaluate.py --gt gt.json --pred pred.json --output outputs/metrics.json
 ```
 
-## 数据和权重
+## 协作规则
 
-不入 Git。通过 `configs/local.yaml` 配置本地路径。
+1. 从 `master` 拉短期分支，一个分支只做一件事。
+2. 不直接 push `master`；通过 PR 合并，至少一人审核。
+3. 正式实验必须绑定 commit、配置、数据版本、划分版本和随机种子。
+4. 记录 Recall、FDR、端到端耗时、显存和失败结论；只报 mAP 不足以决策。
+5. 原始数据、测试集、权重、密钥、个人路径和大型日志不得提交。
 
-## 实验记录
-
-每个实验必记：experiment_id / owner / date / git_commit / config_path / 各类别 Recall+FDR / overall_recall+fdr / runtime_total+p95 / peak_vram / notes
-
-规则：无 git commit 不进入正式结果；只报 mAP 不能用于方案决策；失败实验保留结论。
-
-## 未确定
-
-- 最终检测器、切片尺寸、增强策略、创新模块
-- 是否使用 GroundingDINO / CAPR / 伪标签
-
-## 团队
-
-王子莱（架构/报告）、吴晓宇（评估/切片/推理）、蔡婕（数据/不均衡学习）、潘扬东杰（检测器/训练）、吴事凡（可视化/文档）
-
-详见 `docs/TEAM_ROLES.md`
-
-> **不要直接修改 master 分支。所有修改通过分支 + PR。**
+分工见 [`docs/TEAM_ROLES.md`](docs/TEAM_ROLES.md)，开发细则见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。

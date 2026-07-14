@@ -6,7 +6,7 @@ COCO 导出时转换为 xywh。
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 @dataclass
@@ -20,6 +20,7 @@ class ImageRecord:
         height: 图像高度（像素）。
         metadata: 额外元信息。
     """
+
     image_id: int
     file_path: str
     width: int
@@ -39,6 +40,7 @@ class AnnotationRecord:
         iscrowd: COCO iscrowd 标记。
         ignore: 是否在评估中忽略。
     """
+
     annotation_id: int
     image_id: int
     category_id: int
@@ -57,10 +59,11 @@ class Prediction:
         scores: [N] 置信度数组。
         labels: [N] 类别标签数组。
     """
+
     image_id: int
-    boxes_xyxy: list   # [[x1,y1,x2,y2], ...]
-    scores: list        # [score, ...]
-    labels: list        # [category_id, ...]
+    boxes_xyxy: list  # [[x1,y1,x2,y2], ...]
+    scores: list  # [score, ...]
+    labels: list  # [category_id, ...]
 
 
 @dataclass
@@ -75,6 +78,7 @@ class TileRecord:
         width: 切片宽度（像素）。
         height: 切片高度（像素）。
     """
+
     tile_id: int
     parent_image_id: int
     x_offset: int

@@ -4,7 +4,6 @@
 """
 
 import logging
-from typing import List
 
 from rsdet.contracts import TileRecord
 
@@ -16,7 +15,7 @@ def generate_tiles(
     image_height: int,
     tile_size: int,
     overlap: int,
-) -> List[TileRecord]:
+) -> list[TileRecord]:
     """对大图生成滑窗切片坐标。
 
     保证：
@@ -47,31 +46,44 @@ def generate_tiles(
         raise ValueError(f"图像尺寸必须 > 0: {image_width}x{image_height}")
 
     stride = tile_size - overlap
-    tiles: List[TileRecord] = []
+    x_starts = _axis_starts(image_width, tile_size, stride)
+    y_starts = _axis_starts(image_height, tile_size, stride)
+    tiles: list[TileRecord] = []
     tile_id = 0
 
-    y = 0
-    while y < image_height:
-        x = 0
+    for y in y_starts:
         actual_h = min(tile_size, image_height - y)
-        while x < image_width:
+        for x in x_starts:
             actual_w = min(tile_size, image_width - x)
-            tiles.append(TileRecord(
-                tile_id=tile_id,
-                parent_image_id=0,  # 调用方负责填充
-                x_offset=x,
-                y_offset=y,
-                width=actual_w,
-                height=actual_h,
-            ))
+            tiles.append(
+                TileRecord(
+                    tile_id=tile_id,
+                    parent_image_id=0,  # 调用方负责填充
+                    x_offset=x,
+                    y_offset=y,
+                    width=actual_w,
+                    height=actual_h,
+                )
+            )
             tile_id += 1
-            x += stride
-            if x >= image_width:
-                break
-        y += stride
-        if y >= image_height:
-            break
 
-    logger.debug(f"生成 {len(tiles)} 个切片: {image_width}x{image_height}, "
-                 f"tile={tile_size}, overlap={overlap}")
+    logger.debug(
+        "生成 %d 个切片: %dx%d, tile=%d, overlap=%d",
+        len(tiles),
+        image_width,
+        image_height,
+        tile_size,
+        overlap,
+    )
     return tiles
+
+
+def _axis_starts(length: int, tile_size: int, stride: int) -> list[int]:
+    """生成单轴起点，并把最后一个完整 tile 对齐到图像边缘。"""
+    if length <= tile_size:
+        return [0]
+    starts = list(range(0, length - tile_size + 1, stride))
+    final_start = length - tile_size
+    if starts[-1] != final_start:
+        starts.append(final_start)
+    return starts

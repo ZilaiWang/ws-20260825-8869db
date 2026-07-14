@@ -1,91 +1,61 @@
-"""核心模块导入测试。"""
+"""核心模块导入和最小接口测试。"""
+
+import importlib
 
 import pytest
 
 
-def test_import_rsdet():
-    """rsdet 包可导入。"""
-    import rsdet
-    assert rsdet.__version__ == "0.1.0"
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "rsdet",
+        "rsdet.contracts",
+        "rsdet.data.datasets",
+        "rsdet.data.manifests",
+        "rsdet.data.splits",
+        "rsdet.engine.predictor",
+        "rsdet.engine.trainer",
+        "rsdet.evaluation.official_metric",
+        "rsdet.evaluation.runtime",
+        "rsdet.models.base",
+        "rsdet.models.registry",
+        "rsdet.postprocess.calibration",
+        "rsdet.postprocess.nms",
+        "rsdet.postprocess.tile_fusion",
+        "rsdet.tiling.coordinates",
+        "rsdet.tiling.slicer",
+        "rsdet.utils.config",
+        "rsdet.utils.logging",
+        "rsdet.utils.seed",
+        "rsdet.visualization.detection_visualizer",
+    ],
+)
+def test_core_module_import(module_name: str) -> None:
+    """所有核心模块都能在无 GPU、无数据条件下导入。"""
+    assert importlib.import_module(module_name)
 
 
-def test_import_contracts():
-    """contracts 模块可导入。"""
-    from rsdet.contracts import ImageRecord, AnnotationRecord, Prediction, TileRecord
-
-    img = ImageRecord(image_id=1, file_path="test.jpg", width=1000, height=1000)
-    assert img.image_id == 1
-    assert img.width == 1000
-
-    ann = AnnotationRecord(
-        annotation_id=1, image_id=1, category_id=0, bbox_xyxy=[10, 10, 100, 100]
-    )
-    assert ann.bbox_xyxy == [10, 10, 100, 100]
-
-    pred = Prediction(image_id=1, boxes_xyxy=[], scores=[], labels=[])
-    assert pred.image_id == 1
-
-    tile = TileRecord(
-        tile_id=0, parent_image_id=1, x_offset=0, y_offset=0, width=512, height=512
-    )
-    assert tile.tile_id == 0
-
-
-def test_import_models():
-    """models 模块可导入。"""
+def test_contracts_and_dummy_detector() -> None:
+    """公共结构和测试检测器可构建。"""
+    from rsdet.contracts import AnnotationRecord, ImageRecord, Prediction, TileRecord
     from rsdet.models.base import BaseDetector
-    from rsdet.models.registry import register_model, build_model, list_models, DummyDetector
+    from rsdet.models.registry import DummyDetector, build_model, list_models
 
-    models = list_models()
-    assert "dummy" in models
-    assert models["dummy"] is DummyDetector
-
-    detector = build_model("dummy", {})
-    assert isinstance(detector, BaseDetector)
-
-
-def test_import_tiling():
-    """tiling 模块可导入。"""
-    from rsdet.tiling.coordinates import xyxy_to_xywh, xywh_to_xyxy, tile_to_full, full_to_tile, clip_bbox
-    from rsdet.tiling.slicer import generate_tiles
-
-    result = xyxy_to_xywh([0, 0, 100, 200])
-    assert result == [0, 0, 100, 200]
-
-    tiles = generate_tiles(3000, 2000, 1024, 200)
-    assert len(tiles) > 0
+    assert ImageRecord(1, "test.jpg", 1000, 1000).image_id == 1
+    assert AnnotationRecord(1, 1, 0, [10, 10, 100, 100]).category_id == 0
+    assert Prediction(1, [], [], []).image_id == 1
+    assert TileRecord(0, 1, 0, 0, 512, 512).tile_id == 0
+    assert list_models()["dummy"] is DummyDetector
+    assert isinstance(build_model("dummy", {}), BaseDetector)
 
 
-def test_import_evaluation():
-    """evaluation 模块可导入。"""
-    from rsdet.evaluation.official_metric import evaluate_predictions, PerClassMetrics, OverallMetrics
+def test_runtime_and_seed_helpers() -> None:
+    """计时和随机种子工具可运行。"""
     from rsdet.evaluation.runtime import RuntimeBreakdown, timed_block
-
-    m = PerClassMetrics(tp=5, fp=1, fn=2)
-    assert m.recall == 5 / 7
-    assert m.fdr == 1 / 6
-
-    rt = RuntimeBreakdown()
-    with timed_block(rt, "model"):
-        pass
-    assert rt.model >= 0
-
-
-def test_import_postprocess():
-    """postprocess 模块可导入。"""
-    import rsdet.postprocess.nms
-    import rsdet.postprocess.tile_fusion
-    import rsdet.postprocess.calibration
-
-
-def test_import_utils():
-    """utils 模块可导入。"""
-    from rsdet.utils.config import load_config, merge_configs
-    from rsdet.utils.logging import setup_logging
     from rsdet.utils.seed import set_seed
 
-    merged = merge_configs({"a": 1}, {"b": 2})
-    assert merged["a"] == 1
-    assert merged["b"] == 2
-
+    runtime = RuntimeBreakdown()
+    with timed_block(runtime, "model"):
+        pass
+    assert runtime.model >= 0
     set_seed(42)

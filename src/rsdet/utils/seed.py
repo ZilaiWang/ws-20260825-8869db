@@ -1,7 +1,7 @@
 """随机种子设置工具。"""
 
-import random
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ def set_seed(seed: int) -> None:
     random.seed(seed)
     try:
         import numpy as np
+
         np.random.seed(seed)
     except ImportError:
         pass  # numpy 未安装时跳过

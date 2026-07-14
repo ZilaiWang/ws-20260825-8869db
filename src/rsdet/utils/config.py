@@ -4,6 +4,7 @@
 """
 
 import logging
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Dict
 
@@ -34,9 +35,11 @@ def load_config(config_path: str | Path) -> Dict[str, Any]:
 
     if config is None:
         config = {}
+    if not isinstance(config, Mapping):
+        raise TypeError(f"YAML 顶层必须是映射，当前为 {type(config).__name__}: {config_path}")
 
-    logger.info(f"已加载配置: {config_path}")
-    return config
+    logger.info("已加载配置: %s", config_path)
+    return dict(config)
 
 
 def merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:

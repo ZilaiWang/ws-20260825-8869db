@@ -4,13 +4,11 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
 
 from rsdet.utils.config import load_config, merge_configs
 
 
 class TestLoadConfig:
-
     def test_load_valid_yaml(self):
         """YAML 可正常加载。"""
         with tempfile.NamedTemporaryFile(
@@ -45,6 +43,19 @@ class TestLoadConfig:
         with pytest.raises(FileNotFoundError):
             load_config("/nonexistent/config.yaml")
 
+    def test_top_level_list_is_rejected(self):
+        """配置顶层必须是映射。"""
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+        ) as file:
+            file.write("- invalid\n")
+            tmp_path = file.name
+        try:
+            with pytest.raises(TypeError, match="顶层必须是映射"):
+                load_config(tmp_path)
+        finally:
+            Path(tmp_path).unlink()
+
     def test_project_yaml_loadable(self):
         """configs/project.yaml 可加载。"""
         project_cfg = Path(__file__).parent.parent / "configs" / "project.yaml"
@@ -57,7 +68,6 @@ class TestLoadConfig:
 
 
 class TestMergeConfigs:
-
     def test_override_value(self):
         base = {"a": 1, "b": 2}
         override = {"b": 99}

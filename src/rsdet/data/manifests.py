@@ -4,7 +4,7 @@ TODO: 数据集审计完成后实现 manifest 和 checksum 功能。
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Dict
 
 
 @dataclass
@@ -17,6 +17,7 @@ class DataManifest:
         class_distribution: 各类别实例数统计。
         checksums: 文件路径 → checksum 映射。
     """
+
     version: str = "TBD"
     num_images: int = 0
     class_distribution: Dict[str, int] = field(default_factory=dict)

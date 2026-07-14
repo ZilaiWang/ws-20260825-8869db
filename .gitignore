@@ -30,6 +30,10 @@ secrets/
 # Data — keep READMEs only
 data/*
 !data/README.md
+!data/splits/
+data/splits/*
+!data/splits/README.md
+!data/splits/*.json
 
 # Outputs — keep .gitkeep only
 outputs/*

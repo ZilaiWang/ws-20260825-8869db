@@ -5,13 +5,14 @@
 
 import time
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict
 
 
 @dataclass
 class RuntimeBreakdown:
     """各阶段耗时（秒）。"""
+
     preprocess_after_read: float = 0.0
     tiling: float = 0.0
     model: float = 0.0

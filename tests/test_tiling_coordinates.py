@@ -1,18 +1,18 @@
 """切片和坐标转换测试。"""
 
 import pytest
+
 from rsdet.tiling.coordinates import (
-    xyxy_to_xywh,
-    xywh_to_xyxy,
-    tile_to_full,
-    full_to_tile,
     clip_bbox,
+    full_to_tile,
+    tile_to_full,
+    xywh_to_xyxy,
+    xyxy_to_xywh,
 )
 from rsdet.tiling.slicer import generate_tiles
 
 
 class TestXYConversions:
-
     def test_xyxy_to_xywh(self):
         assert xyxy_to_xywh([10, 20, 110, 220]) == [10, 20, 100, 200]
 
@@ -37,9 +37,12 @@ class TestXYConversions:
         with pytest.raises(ValueError):
             xywh_to_xyxy([10, 20, -5, 200])  # w < 0
 
+    def test_invalid_box_length(self):
+        with pytest.raises(ValueError):
+            xyxy_to_xywh([10, 20, 30])
+
 
 class TestTileFullConversions:
-
     def test_tile_to_full_and_back(self):
         """tile 坐标 → 全图 → tile 往返一致。"""
         box_tile = [10, 20, 110, 220]
@@ -58,7 +61,6 @@ class TestTileFullConversions:
 
 
 class TestClipBbox:
-
     def test_clip_partially_outside(self):
         """部分在图像外的 bbox 被裁剪。"""
         clipped = clip_bbox([-10, -5, 150, 250], 100, 200)
@@ -80,7 +82,6 @@ class TestClipBbox:
 
 
 class TestGenerateTiles:
-
     def test_small_image_single_tile(self):
         """tile_size 大于图像时返回单张全图切片。"""
         tiles = generate_tiles(512, 512, 1024, 200)
@@ -107,6 +108,8 @@ class TestGenerateTiles:
         # 最下 tile 必须覆盖到 1000
         bottommost = max(t.y_offset + t.height for t in tiles)
         assert bottommost >= 1000
+        assert {t.width for t in tiles} == {600}
+        assert {t.height for t in tiles} == {600}
 
     def test_no_gap_between_tiles(self):
         """相邻切片之间无未覆盖条带。"""

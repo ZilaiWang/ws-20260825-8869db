@@ -7,7 +7,33 @@ task:
     - ship
     - aircraft
     - vehicle
-  dataset_category_mapping: {}
+  # 官方训练集 25 个细类归并为评测使用的三大类。
+  dataset_category_mapping:
+    0: ship
+    1: ship
+    2: ship
+    3: ship
+    4: aircraft
+    5: aircraft
+    6: aircraft
+    7: aircraft
+    8: aircraft
+    9: aircraft
+    10: aircraft
+    11: aircraft
+    12: aircraft
+    13: aircraft
+    14: aircraft
+    15: aircraft
+    16: aircraft
+    17: aircraft
+    18: aircraft
+    19: aircraft
+    20: aircraft
+    21: aircraft
+    22: aircraft
+    23: aircraft
+    24: vehicle
 
 official_evaluation:
   recall_min: 0.85

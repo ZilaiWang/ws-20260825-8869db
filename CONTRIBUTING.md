@@ -1,35 +1,43 @@
-# CONTRIBUTING.md
+# 协作规范
 
-## 分支命名
+## 日常流程
 
-| 前缀 | 用途 | 示例 |
-|------|------|------|
-| `feat/` | 新功能 | `feat(tiling): add overlap-aware slicing` |
-| `fix/` | 修复 | `fix(metric): count duplicate as FP` |
-| `exp/` | 实验 | `exp(vehicle): test high-res feature` |
-| `docs/` | 文档 | `docs(readme): update setup guide` |
-| `refactor/` | 重构 | `refactor(eval): extract iou_util` |
-| `chore/` | 杂务 | `chore: update .gitignore` |
+```bash
+git checkout master
+git pull origin master
+git checkout -b feat/short-task-name
+# 修改并测试
+git add <files>
+git commit -m "feat(tiling): add overlap-aware slicing"
+git push -u origin feat/short-task-name
+```
 
-## 规则
+在 Gitee 创建 PR，至少一人审核后合并。不要直接 push `master`。
 
-1. 一个分支只做一件事。
-2. 不直接 push main。
-3. PR 至少一人审核。
-4. 正式实验必须从已提交 commit 运行。
+## 分支和提交
 
-## PR 模板
+分支前缀：`feat/`、`fix/`、`exp/`、`docs/`、`refactor/`、`chore/`。一个分支只处理一个主要任务。
 
-- **目标**: 做了什么
-- **改动**: 具体修改
-- **运行**: 如何运行
-- **测试**: 测试结果
-- **影响**: 对精度/速度/显存的影响
-- **风险**: 已知问题
+提交示例：
 
-## 合并检查清单
+- `feat(tiling): add overlap-aware slicing`
+- `fix(metric): count duplicate detections as false positives`
+- `exp(vehicle): test high-resolution feature layer`
 
-- [ ] 测试通过 (`pytest`)
-- [ ] 无个人路径硬编码
-- [ ] 无数据/权重文件
-- [ ] `git diff` 已检查
+## PR 必填
+
+- 目标和关联 Issue
+- 主要改动与运行方法
+- 测试结果
+- 数据版本、配置和 commit
+- 对 Recall、FDR、速度和显存的影响
+- 已知风险和回滚方法
+
+## 合并前
+
+- [ ] `python -m compileall -q src`
+- [ ] `python -m pytest -q`
+- [ ] `python -m ruff check .`
+- [ ] 无数据、权重、密钥和个人绝对路径
+- [ ] 文档与公共接口同步更新
+- [ ] `git diff` 已人工检查

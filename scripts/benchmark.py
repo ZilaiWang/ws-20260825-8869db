@@ -5,17 +5,16 @@
 """
 
 import argparse
-import logging
 import sys
 from pathlib import Path
 
-from rsdet.evaluation.runtime import RuntimeBreakdown, timed_block
+from rsdet.utils.config import load_config
 from rsdet.utils.logging import setup_logging
 
 logger = setup_logging(name="benchmark")
 
 
-def parse_args(argv: list | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="推理速度测试",
     )
@@ -26,28 +25,21 @@ def parse_args(argv: list | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-
-    logger.info(f"推理速度测试（预热 {args.warmup} 次，测试 {args.runs} 次）")
-    logger.info(f"模拟图像大小: {args.image_size}x{args.image_size}")
-
-    # 演示计时框架
-    rt = RuntimeBreakdown()
-
-    # 模拟各阶段耗时
-    with timed_block(rt, "tiling"):
-        pass  # TODO: 实际切片
-
-    with timed_block(rt, "model"):
-        pass  # TODO: 实际推理
-
-    logger.info("各阶段耗时:")
-    for k, v in rt.to_dict().items():
-        logger.info(f"  {k}: {v:.4f}s")
-
-    logger.warning("benchmark 功能待模型确定后实现完整流程")
-    return 0
+    if not args.config.exists():
+        logger.error("配置文件不存在: %s", args.config)
+        return 1
+    load_config(args.config)
+    logger.info(
+        "测速计划: warmup=%d, runs=%d, image=%dx%d",
+        args.warmup,
+        args.runs,
+        args.image_size,
+        args.image_size,
+    )
+    logger.error("完整测速尚未接入模型和图像流水线，未生成任何性能结果")
+    return 2
 
 
 if __name__ == "__main__":

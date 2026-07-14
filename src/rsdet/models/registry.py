@@ -21,11 +21,13 @@ def register_model(name: str):
     Args:
         name: 模型名称，用于 --config model=name 引用。
     """
+
     def decorator(cls: Type[BaseDetector]) -> Type[BaseDetector]:
         if name in _MODEL_REGISTRY:
             raise ValueError(f"模型 '{name}' 已注册，请使用不同名称")
         _MODEL_REGISTRY[name] = cls
         return cls
+
     return decorator
 
 
@@ -56,6 +58,7 @@ def list_models() -> Dict[str, Type[BaseDetector]]:
 
 # -------------------- DummyDetector (仅用于测试) --------------------
 
+
 @register_model("dummy")
 class DummyDetector(BaseDetector):
     """占位检测器，仅用于单元测试和接口验证，非实际基线。"""
@@ -71,8 +74,7 @@ class DummyDetector(BaseDetector):
         from rsdet.contracts import Prediction
 
         return [
-            Prediction(image_id=i, boxes_xyxy=[], scores=[], labels=[])
-            for i in range(len(batch))
+            Prediction(image_id=i, boxes_xyxy=[], scores=[], labels=[]) for i in range(len(batch))
         ]
 
     def train_step(self) -> None:

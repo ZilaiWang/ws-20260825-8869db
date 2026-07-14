@@ -1,7 +1,8 @@
 """官方评估指标测试。"""
 
 import pytest
-from rsdet.evaluation.official_metric import evaluate_predictions, _compute_iou, IOU_THRESHOLDS
+
+from rsdet.evaluation.official_metric import IOU_THRESHOLDS, _compute_iou, evaluate_predictions
 
 
 def _make_gt(image_id, bbox_xyxy, category_id=0):
@@ -13,7 +14,6 @@ def _make_pred(image_id, bbox_xyxy, score, category_id=0):
 
 
 class TestOfficialMetric:
-
     def test_one_pred_matches_one_gt(self):
         """一个预测正确匹配一个 GT: TP=1, FP=0, FN=0"""
         gt = {1: [_make_gt(1, [10, 10, 100, 100], 0)]}
@@ -113,9 +113,29 @@ class TestOfficialMetric:
         assert result.per_class["ship"].tp == 1
         assert result.per_class["ship"].fp == 1
 
+    def test_fine_categories_are_merged_before_scoring(self):
+        """25 细类先归并，category_id=24 使用 vehicle 的 0.35 阈值。"""
+        mapping = {0: "ship", 4: "aircraft", 24: "vehicle"}
+        gt = {
+            1: [_make_gt(1, [0, 0, 100, 100], 0)],
+            2: [_make_gt(2, [0, 0, 100, 100], 24)],
+        }
+        pred = {
+            1: [_make_pred(1, [0, 0, 100, 100], 0.9, 0)],
+            2: [_make_pred(2, [25, 25, 125, 125], 0.8, 24)],
+        }
+        result = evaluate_predictions(gt, pred, category_mapping=mapping)
+        assert result.per_class["ship"].tp == 1
+        assert result.per_class["vehicle"].tp == 1
+        assert result.details["tp"] == 2
+
+    def test_missing_fine_category_mapping_fails(self):
+        gt = {1: [_make_gt(1, [0, 0, 100, 100], 24)]}
+        with pytest.raises(ValueError, match="缺少三大类映射"):
+            evaluate_predictions(gt, {})
+
 
 class TestIoU:
-
     def test_perfect_overlap(self):
         assert _compute_iou([0, 0, 100, 100], [0, 0, 100, 100]) == 1.0
 

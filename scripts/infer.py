@@ -11,7 +11,6 @@
 """
 
 import argparse
-import logging
 import sys
 from pathlib import Path
 
@@ -21,7 +20,7 @@ from rsdet.utils.logging import setup_logging
 logger = setup_logging(name="infer")
 
 
-def parse_args(argv: list | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="模型推理",
     )
@@ -32,12 +31,12 @@ def parse_args(argv: list | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
     config_path = Path(args.config)
     if not config_path.exists():
-        logger.error(f"配置文件不存在: {config_path}")
+        logger.error("配置文件不存在: %s", config_path)
         return 1
 
     config = load_config(config_path)
@@ -50,15 +49,12 @@ def main(argv: list | None = None) -> int:
     tile_size = config.get("tile_size", 1024)
     tile_overlap = config.get("tile_overlap", 200)
 
-    logger.info(f"推理配置:")
-    logger.info(f"  checkpoint: {checkpoint}")
-    logger.info(f"  device: {args.device or config.get('device', 'cuda')}")
-    logger.info(f"  tile_size: {tile_size}")
-    logger.info(f"  tile_overlap: {tile_overlap}")
-    logger.info(f"  输出: {args.output or config.get('output_json', '未指定')}")
-    logger.warning("推理功能待基线模型确定后实现")
-
-    return 0
+    logger.info("checkpoint: %s", checkpoint)
+    logger.info("device: %s", args.device or config.get("device", "cuda"))
+    logger.info("tile_size/overlap: %s/%s", tile_size, tile_overlap)
+    logger.info("输出: %s", args.output or config.get("output_json", "未指定"))
+    logger.error("推理流水线尚未接入基线模型，未生成预测结果")
+    return 2
 
 
 if __name__ == "__main__":

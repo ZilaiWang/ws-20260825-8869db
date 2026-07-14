@@ -5,7 +5,7 @@
 1. **领取 Issue** — 在 Gitee Issues 中确认任务。
 2. **拉取最新代码** — `git pull origin master`
 3. **创建短期分支** — `git checkout -b feat/my-task`
-4. **开发和本地测试** — `pytest` 通过后再提交。
+4. **开发和本地测试** — `compileall`、`pytest`、`ruff` 通过后再提交。
 5. **提交 PR** — push 分支，在 Gitee 创建 Pull Request。
 6. **至少一人审核** — reviewer 确认后合并。
 7. **删除分支** — 合并后删除远程和本地分支。
