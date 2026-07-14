@@ -1,0 +1,37 @@
+project:
+  name_cn: "基于不均衡小样本学习的遥感陆上小目标检测系统"
+  package_name: "rsdet"
+
+task:
+  class_names:
+    - ship
+    - aircraft
+    - vehicle
+  dataset_category_mapping: {}
+
+official_evaluation:
+  recall_min: 0.85
+  fdr_max: 0.20
+  latency_max_seconds: 20.0
+  benchmark_image_width: 10000
+  benchmark_image_height: 10000
+  reference_device: "NVIDIA RTX 3090"
+
+  iou_thresholds:
+    ship: 0.50
+    aircraft: 0.50
+    vehicle: 0.35
+
+  matching:
+    sort_predictions_by_score_descending: true
+    one_prediction_per_ground_truth: true
+    duplicate_predictions_count_as_fp: true
+
+runtime_scope:
+  exclude_image_disk_read: true
+  include_preprocess_after_read: true
+  include_tiling: true
+  include_model_inference: true
+  include_postprocess: true
+  include_coordinate_restore: true
+  include_result_serialization: true

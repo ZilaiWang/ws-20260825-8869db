@@ -1,0 +1,16 @@
+seed: 42
+device: "cuda"
+epochs: 100
+batch_size: 4
+num_workers: 4
+model: ""                 # 模型名称，需在 registry 中注册
+optimizer:
+  type: "AdamW"
+  lr: 0.0001
+  weight_decay: 0.0001
+scheduler:
+  type: "CosineAnnealingLR"
+  T_max: 100
+output_dir: "outputs/train"
+resume: null
+mixed_precision: true
