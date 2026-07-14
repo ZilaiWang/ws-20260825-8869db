@@ -71,3 +71,4 @@ dist/
 # Backups
 *.bak.*
 .Rhistory
+.DS_Store
