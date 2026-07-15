@@ -8,8 +8,10 @@
     detector = build_model("my_detector", config)
 """
 
+from collections.abc import Sequence
 from typing import Any, Dict, Type
 
+from rsdet.contracts import InferenceSample, Prediction
 from rsdet.models.base import BaseDetector
 
 _MODEL_REGISTRY: Dict[str, Type[BaseDetector]] = {}
@@ -70,15 +72,11 @@ class DummyDetector(BaseDetector):
     def load(self, checkpoint_path: str) -> None:
         self._loaded = True
 
-    def predict(self, batch: list) -> list:
-        from rsdet.contracts import Prediction
-
+    def predict(self, batch: Sequence[InferenceSample]) -> list[Prediction]:
         return [
-            Prediction(image_id=i, boxes_xyxy=[], scores=[], labels=[]) for i in range(len(batch))
+            Prediction(image_id=sample.image_id, boxes_xyxy=[], scores=[], labels=[])
+            for sample in batch
         ]
-
-    def train_step(self) -> None:
-        raise NotImplementedError("DummyDetector 不支持训练")
 
     def to(self, device: str) -> None:
         self._device = device

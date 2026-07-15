@@ -19,6 +19,7 @@ import pytest
         "rsdet.evaluation.runtime",
         "rsdet.models.base",
         "rsdet.models.registry",
+        "rsdet.predictions",
         "rsdet.postprocess.calibration",
         "rsdet.postprocess.nms",
         "rsdet.postprocess.tile_fusion",
@@ -37,12 +38,19 @@ def test_core_module_import(module_name: str) -> None:
 
 def test_contracts_and_dummy_detector() -> None:
     """公共结构和测试检测器可构建。"""
-    from rsdet.contracts import AnnotationRecord, ImageRecord, Prediction, TileRecord
+    from rsdet.contracts import (
+        AnnotationRecord,
+        ImageRecord,
+        InferenceSample,
+        Prediction,
+        TileRecord,
+    )
     from rsdet.models.base import BaseDetector
     from rsdet.models.registry import DummyDetector, build_model, list_models
 
     assert ImageRecord(1, "test.jpg", 1000, 1000).image_id == 1
     assert AnnotationRecord(1, 1, 0, [10, 10, 100, 100]).category_id == 0
+    assert InferenceSample(1, None, 1000, 1000).width == 1000
     assert Prediction(1, [], [], []).image_id == 1
     assert TileRecord(0, 1, 0, 0, 512, 512).tile_id == 0
     assert list_models()["dummy"] is DummyDetector

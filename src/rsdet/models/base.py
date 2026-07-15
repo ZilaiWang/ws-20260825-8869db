@@ -4,9 +4,9 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List
+from collections.abc import Sequence
 
-from rsdet.contracts import Prediction
+from rsdet.contracts import InferenceSample, Prediction
 
 
 class BaseDetector(ABC):
@@ -25,24 +25,17 @@ class BaseDetector(ABC):
         ...
 
     @abstractmethod
-    def predict(self, batch: list) -> List[Prediction]:
+    def predict(self, batch: Sequence[InferenceSample]) -> list[Prediction]:
         """对一批图像执行推理。
 
         Args:
-            batch: 图像数据列表，格式取决于具体实现。
+            batch: 统一推理输入。适配器可自行处理其中的图像数据类型，
+                但输出必须保留每个输入的 image_id。
 
         Returns:
             Prediction 列表，长度等于 batch 长度。
         """
         ...
-
-    @abstractmethod
-    def train_step(self) -> None:  # pragma: no cover
-        """单步训练接口（预留）。
-
-        TODO: 基线模型确定后定义具体签名。
-        """
-        raise NotImplementedError("train_step 尚未实现，待基线模型确定")
 
     @abstractmethod
     def to(self, device: str) -> None:

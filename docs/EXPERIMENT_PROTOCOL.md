@@ -1,5 +1,9 @@
 # 实验记录规范
 
+跨成员的最小输入、预测和模型 adapter 约定见
+[`INTEGRATION_CONTRACT.md`](INTEGRATION_CONTRACT.md)。不同模型不要求统一训练框架，
+但必须交付相同格式的预测和实验元数据。
+
 ## 必填字段
 
 | 字段 | 说明 |
@@ -44,3 +48,11 @@ outputs/YYYYMMDD-task-model-tag/
 ├── train.log
 └── error_cases/
 ```
+
+## 当前基线编号
+
+- `M1`：主线快速 one-stage 基线；
+- `M2`：与 M1 同系列的更高容量或更高分辨率基线；
+- `M3`：RT-DETR 类备选基线。
+
+实验 ID 示例：`E-M1-model-1024-devv1-seed42`。
