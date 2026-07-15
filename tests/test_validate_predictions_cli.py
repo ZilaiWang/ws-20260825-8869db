@@ -75,3 +75,19 @@ def test_unknown_image_id_fails(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "不在图像清单" in result.stdout + result.stderr
+
+
+def test_non_integer_gt_image_id_fails(tmp_path: Path) -> None:
+    root = Path(__file__).parent.parent
+    gt = tmp_path / "gt.json"
+    pred = tmp_path / "pred.json"
+    gt.write_text(
+        json.dumps({"images": [{"id": 11.5, "width": 100, "height": 100}]}),
+        encoding="utf-8",
+    )
+    pred.write_text("[]", encoding="utf-8")
+
+    result = _run_validator(root, pred, gt)
+
+    assert result.returncode == 1
+    assert "必须是整数" in result.stdout + result.stderr
