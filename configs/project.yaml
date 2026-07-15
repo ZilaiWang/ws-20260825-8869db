@@ -7,7 +7,7 @@ task:
     - ship
     - aircraft
     - vehicle
-  # 官方训练集 25 个细类归并为评测使用的三大类。
+  # 匹配时必须保留 25 个细类；本映射只用于选择 IoU 阈值和汇总三大类指标。
   dataset_category_mapping:
     0: ship
     1: ship
