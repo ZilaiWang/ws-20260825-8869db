@@ -136,41 +136,9 @@ B 冻结的每个 split 使用小型 JSON manifest，至少提供：
 - A 负责将最终 `Prediction` 校验并导出 COCO JSON；
 - 模型 adapter 不感知 NMS、WBF 或大图坐标策略。
 
-## 6. 实验交付目录
+## 6. 实验记录与暂缓项
 
-```text
-outputs/YYYYMMDD-task-model-tag/
-├── config.yaml
-├── meta.json
-├── metrics.json
-├── runtime.json
-├── predictions.json
-├── train.log
-└── error_cases/
-```
+实验目录、必填字段和 M1/M2/M3 编号只在
+[`EXPERIMENT_PROTOCOL.md`](EXPERIMENT_PROTOCOL.md) 中维护，本文不重复。
 
-首轮最低必须包含：
-
-- 配置或完整训练参数记录；
-- Git commit；
-- 数据版本和 split 版本；
-- 随机种子和预训练权重来源；
-- 权重路径或校验值；
-- 原始低阈值 `predictions.json`；
-- 已知问题。
-
-权重、数据和大型日志不提交 Git。
-
-## 7. 暂缓统一的内容
-
-以下内容不阻塞 B、C、D、E 开始工作：
-
-- 统一训练循环；
-- 统一优化器和数据增强实现；
-- 自动 leaderboard；
-- 25 类独立阈值校准；
-- 大图 NMS/WBF 的最终策略；
-- ONNX、TensorRT 和 INT8；
-- 最终官方 category_id 转换。
-
-这些内容在 M1 首轮预测产生后再按实际需要处理。
+当前不统一训练循环、优化器、增强实现、25 类独立阈值和部署后端；大图融合策略由 E 先完成可替换实现。上述事项不阻塞各模块开工，在 M1 首轮结果产生后再决定是否补充。

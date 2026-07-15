@@ -7,7 +7,7 @@ import pytest
 
 from rsdet.contracts import InferenceSample, Prediction
 from rsdet.engine.predictor import predict_batches
-from rsdet.models.registry import build_model_from_config
+from rsdet.models.registry import build_model
 from rsdet.predictions import (
     predictions_to_coco_records,
     validate_coco_prediction_records,
@@ -17,7 +17,7 @@ from rsdet.predictions import (
 
 
 def test_dummy_detector_preserves_input_image_ids() -> None:
-    detector = build_model_from_config("dummy")
+    detector = build_model("dummy", {})
     samples = [
         InferenceSample(image_id=101, image=None, width=640, height=480),
         InferenceSample(image_id=205, image=None, width=320, height=320),
@@ -26,15 +26,6 @@ def test_dummy_detector_preserves_input_image_ids() -> None:
     outputs = predict_batches(detector, samples, batch_size=2, allowed_category_ids=range(25))
 
     assert [output.image_id for output in outputs] == [101, 205]
-
-
-def test_model_config_mapping_can_build_registered_detector() -> None:
-    detector = build_model_from_config(
-        {"name": "dummy", "module": "rsdet.models.registry", "init_args": {}}
-    )
-    assert detector.__class__.__name__ == "DummyDetector"
-
-
 def test_prediction_to_coco_records() -> None:
     prediction = Prediction(
         image_id=7,

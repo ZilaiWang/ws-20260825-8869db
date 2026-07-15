@@ -8,8 +8,7 @@
     detector = build_model("my_detector", config)
 """
 
-import importlib
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any, Dict, Type
 
 from rsdet.contracts import InferenceSample, Prediction
@@ -57,34 +56,6 @@ def build_model(name: str, config: Dict[str, Any]) -> BaseDetector:
 def list_models() -> Dict[str, Type[BaseDetector]]:
     """返回已注册模型字典（只读副本）。"""
     return dict(_MODEL_REGISTRY)
-
-
-def build_model_from_config(model_config: str | Mapping[str, Any]) -> BaseDetector:
-    """从最小模型配置构建检测器。
-
-    为降低接入成本，配置既可以直接写注册名，也可以使用映射：
-
-    ``{"name": "my_detector", "module": "pkg.adapter", "init_args": {...}}``
-
-    ``module`` 可省略；提供时会先导入该模块，使第三方适配器完成注册。
-    本函数只构建模型，不强制统一训练、权重加载或预处理流程。
-    """
-    if isinstance(model_config, str):
-        return build_model(model_config, {})
-    if not isinstance(model_config, Mapping):
-        raise TypeError("model 配置必须是注册名字符串或映射")
-
-    module_name = model_config.get("module")
-    if module_name:
-        importlib.import_module(str(module_name))
-
-    name = model_config.get("name")
-    if not name:
-        raise ValueError("model 配置缺少 name")
-    init_args = model_config.get("init_args", {})
-    if not isinstance(init_args, Mapping):
-        raise TypeError("model.init_args 必须是映射")
-    return build_model(str(name), {"init_args": dict(init_args)})
 
 
 # -------------------- DummyDetector (仅用于测试) --------------------
