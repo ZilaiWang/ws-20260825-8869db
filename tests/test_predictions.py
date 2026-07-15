@@ -77,6 +77,14 @@ def test_prediction_image_id_must_match_input() -> None:
         validate_prediction(prediction, expected_image_id=1)
 
 
+def test_input_id_and_image_size_must_be_integers() -> None:
+    prediction = Prediction(1, [], [], [])
+    with pytest.raises(ValueError, match="expected_image_id 必须是整数"):
+        validate_prediction(prediction, expected_image_id=1.0)
+    with pytest.raises(ValueError, match="image_width 必须是整数"):
+        validate_prediction(prediction, image_size=(100.0, 100))
+
+
 def test_coco_records_can_be_checked_against_gt_image_size() -> None:
     records = [{"image_id": 3, "category_id": 0, "bbox": [10, 20, 30, 40], "score": 0.8}]
     summary = validate_coco_prediction_records(

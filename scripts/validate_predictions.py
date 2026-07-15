@@ -4,6 +4,7 @@
 import argparse
 import json
 import sys
+from numbers import Integral
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,12 @@ from rsdet.utils.config import load_config
 from rsdet.utils.logging import setup_logging
 
 logger = setup_logging(name="validate_predictions")
+
+
+def _json_int(value: Any, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        raise ValueError(f"{field_name} 必须是整数")
+    return int(value)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -44,9 +51,9 @@ def _load_image_sizes(path: Path) -> dict[int, tuple[int, int]]:
         missing = {"id", "width", "height"} - set(image)
         if missing:
             raise ValueError(f"GT images[{index}] 缺少字段: {sorted(missing)}")
-        image_id = int(image["id"])
-        width = int(image["width"])
-        height = int(image["height"])
+        image_id = _json_int(image["id"], f"GT images[{index}].id")
+        width = _json_int(image["width"], f"GT images[{index}].width")
+        height = _json_int(image["height"], f"GT images[{index}].height")
         if width <= 0 or height <= 0:
             raise ValueError(f"GT image_id={image_id} 尺寸非法: {width}x{height}")
         if image_id in image_sizes:

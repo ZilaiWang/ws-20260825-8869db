@@ -42,7 +42,7 @@ def _validate_xyxy(box: Sequence[Any], *, width: int | None, height: int | None)
         raise ValueError(f"xyxy bbox 必须满足 x2>x1 且 y2>y1，当前为 {[x1, y1, x2, y2]}")
     if x1 < 0.0 or y1 < 0.0:
         raise ValueError(f"bbox 左上角不能为负数: {[x1, y1, x2, y2]}")
-    if width is not None and (x1 < 0.0 or x2 > width):
+    if width is not None and x2 > width:
         raise ValueError(f"bbox x 坐标超出图像宽度 {width}: {[x1, y1, x2, y2]}")
     if height is not None and (y1 < 0.0 or y2 > height):
         raise ValueError(f"bbox y 坐标超出图像高度 {height}: {[x1, y1, x2, y2]}")
@@ -64,10 +64,10 @@ def validate_prediction(
     if not isinstance(prediction, Prediction):
         raise TypeError(f"模型输出必须是 Prediction，当前为 {type(prediction).__name__}")
     image_id = _as_int(prediction.image_id, "image_id")
-    if expected_image_id is not None and image_id != int(expected_image_id):
-        raise ValueError(
-            f"预测 image_id={image_id} 与输入 image_id={expected_image_id} 不一致"
-        )
+    if expected_image_id is not None:
+        expected = _as_int(expected_image_id, "expected_image_id")
+        if image_id != expected:
+            raise ValueError(f"预测 image_id={image_id} 与输入 image_id={expected} 不一致")
 
     try:
         boxes = list(prediction.boxes_xyxy)
@@ -83,7 +83,10 @@ def validate_prediction(
 
     width = height = None
     if image_size is not None:
-        width, height = image_size
+        if len(image_size) != 2:
+            raise ValueError(f"image_size 必须是 (width, height)，当前为 {image_size}")
+        width = _as_int(image_size[0], "image_width")
+        height = _as_int(image_size[1], "image_height")
         if width <= 0 or height <= 0:
             raise ValueError(f"图像尺寸必须为正数，当前为 {image_size}")
 
@@ -185,7 +188,13 @@ def validate_coco_prediction_records(
         if image_sizes is not None:
             if image_id not in image_sizes:
                 raise ValueError(f"预测第 {index} 项 image_id={image_id} 不在图像清单中")
-            width, height = image_sizes[image_id]
+            image_size = image_sizes[image_id]
+            if len(image_size) != 2:
+                raise ValueError(f"image_sizes[{image_id}] 必须是 (width, height)")
+            width = _as_int(image_size[0], f"image_sizes[{image_id}].width")
+            height = _as_int(image_size[1], f"image_sizes[{image_id}].height")
+            if width <= 0 or height <= 0:
+                raise ValueError(f"image_id={image_id} 的图像尺寸必须为正数")
 
         bbox = record["bbox"]
         if not isinstance(bbox, Sequence) or isinstance(bbox, (str, bytes)) or len(bbox) != 4:
