@@ -89,10 +89,15 @@ def _group_annotations(
     return grouped
 
 
-def _format_metrics(result: OverallMetrics) -> list[str]:
+def _format_metrics(
+    result: OverallMetrics,
+    *,
+    recall_min: float,
+    fdr_max: float,
+) -> list[str]:
     """生成简洁的指标输出。"""
-    recall_status = "PASS" if result.recall >= 0.85 else "FAIL"
-    fdr_status = "PASS" if result.fdr <= 0.20 else "FAIL"
+    recall_status = "PASS" if result.recall >= recall_min else "FAIL"
+    fdr_status = "PASS" if result.fdr <= fdr_max else "FAIL"
     lines = [
         f"Overall Recall: {result.recall:.4f} [{recall_status}]",
         f"Overall FDR:    {result.fdr:.4f} [{fdr_status}]",
@@ -116,11 +121,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         project_config = load_config(args.project_config)
         task_config = project_config["task"]
+        official_config = project_config["official_evaluation"]
         class_names = args.class_names or task_config["class_names"]
         category_mapping = {
             int(category_id): class_name
             for category_id, class_name in task_config["dataset_category_mapping"].items()
         }
+        iou_thresholds = {
+            str(class_name): float(threshold)
+            for class_name, threshold in official_config["iou_thresholds"].items()
+        }
+        recall_min = float(official_config["recall_min"])
+        fdr_max = float(official_config["fdr_max"])
         gt_boxes = _load_ground_truth(args.gt)
         pred_boxes = _load_predictions(args.pred)
         result = evaluate_predictions(
@@ -128,18 +140,24 @@ def main(argv: list[str] | None = None) -> int:
             pred_boxes,
             class_names=class_names,
             category_mapping=category_mapping,
+            iou_thresholds=iou_thresholds,
         )
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         logger.error("评估输入无效: %s", error)
         return 1
 
-    for line in _format_metrics(result):
+    for line in _format_metrics(result, recall_min=recall_min, fdr_max=fdr_max):
         logger.info(line)
 
     if args.output:
         output_data = {
             "overall_recall": result.recall,
             "overall_fdr": result.fdr,
+            "detection_gate": {
+                "recall_min": recall_min,
+                "fdr_max": fdr_max,
+                "passed": result.recall >= recall_min and result.fdr <= fdr_max,
+            },
             "details": result.details,
             "per_class": {
                 name: {

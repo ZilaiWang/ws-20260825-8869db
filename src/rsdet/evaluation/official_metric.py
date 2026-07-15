@@ -1,8 +1,9 @@
 """比赛 Recall/FDR 评估。
 
-规则：预测按分数降序贪心匹配；每个 GT 只匹配一次；重复框计为 FP。
-评估按 ship、aircraft、vehicle 三大类进行。数据集的 25 个细类必须先通过
-``category_mapping`` 归并，不能直接把细类 ID 当成三大类 ID。
+官方规则要求先在 25 个细类内完成匹配，再按 ship、aircraft、vehicle 三大类
+汇总 TP、FP、FN。预测按分数降序贪心匹配；预测与 GT 的细类 ``category_id``
+必须相同；每个 GT 只匹配一次；重复框计为 FP。三大类映射只用于选择 IoU
+阈值和汇总指标，不能在匹配前消除细类。
 """
 
 import math
@@ -69,8 +70,9 @@ def evaluate_predictions(
     pred_boxes: dict[int, list[dict[str, Any]]],
     class_names: list[str] | None = None,
     category_mapping: dict[int, str] | None = None,
+    iou_thresholds: dict[str, float] | None = None,
 ) -> OverallMetrics:
-    """按三大类计算比赛指标。
+    """按官方细类匹配规则计算并汇总比赛指标。
 
     Args:
         gt_boxes: ``{image_id: [{bbox_xyxy, category_id}, ...]}``。
@@ -78,6 +80,8 @@ def evaluate_predictions(
         class_names: 参与评估的大类，默认 ship、aircraft、vehicle。
         category_mapping: 数据集 category_id 到大类名称的映射。省略时仅接受
             ``0=ship, 1=aircraft, 2=vehicle`` 的三类输出。
+        iou_thresholds: 三大类 IoU 阈值。省略时使用官方默认值：舰船/飞机
+            0.50，车辆 0.35。
 
     Raises:
         ValueError: 类别映射缺失或包含未知大类。
@@ -86,6 +90,16 @@ def evaluate_predictions(
     unknown_names = set(names) - set(IOU_THRESHOLDS)
     if unknown_names:
         raise ValueError(f"未知评估类别: {sorted(unknown_names)}")
+
+    thresholds = dict(IOU_THRESHOLDS if iou_thresholds is None else iou_thresholds)
+    missing_thresholds = set(names) - set(thresholds)
+    if missing_thresholds:
+        raise ValueError(f"评估类别缺少 IoU 阈值: {sorted(missing_thresholds)}")
+    for name in names:
+        threshold = float(thresholds[name])
+        if not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+            raise ValueError(f"非法 IoU 阈值 {name}={threshold}")
+        thresholds[name] = threshold
 
     mapping = (
         {index: name for index, name in enumerate(names)}
@@ -109,7 +123,7 @@ def evaluate_predictions(
             normalized_gt,
             normalized_pred,
             class_name,
-            IOU_THRESHOLDS[class_name],
+            thresholds[class_name],
         )
         per_class[class_name] = PerClassMetrics(tp=tp, fp=fp, fn=fn)
         total_tp += tp
@@ -128,6 +142,9 @@ def evaluate_predictions(
             "fn": total_fn,
             "total_gt": recall_denominator,
             "total_pred": fdr_denominator,
+            "matching_policy": "same_fine_category_id",
+            "aggregation_policy": "fine_match_then_coarse_and_overall",
+            "iou_thresholds": {name: thresholds[name] for name in names},
             "empty_gt_recall_policy": 1.0,
             "empty_prediction_fdr_policy": 0.0,
         },
@@ -158,6 +175,7 @@ def _normalize_records(
                 raise ValueError(f"非法 xyxy bbox: {box}")
             normalized_item: dict[str, Any] = {
                 "bbox_xyxy": box,
+                "category_id": category_id,
                 "class_name": category_mapping[category_id],
             }
             if require_score:
@@ -175,11 +193,11 @@ def _evaluate_per_class(
     class_name: str,
     iou_threshold: float,
 ) -> tuple[int, int, int]:
-    """对一个大类执行跨图像的降序贪心匹配。"""
+    """在同一细类内匹配，并为一个大类累计 TP、FP、FN。"""
     tp = fp = fn = 0
     for image_id in set(gt_boxes) | set(pred_boxes):
         gts = [
-            item["bbox_xyxy"]
+            item
             for item in gt_boxes.get(image_id, [])
             if item["class_name"] == class_name
         ]
@@ -192,10 +210,12 @@ def _evaluate_per_class(
         for prediction in predictions:
             best_index = -1
             best_iou = -1.0
-            for index, gt_box in enumerate(gts):
+            for index, gt in enumerate(gts):
                 if matched[index]:
                     continue
-                iou = _compute_iou(prediction["bbox_xyxy"], gt_box)
+                if prediction["category_id"] != gt["category_id"]:
+                    continue
+                iou = _compute_iou(prediction["bbox_xyxy"], gt["bbox_xyxy"])
                 if iou >= iou_threshold and iou > best_iou:
                     best_iou = iou
                     best_index = index

@@ -113,8 +113,8 @@ class TestOfficialMetric:
         assert result.per_class["ship"].tp == 1
         assert result.per_class["ship"].fp == 1
 
-    def test_fine_categories_are_merged_before_scoring(self):
-        """25 细类先归并，category_id=24 使用 vehicle 的 0.35 阈值。"""
+    def test_fine_categories_are_aggregated_after_matching(self):
+        """细类分别匹配后归并，category_id=24 使用 vehicle 的 0.35 阈值。"""
         mapping = {0: "ship", 4: "aircraft", 24: "vehicle"}
         gt = {
             1: [_make_gt(1, [0, 0, 100, 100], 0)],
@@ -128,6 +128,35 @@ class TestOfficialMetric:
         assert result.per_class["ship"].tp == 1
         assert result.per_class["vehicle"].tp == 1
         assert result.details["tp"] == 2
+
+    def test_wrong_fine_category_in_same_coarse_class_is_fp_and_fn(self):
+        """框完全重合但飞机型号错误：预测为 FP，原 GT 为 FN。"""
+        mapping = {4: "aircraft", 5: "aircraft"}
+        gt = {1: [_make_gt(1, [0, 0, 100, 100], 4)]}
+        pred = {1: [_make_pred(1, [0, 0, 100, 100], 0.99, 5)]}
+
+        result = evaluate_predictions(gt, pred, ["aircraft"], category_mapping=mapping)
+
+        assert result.per_class["aircraft"].tp == 0
+        assert result.per_class["aircraft"].fp == 1
+        assert result.per_class["aircraft"].fn == 1
+        assert result.recall == 0.0
+        assert result.fdr == 1.0
+
+    def test_custom_iou_thresholds_are_applied(self):
+        """CLI 配置可把官方 IoU 阈值显式传给评估核心。"""
+        gt = {1: [_make_gt(1, [0, 0, 100, 100], 0)]}
+        pred = {1: [_make_pred(1, [25, 25, 125, 125], 0.9, 0)]}
+
+        result = evaluate_predictions(
+            gt,
+            pred,
+            ["ship"],
+            iou_thresholds={"ship": 0.35},
+        )
+
+        assert result.per_class["ship"].tp == 1
+        assert result.details["iou_thresholds"] == {"ship": 0.35}
 
     def test_missing_fine_category_mapping_fails(self):
         gt = {1: [_make_gt(1, [0, 0, 100, 100], 24)]}

@@ -11,7 +11,9 @@
 | 10000×10000 端到端推理 | ≤ 20 秒（RTX 3090） |
 | IoU | 舰船/飞机 0.50，车辆 0.35 |
 
-预测按分数降序贪心匹配，每 GT 匹配一次，重复框计为 FP。最终提交 COCO detection JSON。
+预测按分数降序贪心匹配，只有相同细类 ID 才能匹配；每个 GT 最多匹配一次，
+重复框计为 FP。匹配后按舰船、飞机、车辆汇总指标，最终提交保留 25 个细类 ID 的
+COCO detection JSON。
 
 ## 当前进度
 
@@ -48,7 +50,7 @@ pip install -e ".[dev]"
 cp configs/local.example.yaml configs/local.yaml
 
 # 2. 验证
-python -m pytest -q                        # 67 passed
+python -m pytest -q                        # 70 passed
 
 # 3. 数据检查与导出
 python scripts/check_dataset.py --data-root /path/to/data --official-train
