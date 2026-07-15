@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- 最小跨成员集成契约：模型可先用原生框架训练并交付 COCO prediction JSON
+- 框架无关的 `InferenceSample`、预测校验、COCO 序列化和批量推理编排
+- `validate_predictions.py` 预测交付校验入口
 - 项目仓库初始化
 - 数据契约定义 (contracts.py)
 - 官方评估指标实现 (official_metric.py)
@@ -18,6 +21,8 @@
 
 ### Changed
 
+- 模型 adapter 不再被要求实现统一训练步骤，只统一推理输出
+- DummyDetector 保留输入 image_id，便于在无真实模型时验证完整接口
 - 官方指标按配置把 25 个细类归并为舰船、飞机、车辆
 - 滑窗最后一行和最后一列改为完整 tile 贴边
 - README 和 Gitee 模板改为可直接执行的简明版本

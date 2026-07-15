@@ -50,6 +50,29 @@ class AnnotationRecord:
 
 
 @dataclass
+class InferenceSample:
+    """交给模型适配器的最小推理输入。
+
+    ``image`` 的具体类型由模型适配器决定，可以是 numpy 数组、PIL 图像或
+    框架张量。公共层只固定可追溯的图像 ID 和输入尺寸，避免强迫不同模型
+    使用同一种预处理实现。
+
+    Attributes:
+        image_id: 稳定图像 ID。模型输出必须原样返回该 ID。
+        image: 当前输入图像或 tile 的像素数据。
+        width: 当前输入图像或 tile 的宽度。
+        height: 当前输入图像或 tile 的高度。
+        metadata: 模型或大图流水线需要的额外信息。
+    """
+
+    image_id: int
+    image: Any
+    width: int
+    height: int
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class Prediction:
     """模型对单张图像的预测结果。
 

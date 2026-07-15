@@ -50,7 +50,7 @@ pip install -e ".[dev]"
 cp configs/local.example.yaml configs/local.yaml
 
 # 2. 验证
-python -m pytest -q                        # 70 passed
+python -m pytest -q                        # 应全部通过
 
 # 3. 数据检查与导出
 python scripts/check_dataset.py --data-root /path/to/data --official-train
@@ -59,11 +59,15 @@ python scripts/export_coco.py --data-root /path/to/data --output outputs/train_c
 # 4. 评估
 python scripts/evaluate.py --gt gt.json --pred pred.json --output outputs/metrics.json
 
-# 5. 训练 / 推理
-python scripts/train.py --config configs/train.example.yaml
-python scripts/infer.py --config configs/infer.example.yaml
-python scripts/benchmark.py --config configs/infer.example.yaml
+# 5. 模型接入
+# 训练和完整推理入口仍在接入真实基线；模型成员可先使用原生框架训练，
+# 按 docs/INTEGRATION_CONTRACT.md 交付标准 COCO prediction JSON。
+python scripts/validate_predictions.py --pred pred.json --gt gt.json
 ```
+
+模型、数据和大图模块开始协作前，先阅读
+[`docs/INTEGRATION_CONTRACT.md`](docs/INTEGRATION_CONTRACT.md)。该契约只统一交接格式，
+不强制统一各模型的训练框架。
 
 ## 使用 Gitee 协作
 
@@ -98,7 +102,7 @@ git pull origin master        # 拿到合并后的最新代码
 
 > **不要直接 push master。所有改动通过分支 + PR 合入。**
 
-阅读顺序：`README.md` → `docs/PROJECT_PLAN.md` → `docs/DEVELOPMENT_WORKFLOW.md`
+阅读顺序：`README.md` → `docs/INTEGRATION_CONTRACT.md` → `docs/EXPERIMENT_PROTOCOL.md` → `docs/DEVELOPMENT_WORKFLOW.md`
 
 ## 注意事项
 
