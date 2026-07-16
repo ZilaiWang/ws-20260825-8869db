@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- `contract_v1` / `official_eval_v1` 协议版本及其评估产物传播
+- 全局置信度阈值扫描、官方/内部/Recall 上限三个固定工作点
+- `reports/experiments/leaderboard.csv` 正式实验总表
 - 最小跨成员集成契约：模型可先用原生框架训练并交付 COCO prediction JSON
 - 框架无关的 `InferenceSample`、预测校验、COCO 序列化和批量推理编排
 - `validate_predictions.py` 预测交付校验入口
@@ -21,6 +24,10 @@
 
 ### Changed
 
+- 评估和阈值扫描共用 COCO 读取、配置解析与官方匹配实现
+- 实验记录规范与 README 增加可直接执行的阈值扫描入口
+- README 增加公共能力索引，明确可复用实现与尚未完成的骨架
+- 推理示例配置区分候选保留门槛与扫描后正式阈值
 - 模型 adapter 不再被要求实现统一训练步骤，只统一推理输出
 - DummyDetector 保留输入 image_id，便于在无真实模型时验证完整接口
 - 官方指标按配置把 25 个细类归并为舰船、飞机、车辆

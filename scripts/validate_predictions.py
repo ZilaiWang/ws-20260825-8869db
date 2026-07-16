@@ -74,6 +74,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         config = load_config(args.project_config)
+        contract_version = str(config["protocol_versions"]["contract_version"])
+        if not contract_version:
+            raise ValueError("contract_version 不能为空")
         category_mapping = config["task"]["dataset_category_mapping"]
         allowed_category_ids = {int(category_id) for category_id in category_mapping}
         records = load_coco_prediction_records(args.pred)
@@ -88,7 +91,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     logger.info(
-        "PASS: detections=%d, images=%d, categories=%d",
+        "PASS: contract=%s, detections=%d, images=%d, categories=%d",
+        contract_version,
         summary["detections"],
         summary["images_with_predictions"],
         summary["categories_with_predictions"],

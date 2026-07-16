@@ -4,12 +4,10 @@ mixed_precision: true
 tile_size: 1024
 tile_overlap: 200
 batch_size: 1
-score_thresholds:
-  ship: 0.3
-  aircraft: 0.3
-  vehicle: 0.3
+candidate_score_floor: 0.001  # 扫描前尽量保留低分候选，不是正式工作点阈值
+selected_score_threshold: null # 由 scripts/sweep_thresholds.py 选择后填写
 max_detections_per_tile: 500
 postprocess:
   nms_iou_threshold: 0.5
-  apply_calibration: false
+  threshold_stage: "post_fusion"
 output_json: "outputs/predictions.json"

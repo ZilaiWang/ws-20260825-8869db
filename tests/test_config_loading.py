@@ -63,6 +63,10 @@ class TestLoadConfig:
         config = load_config(project_cfg)
         assert config["project"]["name_cn"] != ""
         assert config["project"]["package_name"] == "rsdet"
+        assert config["protocol_versions"] == {
+            "contract_version": "contract_v1",
+            "eval_version": "official_eval_v1",
+        }
         assert len(config["task"]["class_names"]) == 3
         assert "ship" in config["task"]["class_names"]
 

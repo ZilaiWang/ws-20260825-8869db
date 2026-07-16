@@ -2,6 +2,11 @@ project:
   name_cn: "基于不均衡小样本学习的遥感陆上小目标检测系统"
   package_name: "rsdet"
 
+# 协作接口与官方评估实现的独立版本；变更规则见 docs/EXPERIMENT_PROTOCOL.md。
+protocol_versions:
+  contract_version: "contract_v1"
+  eval_version: "official_eval_v1"
+
 task:
   class_names:
     - ship

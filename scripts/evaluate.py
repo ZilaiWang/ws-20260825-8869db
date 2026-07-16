@@ -5,9 +5,10 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
 
+from rsdet.evaluation.coco import load_coco_ground_truth, load_coco_predictions
 from rsdet.evaluation.official_metric import OverallMetrics, evaluate_predictions
+from rsdet.evaluation.protocol import parse_evaluation_protocol
 from rsdet.utils.config import load_config
 from rsdet.utils.logging import setup_logging
 
@@ -33,60 +34,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", type=Path, default=None, help="评估结果 JSON")
     return parser.parse_args(argv)
-
-
-def _xywh_to_xyxy(box: list[float]) -> list[float]:
-    """把 COCO xywh 转成 xyxy。"""
-    if len(box) != 4 or box[2] < 0 or box[3] < 0:
-        raise ValueError(f"非法 COCO bbox: {box}")
-    return [box[0], box[1], box[0] + box[2], box[1] + box[3]]
-
-
-def _load_json(path: Path) -> Any:
-    """读取 JSON 文件。"""
-    with path.open("r", encoding="utf-8") as file:
-        return json.load(file)
-
-
-def _load_ground_truth(path: Path) -> dict[int, list[dict[str, Any]]]:
-    """读取标准 COCO ground truth。"""
-    data = _load_json(path)
-    if not isinstance(data, dict) or not isinstance(data.get("annotations"), list):
-        raise ValueError("GT 必须是包含 annotations 列表的 COCO JSON 对象")
-    return _group_annotations(data["annotations"], require_score=False)
-
-
-def _load_predictions(path: Path) -> dict[int, list[dict[str, Any]]]:
-    """读取标准 COCO detection list，也兼容含 annotations 的对象。"""
-    data = _load_json(path)
-    if isinstance(data, list):
-        annotations = data
-    elif isinstance(data, dict) and isinstance(data.get("annotations"), list):
-        annotations = data["annotations"]
-    else:
-        raise ValueError("预测文件必须是 COCO detection 列表或包含 annotations 的对象")
-    return _group_annotations(annotations, require_score=True)
-
-
-def _group_annotations(
-    annotations: list[dict[str, Any]],
-    *,
-    require_score: bool,
-) -> dict[int, list[dict[str, Any]]]:
-    """把 COCO 记录按 image_id 分组。"""
-    grouped: dict[int, list[dict[str, Any]]] = {}
-    for annotation in annotations:
-        image_id = int(annotation["image_id"])
-        record: dict[str, Any] = {
-            "bbox_xyxy": _xywh_to_xyxy([float(value) for value in annotation["bbox"]]),
-            "category_id": int(annotation["category_id"]),
-        }
-        if require_score:
-            if "score" not in annotation:
-                raise ValueError("预测记录缺少 score")
-            record["score"] = float(annotation["score"])
-        grouped.setdefault(image_id, []).append(record)
-    return grouped
 
 
 def _format_metrics(
@@ -120,43 +67,45 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         project_config = load_config(args.project_config)
-        task_config = project_config["task"]
-        official_config = project_config["official_evaluation"]
-        class_names = args.class_names or task_config["class_names"]
-        category_mapping = {
-            int(category_id): class_name
-            for category_id, class_name in task_config["dataset_category_mapping"].items()
-        }
-        iou_thresholds = {
-            str(class_name): float(threshold)
-            for class_name, threshold in official_config["iou_thresholds"].items()
-        }
-        recall_min = float(official_config["recall_min"])
-        fdr_max = float(official_config["fdr_max"])
-        gt_boxes = _load_ground_truth(args.gt)
-        pred_boxes = _load_predictions(args.pred)
+        protocol = parse_evaluation_protocol(
+            project_config,
+            class_names_override=args.class_names,
+        )
+        gt_boxes = load_coco_ground_truth(args.gt)
+        pred_boxes = load_coco_predictions(args.pred)
         result = evaluate_predictions(
             gt_boxes,
             pred_boxes,
-            class_names=class_names,
-            category_mapping=category_mapping,
-            iou_thresholds=iou_thresholds,
+            class_names=protocol.class_names,
+            category_mapping=protocol.category_mapping,
+            iou_thresholds=protocol.iou_thresholds,
         )
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         logger.error("评估输入无效: %s", error)
         return 1
 
-    for line in _format_metrics(result, recall_min=recall_min, fdr_max=fdr_max):
+    for line in _format_metrics(
+        result,
+        recall_min=protocol.recall_min,
+        fdr_max=protocol.fdr_max,
+    ):
         logger.info(line)
 
     if args.output:
         output_data = {
+            "protocol_versions": {
+                "contract_version": protocol.contract_version,
+                "eval_version": protocol.eval_version,
+            },
             "overall_recall": result.recall,
             "overall_fdr": result.fdr,
             "detection_gate": {
-                "recall_min": recall_min,
-                "fdr_max": fdr_max,
-                "passed": result.recall >= recall_min and result.fdr <= fdr_max,
+                "recall_min": protocol.recall_min,
+                "fdr_max": protocol.fdr_max,
+                "passed": (
+                    result.recall >= protocol.recall_min
+                    and result.fdr <= protocol.fdr_max
+                ),
             },
             "details": result.details,
             "per_class": {
