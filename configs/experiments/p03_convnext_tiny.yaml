@@ -1,0 +1,81 @@
+experiment:
+  id: "P0-3-crop-classifier-upper-bound-v1"
+  purpose: "given-object-region fine-class separability upper-bound"
+  status: "exploratory_until_formal_split_arrives"
+
+data:
+  manifest_version: "exploratory_crop_manifest_v1"
+  manifest_sha256: "f259cd33542f4bfaad8f6af31cc71a87819fe3e4fd27ebd9a8b3da5922a0e26e"
+
+model:
+  architecture: "torchvision_convnext_tiny"
+  pretrained_source: "ImageNet-1K V1"
+  num_classes: 25
+  weight_filename: "convnext_tiny-983f1562.pth"
+  weight_sha256: "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d"
+
+inputs:
+  clean_policies: ["tight", "context_1p25"]
+  resolutions: [224, 336]
+  diagnostic_policy: "jitter_light"
+  normalization: "ImageNet-1K mean/std"
+  train_augmentation:
+    - "uniform random 0/90/180/270 degree rotation"
+    - "horizontal flip p=0.5"
+    - "vertical flip p=0.5"
+  deliberately_disabled:
+    - "random resized crop"
+    - "color jitter"
+    - "mixup/cutmix"
+    - "synthetic image generation"
+
+training:
+  selection_metric: "macro_recall"
+  tie_breakers: ["macro_f1", "lower_resolution", "tight_policy"]
+  linear_probe:
+    epochs: 15
+    minimum_epochs: 8
+    lr: 0.001
+    weight_decay: 0.01
+    warmup_epochs: 1.0
+    label_smoothing: 0.0
+    grad_clip_norm: 1.0
+    early_stopping_patience: 5
+    early_stopping_min_delta: 0.0001
+  fine_tune:
+    epochs: 30
+    minimum_epochs: 12
+    backbone_lr: 0.0001
+    head_lr: 0.0005
+    weight_decay: 0.05
+    warmup_epochs: 2.0
+    label_smoothing: 0.1
+    grad_clip_norm: 1.0
+    early_stopping_patience: 8
+    early_stopping_min_delta: 0.0001
+
+sampler:
+  first_linear_probe: "natural"
+  validation: "natural"
+  sqrt_inverse:
+    exponent: 0.5
+    max_weight_ratio: 10.0
+    replacement: true
+
+runtime:
+  batch_size_224: 96
+  batch_size_336: 48
+  num_workers: 8
+  image_cache_size_per_worker: 8
+  amp: "fp16"
+  deterministic_cudnn: true
+
+reporting:
+  primary: ["macro_recall", "macro_f1"]
+  secondary: ["accuracy", "top5_accuracy", "aircraft20_macro_recall"]
+  required_diagnostics:
+    - "per-class precision/recall/F1/support"
+    - "fixed 25x25 confusion matrix"
+    - "head/middle/tail macro recall"
+    - "throughput and peak CUDA memory"
+    - "raw validation logits and crop-level predictions"

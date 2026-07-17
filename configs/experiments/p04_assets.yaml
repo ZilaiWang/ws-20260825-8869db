@@ -1,0 +1,79 @@
+experiment:
+  id: "P04-teacher-feature-probe-v1"
+  status: "exploratory_until_formal_split_arrives"
+
+data:
+  exploratory_manifest_sha256: "f259cd33542f4bfaad8f6af31cc71a87819fe3e4fd27ebd9a8b3da5922a0e26e"
+  policy: "tight"
+  canonical_resolution: 224
+  views: [r0, r90, r180, r270, flip_r0, flip_r90, flip_r180, flip_r270]
+  calibration_count: 256
+  calibration_uid_list_sha256: "d945ba9084b273373a3e9161cdf3500ffc151147ee11675e1832daae3ddf8e20"
+
+assets:
+  convnext_tiny:
+    filename: "convnext_tiny-983f1562.pth"
+    url: "https://download.pytorch.org/models/convnext_tiny-983f1562.pth"
+    sha256: "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d"
+  dinov2_vits14:
+    filename: "dinov2_vits14_pretrain.pth"
+    url: "https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_pretrain.pth"
+    size_bytes: 88283115
+    sha256: null  # P04-TASK-00 下载后写入 ASSET_LOCK.json
+  dinov2_vitb14:
+    filename: "dinov2_vitb14_pretrain.pth"
+    url: "https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_pretrain.pth"
+    size_bytes: 346378731
+    sha256: null  # P04-TASK-00 下载后写入 ASSET_LOCK.json
+  cleandift_sd15:
+    repo_id: "CompVis/cleandift"
+    revision: "bf3a8d841ebdce7e212b61e42877f8fdaed81d58"
+    filename: "cleandift_sd15_unet.safetensors"
+    sha256: "56697cc83cef762ac7ca0c8b9e749ee0abacfb426da92dc7fd5d7025ec727516"
+  stable_diffusion_v15:
+    repo_id: "stable-diffusion-v1-5/stable-diffusion-v1-5"
+    revision: "451f4fe16113bff5a5d2269ed5ad43b0592e9a14"
+    allow_patterns:
+      - "model_index.json"
+      - "README.md"
+      - "LICENSE*"
+      - "scheduler/*"
+      - "tokenizer/*"
+      - "text_encoder/*"
+      - "unet/*"
+      - "vae/*"
+
+source_repositories:
+  dinov2:
+    url: "https://github.com/facebookresearch/dinov2.git"
+    commit: "7764ea0f912e53c92e82eb78a2a1631e92725fc8"
+    license: "Apache-2.0"
+  cleandift:
+    url: "https://github.com/CompVis/cleandift.git"
+    commit: "b070976b22b125167384eed5c96be3a694468763"
+    license: "MIT"
+  dift_reference:
+    url: "https://github.com/Tsingularity/dift.git"
+    commit: "9421eb2034396c5b66f1aff37f03e540c264e52f"
+    role: "reference-only; runtime uses the audited SD1.5 port"
+
+cache:
+  storage_dtype: "float16"
+  shard_size: 2048
+  canonical_sha: "RGB size + raw canonical224 bytes"
+  resume: true
+
+probe:
+  seed: 42
+  batch_size: 96
+  epochs: 15
+  minimum_epochs: 8
+  lr: 0.001
+  weight_decay: 0.01
+  warmup_epochs: 1.0
+  patience: 5
+  min_delta: 0.0001
+  grad_clip: 1.0
+  validation_view: "r0"
+  main_normalization: "l2"
+  p03_equivalence_normalization: "none"

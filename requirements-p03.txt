@@ -1,0 +1,9 @@
+# P0-3 的非 PyTorch 依赖。PyTorch/CUDA 必须按服务器任务单单独从 cu121 源安装。
+numpy==1.26.4
+Pillow==10.4.0
+PyYAML==6.0.2
+tqdm==4.67.1
+psutil==6.1.0
+pytest==8.3.4
+ruff==0.8.6
+

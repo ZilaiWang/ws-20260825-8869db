@@ -1,0 +1,102 @@
+analysis:
+  experiment_id: "X-CROP-00-token-visibility"
+  analysis_version: "object_visibility_v1"
+  status: "exploratory"
+  description: "对象尺度与表征网格几何可见性审计"
+
+# P0-1 只计算完整目标在固定 tile canvas 缩放后的理论跨度。
+# overlap、tile 边界截断概率和端到端精度属于其他实验。
+tile_scenarios:
+  - id: "tile_640_to_640"
+    tile_size: 640
+    input_size: 640
+  - id: "tile_800_to_800"
+    tile_size: 800
+    input_size: 800
+  - id: "tile_1024_to_1024"
+    tile_size: 1024
+    input_size: 1024
+  - id: "tile_1280_to_1024"
+    tile_size: 1280
+    input_size: 1024
+  - id: "tile_1536_to_1024"
+    tile_size: 1536
+    input_size: 1024
+  - id: "tile_2048_to_1024"
+    tile_size: 2048
+    input_size: 1024
+  - id: "tile_1280_to_1280"
+    tile_size: 1280
+    input_size: 1280
+
+# crop 以 bbox 中心为中心，名义方窗边长为 context_scale * max(w, h)。
+# 超出原图部分使用 padding，不缩短方窗，且直接 resize 到方形输入。
+crop_scenarios:
+  resolutions: [224, 336]
+  context_scales: [1.0, 1.25, 1.5]
+
+# step 是原模型输入上一个 feature-grid cell / patch 的像素跨度。
+# 这些网格不等价；当具体教师确定后，需以实际抽取层更新配置。
+representations:
+  - id: "fpn_s4"
+    family: "detector_fpn"
+    step: 4
+  - id: "fpn_s8"
+    family: "detector_fpn"
+    step: 8
+  - id: "fpn_s16"
+    family: "detector_fpn"
+    step: 16
+  - id: "fpn_s32"
+    family: "detector_fpn"
+    step: 32
+  - id: "diffusion_s8"
+    family: "diffusion_candidate"
+    step: 8
+  - id: "diffusion_s16"
+    family: "diffusion_candidate"
+    step: 16
+  - id: "diffusion_s32"
+    family: "diffusion_candidate"
+    step: 32
+  - id: "diffusion_s64"
+    family: "diffusion_candidate"
+    step: 64
+  - id: "vit_p14"
+    family: "vision_transformer"
+    step: 14
+  - id: "vit_p16"
+    family: "vision_transformer"
+    step: 16
+
+primary_representations:
+  diffusion: "diffusion_s8"
+  discriminative: "vit_p14"
+
+# 按 feature-grid 短边连续跨度分档，边界固定为 <2、[2,4)、[4,8)、>=8。
+# 这是预注册的工程代理，不是准确率或模型能力定律。
+risk_thresholds:
+  severe_upper: 2.0
+  constrained_upper: 4.0
+  moderate_upper: 8.0
+
+summary:
+  percentiles: [5, 25, 50, 75, 95]
+  scopes:
+    - "all"
+    - "clean_in_bounds"
+    - "source_edge_risk"
+    - "touches_edge_in_bounds"
+    - "out_of_bounds"
+
+# 以下规则只产生后续 probe 候选，不代替 P0-3/P0-4 精度实验。
+decision_heuristics:
+  reference_tile_scenario: "tile_1280_to_1024"
+  reference_crop_scenario: "crop_224_ctx1p25"
+  high_resolution_crop_scenario: "crop_336_ctx1p25"
+  wide_context_crop_scenario: "crop_224_ctx1p5"
+  crop_preferred_lt4_reduction_pp: 20.0
+  high_resolution_ge8_gain_pp: 10.0
+  wide_context_lt4_increase_pp: 5.0
+  risky_tile_vehicle_lt2_pct: 20.0
+  risky_tile_vehicle_lt4_pct: 50.0
