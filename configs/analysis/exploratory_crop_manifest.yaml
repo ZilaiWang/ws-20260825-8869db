@@ -1,0 +1,57 @@
+manifest:
+  experiment_id: "P0-2-exploratory-crop-manifest"
+  version: "exploratory_crop_manifest_v1"
+  schema_version: "crop_manifest_v1"
+  status: "exploratory"
+  source_data_version: "official_raw_v1_audit_snapshot"
+  p0_1_evidence_id: "X-CROP-00-token-visibility"
+  target_resolutions: [224, 336]
+
+# 候选 split 来自审计阶段启发式分组，本文件不将它升级为正式划分。
+leakage_control:
+  union_estimated_source_groups: true
+  union_near_duplicate_candidates: true
+  assignment_policy: "minimum_moved_images_then_balance"
+  main_split_target_fractions:
+    train: 0.80
+    val: 0.20
+  fold_count: 3
+
+# 几何行与输出分辨率解耦：224/336 共用同一 crop window，
+# 后续 loader 在运行时直接 resize，不生成两份几何样本。
+crop_policies:
+  - id: "tight"
+    kind: "gt_square"
+    role: "gt_baseline"
+    context_scale: 1.0
+  - id: "context_1p25"
+    kind: "gt_square"
+    role: "context_probe"
+    context_scale: 1.25
+  - id: "jitter_light"
+    kind: "jittered_square"
+    role: "proposal_robustness_probe"
+    context_scale: 1.0
+    jitter:
+      algorithm: "sha256_uniform_v1"
+      global_seed: 202625
+      center_shift_fraction_max: 0.08
+      width_scale_min: 0.90
+      width_scale_max: 1.10
+      height_scale_min: 0.90
+      height_scale_max: 1.10
+
+render_contract:
+  color_mode: "RGB"
+  square_window_outside_policy: "pad"
+  preview_padding_mode: "constant_rgb_zero"
+  resize_semantics: "direct_square_resize"
+  coordinate_semantics: "continuous_float_xyxy_half_open"
+
+verification:
+  verify_all_source_files_exist: true
+  verify_all_source_sha256: true
+  generate_previews: true
+  preview_size: 160
+  preview_samples_per_class: 1
+

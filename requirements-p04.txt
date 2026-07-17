@@ -1,0 +1,18 @@
+# P04 候选冻结环境。PyTorch/CUDA 从 cu121 源单独安装。
+# P04-TASK-00 smoke 通过后，还必须保存 pip freeze 与 wheel 来源。
+numpy==1.26.4
+Pillow==10.4.0
+PyYAML==6.0.2
+tqdm==4.67.1
+psutil==6.1.0
+safetensors==0.4.5
+huggingface-hub==0.26.2
+transformers==4.46.3
+diffusers==0.32.2
+accelerate==1.1.1
+einops==0.8.0
+jaxtyping==0.2.36
+scipy==1.14.1
+scikit-learn==1.5.2
+pytest==8.3.4
+ruff==0.8.6
