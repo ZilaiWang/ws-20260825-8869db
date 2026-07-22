@@ -30,6 +30,10 @@ secrets/
 # Data — keep READMEs only
 data/*
 !data/README.md
+!data/groups/
+data/groups/*
+!data/groups/README.md
+!data/groups/*.csv
 !data/splits/
 data/splits/*
 !data/splits/README.md
@@ -72,3 +76,4 @@ dist/
 *.bak.*
 .Rhistory
 .DS_Store
+.venv-mar20-cluster/

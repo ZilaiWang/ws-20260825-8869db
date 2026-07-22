@@ -1,0 +1,74 @@
+protocol_version: mar20-source-grouping-v1.1
+seed: 202625
+
+paths:
+  competition_root: ${COMPETITION_DATA_ROOT}
+  mar20_root: ${MAR20_ROOT}
+  p04_asset_lock: ${P04_ASSET_LOCK}
+
+scope:
+  formal: target_only
+  diagnostic: full_bridge
+
+registry:
+  expected_all_images: 3842
+  expected_target_images: 3073
+  expected_bridge_images: 769
+  expected_official_train: 1331
+  expected_official_test: 2511
+  require_target_pixel_identity: true
+  require_target_class_hist_identity: true
+  automatic_strict_edge: full_rgb_pixel_sha256_only
+
+view_audit:
+  sample_count: 120
+  dilation_ratios: [0.10, 0.15, 0.20]
+  fill_methods: [blur, local_mean, telea]
+  primary_dilation: 0.15
+  primary_fill: telea
+  background_tile_size: 224
+  background_tile_stride: 112
+  background_valid_fraction: 0.95
+  max_background_tiles: 8
+  minimum_manual_valid_rate: 0.90
+  maximum_aircraft_remnant_rate: 0.05
+  maximum_inpaint_artifact_rate: 0.10
+  maximum_background_tile_aircraft: 0
+
+calibration_review:
+  unique_pair_count: 360
+  blind_duplicate_fraction: 0.08
+  minimum_repeat_agreement: 0.90
+  minimum_positive_pairs: 30
+  labels:
+    - same_frame
+    - geometric_overlap
+    - same_local_site
+    - likely_same_airport
+    - not_same_local_site
+    - different_airport
+    - uncertain
+
+descriptor_bakeoff:
+  encoder: dinov2_vitb14
+  input_size: 518
+  layer_indexing: zero_based
+  layers: [9, 10, 11]
+  aggregations: [cls, mean, signed_gem]
+  signed_gem_definition: positive_gem_minus_negative_gem
+  gem_powers: [2.0, 3.0, 4.0]
+  views: [original, masked_inpaint, background_tiles]
+  rotations: [0, 90, 180, 270]
+  k_values: [20, 50, 100]
+  heldout_recall_target_at_100: 0.95
+  minimum_heldout_positive_directions: 10
+  selection_is_provisional_until_vlad: true
+  compute_dtype: float16
+  storage_dtype: float16
+  batch_size: 16
+  shard_size: 128
+
+scientific_permissions:
+  descriptor_scores_may_create_strict_edges: false
+  likely_same_airport_may_union: false
+  bridge_images_may_enter_model_training: false
