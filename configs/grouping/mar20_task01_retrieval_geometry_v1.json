@@ -1,0 +1,43 @@
+{
+  "protocol_version": "mar20-source-grouping-v1.2",
+  "task": "MAR20-GROUPING-TASK-01",
+  "retrieval": {
+    "selected_routes": [
+      "masked_block10_vlad_k32_pca512",
+      "masked_block11_vlad_k32_pca512"
+    ],
+    "formal_k_per_route": 50,
+    "audit_k_per_route": 100,
+    "heldout_recall_gate": 0.95
+  },
+  "geometry_queue": {
+    "maximum_pairs": 6000,
+    "all_calibration_pairs_required": true
+  },
+  "patch_overlap": {
+    "dinov2_block": 11,
+    "rotation": 0,
+    "input_grid": 37,
+    "coarse_grid": 19,
+    "local_projection": "vlad_k32_localpca128",
+    "minimum_coarse_valid_fraction": 0.5
+  },
+  "sift": {
+    "maximum_image_dimension": 1024,
+    "maximum_features": 2500,
+    "ratio": 0.75,
+    "ransac_reprojection_fraction_diagonal": 0.005,
+    "ransac_repeat_count": 20
+  },
+  "review": {
+    "new_pair_count": 300,
+    "control_pair_count": 48,
+    "duplicate_fraction": 0.08,
+    "cards_per_sheet": 4
+  },
+  "automatic_union": {
+    "pixel_equivalent_only": true,
+    "geometry_never_auto_unions": true
+  },
+  "expected_terminal_status": "waiting_for_blind_pair_review"
+}
