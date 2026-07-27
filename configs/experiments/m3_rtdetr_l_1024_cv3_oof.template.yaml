@@ -1,0 +1,38 @@
+# Template only. Replace all __...__ tokens per fold before execution.
+experiment_id: "E-M3-rtdetr-l-1024-cv3-k60v2-fold__FOLD__-seed42"
+seed: 42
+output_dir: "__FOLD_OUTPUT_DIR__"
+model:
+  family: "rtdetr"
+  weights: "__OFFICIAL_RTDETR_L_PRETRAINED_PATH__"
+data:
+  root: "__DATA_ROOT__"
+  manifest: "__FOLD_SPLIT_VIEW__"
+imbalance:
+  repeat_threshold: 0.05
+  max_repeat: 3.0
+  effective_beta: 0.9999
+  max_class_weight: 5.0
+train:
+  device: "cuda:0"
+  checkpoint_selection: "last"
+  args:
+    imgsz: 1024
+    batch: 4
+    workers: 8
+    optimizer: "AdamW"
+    lr0: 0.0002
+    lrf: 0.01
+    weight_decay: 0.0001
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true
+    deterministic: true
+    patience: 0
+    val: false
+    plots: false
+  stages:
+    - name: "foundation"
+      epochs: 120
+      balanced: false
+      args: {}

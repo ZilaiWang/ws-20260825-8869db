@@ -1,5 +1,9 @@
 # MAR20 来源分组批次 A 实现与本地验收记录
 
+> 当前状态：本文是 Batch A 的阶段性实施记录；其“尚未生成正式来源组或
+> CV3”只描述当时状态。K60 和正式 CV3 v2 均已完成，当前入口见
+> [`DATA_SPLITS_MASTER_INDEX_v1.md`](DATA_SPLITS_MASTER_INDEX_v1.md)。
+
 ## 1. 批次结论
 
 批次 A 已完成 MG00 registry、MG01 背景视图审计、盲化校准 pair、DINOv2-B Round-A 描述子缓存与分析所需的代码、配置、测试、服务器任务单和 SHA 门禁。

@@ -1,14 +1,19 @@
 # P04-00 DINOv2 与扩散教师特征公平探针总纲
 
+> 2026-07-23 状态注记：本文保留 P04 开始前的预注册内容，表格中的
+> “尚未开始 GPU / 等待 B”是历史时态。P04 探索实验已经完成，正式
+> `cv3_airport_proxy_k60_v2` 也已冻结；当前复验范围和状态以
+> [`DEFERRED_WORK_REGISTER.md`](DEFERRED_WORK_REGISTER.md) 为准。
+
 ## 0. 文档状态
 
 | 项目 | 当前值 |
 | --- | --- |
 | 阶段 | P0-4 / P04 规划与预注册 |
-| 状态 | 00—04 代码与服务器任务单已实现，尚未开始 GPU 执行 |
+| 状态 | 探索 00—04 已完成；正式 CV3 v2 三教师复验已实现、待服务器执行 |
 | 上游基线 | P03 已封板：`tight-224`、ConvNeXt-Tiny、natural sampler、seed=42 |
-| 当前数据 | P0-2 `exploratory_crop_manifest_v1`，仅用于开发和探索 |
-| 正式数据 | 等待 B 交付正式同源分组；到达后必须先验收再形成正式结论 |
+| 当前数据 | P0-2 `exploratory_crop_manifest_v1`，只保留为探索历史与正式 crop 几何来源 |
+| 正式数据 | `cv3_airport_proxy_k60_v2` + `formal_crop_manifest_v2` 已冻结；正式结果只认该协议 |
 | 主问题 | DINOv2 是否优于普通 ImageNet 表征；扩散特征是否有 DINOv2 之外的独立价值 |
 | 非目标 | 不在本阶段训练完整扩散检测器，不做生成增强，不宣称端到端 Recall/FDR |
 

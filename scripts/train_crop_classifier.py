@@ -483,6 +483,46 @@ def _environment_meta(torch: Any, torchvision: Any, device: Any) -> dict[str, An
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     config = load_config(args.config)
+    if config.get("experiment", {}).get("id") == "P03-FORMAL-CV3-V2-CONVNEXT-T224":
+        formal_expected = {
+            "policy": "tight",
+            "resolution": 224,
+            "regime": "fine_tune",
+            "sampler": "natural",
+            "seed": 42,
+        }
+        formal_actual = {
+            key: getattr(args, key) for key in formal_expected
+        }
+        mismatches = {
+            key: {"expected": expected, "actual": formal_actual[key]}
+            for key, expected in formal_expected.items()
+            if formal_actual[key] != expected
+        }
+        if args.epochs not in (None, 30):
+            mismatches["epochs"] = {"expected": 30, "actual": args.epochs}
+        if args.batch_size not in (None, 96):
+            mismatches["batch_size"] = {"expected": 96, "actual": args.batch_size}
+        if args.num_workers not in (None, 8):
+            mismatches["num_workers"] = {"expected": 8, "actual": args.num_workers}
+        forbidden = {
+            "eval_only": args.eval_only,
+            # The preregistered task has a one-epoch smoke in a separate,
+            # non-reportable directory.  Overwrite remains forbidden for the
+            # three formal runs but is retained for that smoke-only path.
+            "overwrite": args.overwrite and not args.smoke,
+            "max_train_samples": args.max_train_samples is not None,
+            "max_val_samples": args.max_val_samples is not None,
+        }
+        mismatches.update(
+            {
+                key: {"expected": False, "actual": True}
+                for key, enabled in forbidden.items()
+                if enabled
+            }
+        )
+        if mismatches:
+            raise ValueError(f"P03 formal CLI 非冻结值: {mismatches}")
     manifest_sha = sha256_file(args.manifest)
     if manifest_sha != config["data"]["manifest_sha256"]:
         raise ValueError(f"manifest SHA256 与冻结配置不一致: {manifest_sha}")
@@ -521,6 +561,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     training_counts = class_counts(train_records)
 
     regime_config = config["training"][args.regime]
+    checkpoint_selection = str(
+        config["training"].get("checkpoint_selection", "best_macro_recall")
+    )
+    if checkpoint_selection not in {"best_macro_recall", "fixed_epoch_last"}:
+        raise ValueError(
+            "training.checkpoint_selection 只允许 best_macro_recall "
+            "或 fixed_epoch_last"
+        )
     epochs = int(args.epochs or regime_config["epochs"])
     batch_size = int(args.batch_size or config["runtime"][f"batch_size_{args.resolution}"])
     num_workers = int(
@@ -542,6 +590,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "num_workers": num_workers,
         "smoke": args.smoke,
         "eval_only": args.eval_only,
+        "checkpoint_selection": checkpoint_selection,
         "manifest": str(Path(args.manifest).expanduser().resolve()),
         "data_root": str(Path(args.data_root).expanduser().resolve()),
         "weights": str(Path(args.weights).expanduser().resolve()),
@@ -621,6 +670,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     best_epoch = None
     best_macro_recall = -math.inf
     best_checkpoint_path = output / "best_checkpoint.pt"
+    final_checkpoint_path = output / "final_checkpoint.pt"
+    selected_checkpoint_path = (
+        final_checkpoint_path
+        if checkpoint_selection == "fixed_epoch_last"
+        else best_checkpoint_path
+    )
 
     if not args.eval_only:
         optimizer, scheduler = _optimizer_and_scheduler(
@@ -642,44 +697,81 @@ def main(argv: Sequence[str] | None = None) -> int:
                 float(regime_config["grad_clip_norm"]),
                 args.regime,
             )
-            val_metrics, _, _, _ = _evaluate(
-                torch, model, val_loader, criterion, device, training_counts
-            )
             row = {
                 "epoch": epoch,
                 "train_loss": train_metrics["loss"],
                 "train_accuracy": train_metrics["accuracy"],
-                "val_loss": val_metrics["loss"],
-                "val_accuracy": val_metrics["accuracy"],
-                "val_macro_recall": val_metrics["macro_recall"],
-                "val_macro_f1": val_metrics["macro_f1"],
                 "lr": optimizer.param_groups[0]["lr"],
                 "train_samples_per_second": train_metrics["samples_per_second"],
-                "val_samples_per_second": val_metrics["samples_per_second"],
             }
-            history.append(row)
-            print(json.dumps(row, ensure_ascii=False), flush=True)
-            score = float(val_metrics["macro_recall"])
-            if score > best_macro_recall + float(regime_config["early_stopping_min_delta"]):
-                best_macro_recall = score
-                best_epoch = epoch
-                stale_epochs = 0
-                torch.save(
+            if checkpoint_selection == "best_macro_recall":
+                val_metrics, _, _, _ = _evaluate(
+                    torch, model, val_loader, criterion, device, training_counts
+                )
+                row.update(
                     {
-                        "model_state_dict": model.state_dict(),
-                        "resolved_config": resolved,
-                        "epoch": epoch,
-                        "selection_metric": "macro_recall",
-                        "selection_value": score,
-                    },
-                    best_checkpoint_path,
+                        "val_loss": val_metrics["loss"],
+                        "val_accuracy": val_metrics["accuracy"],
+                        "val_macro_recall": val_metrics["macro_recall"],
+                        "val_macro_f1": val_metrics["macro_f1"],
+                        "val_samples_per_second": val_metrics[
+                            "samples_per_second"
+                        ],
+                    }
                 )
             else:
-                stale_epochs += 1
-            if epoch >= int(regime_config["minimum_epochs"]) and stale_epochs >= patience:
-                break
+                row.update(
+                    {
+                        "val_loss": None,
+                        "val_accuracy": None,
+                        "val_macro_recall": None,
+                        "val_macro_f1": None,
+                        "val_samples_per_second": None,
+                    }
+                )
+            history.append(row)
+            print(json.dumps(row, ensure_ascii=False), flush=True)
+            if checkpoint_selection == "best_macro_recall":
+                score = float(val_metrics["macro_recall"])
+                if score > best_macro_recall + float(
+                    regime_config["early_stopping_min_delta"]
+                ):
+                    best_macro_recall = score
+                    best_epoch = epoch
+                    stale_epochs = 0
+                    torch.save(
+                        {
+                            "model_state_dict": model.state_dict(),
+                            "resolved_config": resolved,
+                            "epoch": epoch,
+                            "selection_metric": "macro_recall",
+                            "selection_value": score,
+                        },
+                        best_checkpoint_path,
+                    )
+                else:
+                    stale_epochs += 1
+                if (
+                    epoch >= int(regime_config["minimum_epochs"])
+                    and stale_epochs >= patience
+                ):
+                    break
+        if checkpoint_selection == "fixed_epoch_last":
+            best_epoch = epochs
+            torch.save(
+                {
+                    "model_state_dict": model.state_dict(),
+                    "resolved_config": resolved,
+                    "epoch": epochs,
+                    "selection_metric": "fixed_epoch_last",
+                    "selection_value": None,
+                },
+                final_checkpoint_path,
+            )
         _write_history(output / "history.csv", history)
-        checkpoint = torch.load(best_checkpoint_path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(
+            selected_checkpoint_path, map_location="cpu", weights_only=False
+        )
         model.load_state_dict(checkpoint["model_state_dict"], strict=True)
     else:
         best_epoch = int(checkpoint.get("epoch", 0))
@@ -723,7 +815,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         "epochs_completed": len(history) if not args.eval_only else None,
         "max_epochs": epochs if not args.eval_only else None,
         "early_stopped": len(history) < epochs if not args.eval_only else None,
-        "selection_metric": "macro_recall",
+        "checkpoint_selection": checkpoint_selection,
+        "selection_metric": (
+            "fixed_epoch_last"
+            if checkpoint_selection == "fixed_epoch_last"
+            else "macro_recall"
+        ),
         "best_during_training": best_macro_recall if math.isfinite(best_macro_recall) else None,
         "final_metrics": {
             key: final_metrics[key]
@@ -757,8 +854,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         ],
     }
     if not args.eval_only:
-        summary["artifact_contract"].extend(["history.csv", "best_checkpoint.pt"])
-        summary["best_checkpoint_sha256"] = sha256_file(best_checkpoint_path)
+        checkpoint_name = selected_checkpoint_path.name
+        summary["artifact_contract"].extend(["history.csv", checkpoint_name])
+        summary["selected_checkpoint"] = checkpoint_name
+        summary["selected_checkpoint_sha256"] = sha256_file(
+            selected_checkpoint_path
+        )
+        if checkpoint_selection == "best_macro_recall":
+            summary["best_checkpoint_sha256"] = sha256_file(
+                best_checkpoint_path
+            )
     _json_dump(output / "run_summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
     return 0

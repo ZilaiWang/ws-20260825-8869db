@@ -19,9 +19,21 @@ COCO detection JSON。
 
 - 数据契约、切片坐标、官方评估指标已建立并通过测试。
 - 数据审计完成：4481 张训练图、20933 个框，25 个细类已归并为三大评测类。
+- MAR20 飞机图已生成 60 个机场代理视觉组；单次开发划分
+  [`dev_v2_airport_proxy_k60`](data/splits/dev_v2_airport_proxy_k60.json) 和正式三折
+  [`cv3_airport_proxy_k60_v2`](data/splits/cv3_airport_proxy_k60_v2.json) 均已冻结。
+  两者用途、SHA 和完整索引见
+  [`DATA_SPLITS_MASTER_INDEX_v1.md`](reports/data/DATA_SPLITS_MASTER_INDEX_v1.md)。
 - 统一数据加载器 `XHDataset` 已集成，含 YOLO 标签解析、PyTorch 适配、COCO 导出和数据自检。详见 [`reports/data/数据集详细说明.md`](reports/data/数据集详细说明.md)。
 - 协作契约和官方评估已冻结版本；类别映射、IoU 阈值和版本号均以 [`configs/project.yaml`](configs/project.yaml) 为唯一配置源。
 - 全局阈值扫描和三个固定工作点已可用；正式实验统一登记到 [`reports/experiments/leaderboard.csv`](reports/experiments/leaderboard.csv)。
+- 正式 CV3 v2 的公共输入、检测数据字节锁、P03/P04 复验、M1/M3 OOF、
+  模型资产锁与 10K 工程代码/任务单已实现，尚待服务器运行；执行顺序与
+  证据边界统一见
+  [`CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md`](reports/experiments/CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md)。
+
+当前项目状态、分工、P 系列结论和待解锁实验统一从
+[`docs/hub/README.md`](docs/hub/README.md) 进入。旧计划和历史讨论不得替代该状态导航。
 
 ## 优先复用的公共能力
 

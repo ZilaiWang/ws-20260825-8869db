@@ -9,7 +9,9 @@ strict_component_split_count: 0
 decision: accepted_for_B_cv3
 ```
 
-本次结果已经完成机场级代理分组目标，可以交给 B 生成正式 CV3。旧的 2,882 组局部同源文件已经废弃，不能再作为 CV 分组键。
+本次结果已经完成机场级代理分组目标；该输入随后已用于生成并验收正式
+`cv3_airport_proxy_k60_v2`。旧的 2,882 组局部同源文件已经废弃，
+不能再作为 CV 分组键。
 
 本结果是“机场代理视觉域”，不是带真实机场名称的逐图机场真值。正式材料应使用 `MAR20 airport-proxy grouped CV3` 或“MAR20 机场代理来源隔离 CV3”，不得写成真实 airport-disjoint ground truth。
 
@@ -108,9 +110,14 @@ competition_image_id → group_id
 
 ## 7. 对后续 P 系列实验的影响
 
-该结果解除的是正式来源划分的核心阻塞。B 完成全数据 CV3 后可以依次放行：
+该结果解除的是正式来源划分的核心阻塞。全数据
+`cv3_airport_proxy_k60_v2` 已于 2026-07-23 完成并验收，因此下列工作
+当前已经放行：
 
 1. 在正式 CV3 上重跑 P03 的 224 工作点，校准原探索划分下约 0.97 crop 分类上限；
 2. 在同一划分上重跑 P04 的 ConvNeXt、DINO-B CLS+patch 和 CleanDIFT 关键教师，形成正式教师选择；
-3. 生成正式 OOF，继续此前等待输入的 P06-TASK-02；
+3. 生成正式 OOF；P06-TASK-02 仍只等待该四文件 OOF 输入，不再等待 CV3；
 4. 后续增强、蒸馏和模型创新统一使用同一 CV3，不再回到 MAR20 原 train/test 边界。
+
+当前入口见
+[`DATA_SPLITS_MASTER_INDEX_v1.md`](DATA_SPLITS_MASTER_INDEX_v1.md)。

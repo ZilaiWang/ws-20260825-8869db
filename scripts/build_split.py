@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""生成 dev_v1 划分 manifest（contract_v1 格式）。
+"""历史复现专用：生成 dev_v1 划分 manifest（contract_v1 格式）。
+
+警告：本脚本把 MAR20 官方列表/编号段当作旧版启发式，不能提供可靠的
+机场互斥。新实验禁止调用；开发划分使用 dev_v2，正式三折使用
+scripts/build_cv3.py。
 
 用法:
     PYTHONPATH=src python scripts/build_split.py \

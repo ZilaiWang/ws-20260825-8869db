@@ -77,3 +77,4 @@ dist/
 .Rhistory
 .DS_Store
 .venv-mar20-cluster/
+tmp/

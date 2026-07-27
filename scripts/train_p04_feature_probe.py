@@ -14,6 +14,11 @@ from typing import Any, Sequence
 
 import numpy as np
 
+from rsdet.analysis.formal_replay import (
+    fit_train_rms,
+    sha256_file,
+    validate_cache_reuse_audit,
+)
 from rsdet.data.xh_dataset import FINE_NAMES
 from rsdet.evaluation.classification import evaluate_classification
 from rsdet.features.p04_probe import (
@@ -47,7 +52,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--min-delta", type=float, default=1e-4)
     parser.add_argument("--grad-clip", type=float, default=1.0)
-    parser.add_argument("--normalization", choices=("none", "l2"), default="l2")
+    parser.add_argument(
+        "--checkpoint-selection",
+        choices=("best_macro_recall", "fixed_epoch_last"),
+        default="best_macro_recall",
+    )
+    parser.add_argument(
+        "--normalization",
+        choices=("none", "l2", "train_rms"),
+        default="l2",
+    )
     parser.add_argument("--pca-dim", type=int)
     parser.add_argument(
         "--head-init",
@@ -58,6 +72,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--allow-cache-subset",
         action="store_true",
         help="只用于 P04-3 calibration 诊断，禁止形成 formal 结论",
+    )
+    parser.add_argument(
+        "--reuse-audit",
+        help="跨 manifest 复用 cache 时必需；由 audit_p03_p04_formal_inputs.py 生成",
     )
     return parser.parse_args(argv)
 
@@ -142,6 +160,31 @@ def _write_predictions(
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.reuse_audit:
+        formal_expected = {
+            "batch_size": 96,
+            "epochs": 15,
+            "minimum_epochs": 15,
+            "lr": 1e-3,
+            "weight_decay": 0.01,
+            "warmup_epochs": 1.0,
+            "patience": 0,
+            "min_delta": 0.0,
+            "grad_clip": 1.0,
+            "checkpoint_selection": "fixed_epoch_last",
+            "normalization": "train_rms",
+            "head_init": "p04_default",
+            "policy": "tight",
+            "seed": 42,
+            "allow_cache_subset": False,
+        }
+        mismatches = {
+            key: {"expected": expected, "actual": getattr(args, key)}
+            for key, expected in formal_expected.items()
+            if getattr(args, key) != expected
+        }
+        if mismatches:
+            raise ValueError(f"P04 formal CLI 非冻结值: {mismatches}")
     if args.batch_size <= 0 or args.epochs <= 0 or args.minimum_epochs <= 0:
         raise ValueError("batch/epoch 参数必须大于 0")
     if args.minimum_epochs > args.epochs:
@@ -164,6 +207,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         manifest_path=args.manifest,
         crop_policy=args.policy,
         allow_cache_subset=args.allow_cache_subset,
+        reuse_audit_path=args.reuse_audit,
     )
     train_indices = np.flatnonzero(data.folds != args.fold)
     val_indices = np.flatnonzero(data.folds == args.fold)
@@ -178,6 +222,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     ):
         raise ValueError("训练/验证 leakage_group_id 泄漏")
 
+    reuse_audit = None
+    if args.reuse_audit:
+        reuse_audit = validate_cache_reuse_audit(
+            args.reuse_audit,
+            formal_manifest_sha256=data.manifest_sha256,
+            cache_fingerprint=data.cache_fingerprint,
+        )
+
     features = np.asarray(data.features, dtype=np.float32)
     if args.normalization == "l2":
         features = l2_normalize(features)
@@ -186,12 +238,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         pca = fit_pca_train_only(
             features[train_indices], n_components=args.pca_dim, seed=args.seed
         )
-        features = l2_normalize(transform_pca(features, pca))
+        features = transform_pca(features, pca)
+        if args.normalization == "l2":
+            features = l2_normalize(features)
         np.savez(
             output / "pca_train_only.npz",
             components=pca["components"],
             mean=pca["mean"],
             explained_variance_ratio=pca["explained_variance_ratio"],
+        )
+    train_rms = None
+    if args.normalization == "train_rms":
+        train_rms = fit_train_rms(features[train_indices])
+        features = features / np.float32(train_rms)
+        _json(
+            output / "train_rms_train_only.json",
+            {
+                "fit_scope": "train_fold_objects_all_cached_views_only",
+                "fold": args.fold,
+                "train_object_count": len(train_indices),
+                "view_count": len(data.view_ids),
+                "rms": train_rms,
+            },
         )
 
     val_view = data.view_ids.index("r0")
@@ -230,6 +298,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     best_score = -math.inf
     best_epoch = -1
     stale = 0
+    best_checkpoint_path = output / "best_checkpoint.pt"
+    final_checkpoint_path = output / "final_checkpoint.pt"
+    selected_checkpoint_path = (
+        final_checkpoint_path
+        if args.checkpoint_selection == "fixed_epoch_last"
+        else best_checkpoint_path
+    )
     started = time.perf_counter()
     for epoch in range(args.epochs):
         model.train()
@@ -265,45 +340,94 @@ def main(argv: Sequence[str] | None = None) -> int:
             scheduler.step()
             train_loss += float(loss.detach()) * len(batch)
             train_correct += int((logits.argmax(dim=1) == y).sum())
-        metrics, _, _ = _evaluate(
-            torch, model, val_x, val_y, device, amp_enabled=amp_enabled
-        )
-        score = float(metrics["macro_recall"])
-        history.append(
-            {
-                "epoch": epoch + 1,
-                "train_loss": train_loss / len(order),
-                "train_accuracy": train_correct / len(order),
-                "val_accuracy": metrics["accuracy"],
-                "val_macro_recall": score,
-                "val_macro_f1": metrics["macro_f1"],
-                "lr": optimizer.param_groups[0]["lr"],
-            }
-        )
-        if score > best_score + args.min_delta:
-            best_score = score
-            best_epoch = epoch + 1
-            stale = 0
-            torch.save(
-                {
-                    "model_state_dict": model.state_dict(),
-                    "feature_name": args.feature_name,
-                    "feature_dimension": features.shape[-1],
-                    "fold": args.fold,
-                    "seed": args.seed,
-                    "normalization": args.normalization,
-                    "pca_dim": args.pca_dim,
-                    "cache_fingerprint": data.cache_fingerprint,
-                    "manifest_sha256": data.manifest_sha256,
-                },
-                output / "best_checkpoint.pt",
+        row = {
+            "epoch": epoch + 1,
+            "train_loss": train_loss / len(order),
+            "train_accuracy": train_correct / len(order),
+            "lr": optimizer.param_groups[0]["lr"],
+        }
+        if args.checkpoint_selection == "best_macro_recall":
+            epoch_metrics, _, _ = _evaluate(
+                torch, model, val_x, val_y, device, amp_enabled=amp_enabled
             )
+            score = float(epoch_metrics["macro_recall"])
+            row.update(
+                {
+                    "val_accuracy": epoch_metrics["accuracy"],
+                    "val_macro_recall": score,
+                    "val_macro_f1": epoch_metrics["macro_f1"],
+                }
+            )
+            if score > best_score + args.min_delta:
+                best_score = score
+                best_epoch = epoch + 1
+                stale = 0
+                torch.save(
+                    {
+                        "model_state_dict": model.state_dict(),
+                        "feature_name": args.feature_name,
+                        "feature_dimension": features.shape[-1],
+                        "fold": args.fold,
+                        "seed": args.seed,
+                        "normalization": args.normalization,
+                        "pca_dim": args.pca_dim,
+                        "cache_fingerprint": data.cache_fingerprint,
+                        "manifest_sha256": data.manifest_sha256,
+                        "train_rms": train_rms,
+                        "reuse_audit_sha256": (
+                            sha256_file(args.reuse_audit)
+                            if args.reuse_audit
+                            else None
+                        ),
+                        "selection_metric": "macro_recall",
+                    },
+                    best_checkpoint_path,
+                )
+            else:
+                stale += 1
         else:
-            stale += 1
-        if epoch + 1 >= args.minimum_epochs and stale >= args.patience:
+            row.update(
+                {
+                    "val_accuracy": None,
+                    "val_macro_recall": None,
+                    "val_macro_f1": None,
+                }
+            )
+        history.append(row)
+        if (
+            args.checkpoint_selection == "best_macro_recall"
+            and epoch + 1 >= args.minimum_epochs
+            and stale >= args.patience
+        ):
             break
 
-    checkpoint = torch.load(output / "best_checkpoint.pt", map_location=device, weights_only=False)
+    if args.checkpoint_selection == "fixed_epoch_last":
+        best_epoch = args.epochs
+        torch.save(
+            {
+                "model_state_dict": model.state_dict(),
+                "feature_name": args.feature_name,
+                "feature_dimension": features.shape[-1],
+                "fold": args.fold,
+                "seed": args.seed,
+                "normalization": args.normalization,
+                "pca_dim": args.pca_dim,
+                "cache_fingerprint": data.cache_fingerprint,
+                "manifest_sha256": data.manifest_sha256,
+                "train_rms": train_rms,
+                "reuse_audit_sha256": (
+                    sha256_file(args.reuse_audit)
+                    if args.reuse_audit
+                    else None
+                ),
+                "selection_metric": "fixed_epoch_last",
+            },
+            final_checkpoint_path,
+        )
+
+    checkpoint = torch.load(
+        selected_checkpoint_path, map_location=device, weights_only=False
+    )
     model.load_state_dict(checkpoint["model_state_dict"], strict=True)
     metrics, confusion, logits = _evaluate(
         torch, model, val_x, val_y, device, amp_enabled=amp_enabled
@@ -336,7 +460,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         "seed": args.seed,
         "normalization": args.normalization,
         "pca_dim": args.pca_dim,
+        "pca_fit_scope": "train_fold_objects_all_cached_views_only"
+        if args.pca_dim
+        else None,
+        "train_rms": train_rms,
+        "normalizer_fit_scope": (
+            "train_fold_objects_all_cached_views_only"
+            if args.normalization == "train_rms"
+            else "per_vector_no_fit"
+            if args.normalization == "l2"
+            else None
+        ),
         "head_init": args.head_init,
+        "reuse_audit": reuse_audit,
         "amp": "fp16" if amp_enabled else "disabled",
         "n_train": len(train_indices),
         "n_val": len(val_indices),
@@ -345,6 +481,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "best_epoch": best_epoch,
         "completed_epochs": len(history),
         "early_stopped": len(history) < args.epochs,
+        "checkpoint_selection": args.checkpoint_selection,
+        "selection_metric": checkpoint["selection_metric"],
+        "selected_checkpoint": selected_checkpoint_path.name,
+        "selected_checkpoint_sha256": sha256_file(selected_checkpoint_path),
         "elapsed_seconds": time.perf_counter() - started,
         "metrics": {
             "macro_recall": metrics["macro_recall"],

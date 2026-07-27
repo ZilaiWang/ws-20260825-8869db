@@ -1,5 +1,9 @@
 # P0-2 探索性 crop manifest 建立与验证
 
+> 2026-07-23 状态注记：以下结论记录探索性 manifest 的原始验收，不改写
+> 当时实验事实。正式 CV3 v2 现已冻结；下一步是按 UID 生成新的
+> `formal_crop_manifest_v2`，只重挂 fold，不覆盖或重裁本 manifest。
+
 ## 1. 任务结论
 
 P0-2 已完成。本次将官方数据中 20,933 个真实对象统一表示为可复现的对象级 crop 样本，并将来源、类别、大类、模态、防泄漏分组、划分、几何窗口、jitter 参数、渲染契约和源文件校验和固化在同一 manifest 中。
@@ -247,7 +251,7 @@ P0-2 完成后，不需等待 M1 检测器或 B 正式划分就可先做：
 仍需等待上游输入才能做：
 
 - M1 OOF 预测框完成后，将 `jitter_light` 与真实 proposal crop 对照；
-- B 冻结正式同源分组后，生成 `exploratory_crop_manifest_v2` 或正式 manifest；
+- 正式 CV3 v2 已冻结，下一步生成新的 `formal_crop_manifest_v2`，只重挂 fold，不覆盖当前探索 manifest；
 - 基线检测器产出 FP 后，才能建立真实困难背景/前景拒识集；
 - 检测错误分析确认定位是主瓶颈后，才进入 bbox residual 扩散或一步修正器。
 

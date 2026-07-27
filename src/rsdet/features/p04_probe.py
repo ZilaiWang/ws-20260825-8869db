@@ -50,19 +50,26 @@ def load_probe_data(
     manifest_path: str | Path,
     crop_policy: str = "tight",
     allow_cache_subset: bool = False,
+    reuse_audit_path: str | Path | None = None,
 ) -> ProbeData:
     """以 manifest 为唯一标签/fold 真值，对齐 fold-independent cache。"""
 
     cache = FeatureCache(cache_dir)
     manifest_sha256 = sha256_file(manifest_path)
     extraction_manifest_sha256 = cache.meta.get("metadata", {}).get("manifest_sha256")
-    if (
-        extraction_manifest_sha256 is not None
-        and extraction_manifest_sha256 != manifest_sha256
-    ):
-        raise ValueError(
-            "probe manifest 与 cache 提取 manifest 不同；必须先执行 P04-TASK-05 "
-            "canonical input SHA 对齐，当前入口禁止未经证明的跨 manifest 复用"
+    if extraction_manifest_sha256 is not None and extraction_manifest_sha256 != manifest_sha256:
+        if reuse_audit_path is None:
+            raise ValueError(
+                "probe manifest 与 cache 提取 manifest 不同；必须先执行 P04-TASK-05 正式复验 "
+                "UID/crop/canonical input SHA 对齐，当前入口禁止未经证明的跨 manifest 复用"
+            )
+        # 延迟导入，普通 exploratory probe 不需要加载正式复验门禁。
+        from rsdet.analysis.formal_replay import validate_cache_reuse_audit
+
+        validate_cache_reuse_audit(
+            reuse_audit_path,
+            formal_manifest_sha256=manifest_sha256,
+            cache_fingerprint=cache.index["config_fingerprint"],
         )
     payload = cache.load_feature(feature_name)
     cache_uids = np.asarray(payload["annotation_uid"]).astype(str)

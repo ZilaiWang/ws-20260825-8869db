@@ -7,6 +7,21 @@
 本目录只提交小型汇总、消融表和结论，不提交模型权重、大型日志或完整预测。
 详细产物保存在本地 `outputs/实验ID/`，并由 leaderboard 的 `artifact_ref` 指向。
 
+跨实验状态统一查看：
+
+- [`NEXT_STAGE_TEAM_INNOVATION_EXECUTION_MASTER_v1.md`](NEXT_STAGE_TEAM_INNOVATION_EXECUTION_MASTER_v1.md)：下一阶段 A—E 共同创新的待启用总纲；在 D/M3、E/10K 和 A 的 N0 前置收尾完成前状态为 draft，不覆盖当前执行合同；
+- [`NEXT_STAGE_AFTER_M1_FORMAL_OOF_MASTER_v1.md`](NEXT_STAGE_AFTER_M1_FORMAL_OOF_MASTER_v1.md)：拿到正确 YOLO26-s 正式 OOF 后的当前执行总纲；覆盖证据补齐、P03/P04 正式复验、真实背景拒识、对象学生、M3 与 10K 的新顺序；
+- [`CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md`](CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md)：正式 CV3 后 P03/P04、M1/M3 OOF 与 10K 的统一执行总纲；
+- [`DEFERRED_WORK_REGISTER.md`](DEFERRED_WORK_REGISTER.md)：待解锁、暂缓和停止项目；
+- [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：服务器 cache、checkpoint 和回传包；
+- [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；
+- [`M1_CV3_OOF_TRAINING_RETURN_AUDIT_v1.md`](M1_CV3_OOF_TRAINING_RETURN_AUDIT_v1.md)：误用 YOLOv8-s 的首批历史诊断审计，已由 v2 取代；
+- [`docs/hub/30_p_series/README.md`](../../docs/hub/30_p_series/README.md)：P0-1 至 P07 总结。
+
+正式服务器共同前置为 `F00 → D00` 数据链与独立的 `A00` 模型资产/环境锁；
+M1/M3 必须同时通过 D00、A00，不能仅凭 split manifest 开训。任务顺序见
+[`CV3_FORMAL_STAGE_MASTER.md`](../../docs/server/CV3_FORMAL_STAGE_MASTER.md)。
+
 P03 对象 crop 分类系列按以下顺序维护：
 
 1. [`P03-00-crop-classification-master-plan.md`](P03-00-crop-classification-master-plan.md)：总纲、阶段状态和统一决策规则；
@@ -17,9 +32,9 @@ P03 对象 crop 分类系列按以下顺序维护：
 
 P03 普通 crop 分类系列已经封板。服务器任务号与报告号各自连续维护，例如 P03 阶段 5 对应服务器任务 `P03_TASK_04`；后续 DINOv2/扩散教师实验另按 P0-4/X-CROP 编号维护，不继续扩展 P03 网格。
 
-P04 教师特征实验由 [`P04-00-teacher-feature-probe-master-plan.md`](P04-00-teacher-feature-probe-master-plan.md) 统一管理。该总纲冻结 DINOv2-S/B、CleanDIFT、条件式 SatDiFuser 的角色，规定 canonical224 信息控制、D4 离线缓存、native/PCA384 双轨、formal split 门禁、互补性比较与停止条件。B 的正式同源分组到达前可以完成环境、权重、缓存、无标签稳定性和预注册 probe 通路诊断，但探索 split 不得用于淘汰教师、搜索 layer/timestep 或宣告最终优劣。
+P04 教师特征实验由 [`P04-00-teacher-feature-probe-master-plan.md`](P04-00-teacher-feature-probe-master-plan.md) 统一管理。该总纲冻结 DINOv2-S/B、CleanDIFT、条件式 SatDiFuser 的角色，规定 canonical224 信息控制、D4 离线缓存、native/PCA384 双轨、formal split 门禁、互补性比较与停止条件。探索阶段已完成；正式 CV3 v2 现已冻结，当前只按 [`DEFERRED_WORK_REGISTER.md`](DEFERRED_WORK_REGISTER.md) 复用 cache 重跑三个关键教师，探索 split 不得用于最终淘汰教师或宣告正式优劣。
 
-P04 当前服务器执行顺序固定为：
+以下五份是 **P04 探索阶段的历史执行链**，已完成且不再按原 split 重跑：
 
 1. `P04_TASK_00_ASSETS_ENV_SMOKE.md`：官方资产锁、独立环境和真实模型 smoke；
 2. `P04_TASK_01_CONVNEXT_CACHE_EQUIVALENCE.md`：ConvNeXt D4 缓存及 P03 等价门禁；
@@ -27,4 +42,11 @@ P04 当前服务器执行顺序固定为：
 4. `P04_TASK_03_DIFFUSION_CALIBRATION.md`：raw DIFT ensemble 与 CleanDIFT 无标签稳定性校准；
 5. `P04_TASK_04_CLEANDIFT_FULL_CACHE.md`：CleanDIFT 全量缓存和探索性 native/PCA384 probe。
 
-五份任务单位于 `docs/server/`，必须依次通过门禁；预先写好后续任务不表示允许跳过前置证据。
+五份历史任务单位于 `docs/server/`，用于解释服务器 cache 的来源，不是当前
+正式入口。当前正式 CV3 v2 只执行：
+
+1. [`P03-P04-FORMAL-CV3-V2-REPLAY-PLAN.md`](P03-P04-FORMAL-CV3-V2-REPLAY-PLAN.md)；
+2. `docs/server/P04_FORMAL_CV3_V2_REPLAY.md`。
+
+正式矩阵只含 ConvNeXt、DINOv2-B、CleanDIFT map0 的 native/PCA384 三折，
+任一 cache 门禁失败即停止整套 18-run 配对矩阵。

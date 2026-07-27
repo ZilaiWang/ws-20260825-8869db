@@ -562,7 +562,9 @@ competition_image_id,group_id
 /workspace/mar20-group-cache/dinov2b-task01-patch-overlap-v1/
 ```
 
-在正式 CV3 和关键 P03/P04 复跑完成前，不应主动删除服务器上的两路 VLAD-PCA cache、codebook、strict/core 输入或 K=60 结果。
+在关键 P03/P04 正式复跑完成前，不应主动删除服务器上的两路 VLAD-PCA
+cache、codebook、strict/core 输入或 K=60 结果。正式 CV3 已完成，但
+缓存复验和最终归档 SHA 尚未全部闭环。
 
 ---
 
@@ -641,20 +643,33 @@ competition_image_id,group_id
 - 完整 60 组机场代理映射；
 - 本地逐行、SHA、组规模和随机图像审计。
 
-本阶段尚未完成、且属于 B/完整 CV3 后续的事项：
+### 18.1 2026-07-23 后续状态
 
-1. 将 60 个 MAR20 组与舰船、车辆和非 MAR20 来源组统一求解三折；
-2. 冻结完整 4,481 图 CV3 及 SHA；
-3. 在正式 CV3 上重跑 P03 关键工作点和 P04 关键教师；
-4. 生成正式 OOF，解除 P06-TASK-02 的输入等待；
-5. 后续增强、蒸馏和架构实验统一使用该 CV3。
+本链最初列出的完整 CV3 前两项现已完成：
+
+1. 60 个 MAR20 K60 组已与舰船、车辆来源组统一为 255 个不可拆原子；
+2. 完整 4,481 图 `cv3_airport_proxy_k60_v2` 已冻结，manifest SHA256 为
+   `27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331`；
+3. P03/P04 正式复验已经放行，尚待执行；
+4. 正式 OOF 尚未生成，因此 P06-TASK-02 仍等待四文件输入；
+5. 后续正式实验统一引用 CV3 v2，不再等待新的 B 划分。
+
+两份划分、代码、审计和下游状态的当前入口为
+[`DATA_SPLITS_MASTER_INDEX_v1.md`](DATA_SPLITS_MASTER_INDEX_v1.md)。本节前面的
+“本阶段完成边界”保留为 K60 形成时的历史事实。
 
 只要最终材料始终使用“机场代理视觉域”这一准确名称，并保留随机审计中 2/8 异质组的边界说明，当前结果已经足以作为团队协作和后续正式评估的来源约束基础。
 
-### 18.1 已生成新的开发划分
+### 18.2 已生成新的开发划分
 
 在本链完成后，已复用 B 的 `dev_v1` 生成 [`dev_v2_airport_proxy_k60.json`](../../data/splits/dev_v2_airport_proxy_k60.json)。舰船和车辆归属完全不变，MAR20 改用60个代理组重新分配，跨 train/val 分组为0。
 
 - 给 B 的两列映射：[`mar20_airport_proxy_k60_for_b.csv`](../../data/groups/mar20_airport_proxy_k60_for_b.csv)；
 - 划分验收报告：[`MAR20_DEV_V2_AIRPORT_PROXY_K60_SPLIT_ACCEPTANCE_v1.md`](MAR20_DEV_V2_AIRPORT_PROXY_K60_SPLIT_ACCEPTANCE_v1.md)；
 - 机器审计：[`summary.json`](../../outputs/MAR20-DEV-V2-AIRPORT-PROXY-K60-v1/summary.json)。
+
+正式三折后续：
+
+- manifest：[`cv3_airport_proxy_k60_v2.json`](../../data/splits/cv3_airport_proxy_k60_v2.json)；
+- 验收：[`CV3_AIRPORT_PROXY_K60_V2_ACCEPTANCE.md`](CV3_AIRPORT_PROXY_K60_V2_ACCEPTANCE.md)；
+- 统一索引：[`DATA_SPLITS_MASTER_INDEX_v1.md`](DATA_SPLITS_MASTER_INDEX_v1.md)。

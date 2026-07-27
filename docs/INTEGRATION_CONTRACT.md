@@ -107,9 +107,9 @@ Prediction(image_id, boxes_xyxy, scores, labels)
 
 不要求 adapter 实现训练步骤，也不要求 C、D 改写现有训练代码。
 
-## 4. B 的最小 split manifest
+## 4. 数据划分 manifest
 
-B 冻结的每个 split 使用小型 JSON manifest，至少提供：
+单次开发划分使用小型 JSON manifest，至少提供：
 
 ```json
 {
@@ -128,11 +128,37 @@ B 冻结的每个 split 使用小型 JSON manifest，至少提供：
 
 - `image_id` 在该数据版本中稳定且唯一；
 - `relative_path` 相对数据根目录，不含个人绝对路径；
-- `split` 至少区分 train/val；
+- `split` 区分 train/val；
 - `group_id` 用于说明同源或近重复图像分组；
 - split 更新时必须更换版本号，不静默改变已有 ID 和成员归属。
 
-正式预测、COCO GT 和实验台账必须使用同一份 manifest 的 `image_id`。
+正式三折使用相同基础字段，但以整数 `fold` 取代 `split`：
+
+```json
+{
+  "version": "cv3_airport_proxy_k60_v2",
+  "fold_count": 3,
+  "samples": [
+    {
+      "image_id": 101,
+      "relative_path": "images/train/example.png",
+      "fold": 1,
+      "group_id": "group_001"
+    }
+  ]
+}
+```
+
+对一次训练运行，`fold == held_out_fold` 是验证集，其余两折合并为训练
+集。`fold` 必须是 `0..fold_count-1` 的整数；同一 `group_id` 的所有
+样本必须属于同一 fold；每张图在三次运行中恰好验证一次。
+
+当前入口和 SHA 统一见
+[`reports/data/DATA_SPLITS_MASTER_INDEX_v1.md`](../reports/data/DATA_SPLITS_MASTER_INDEX_v1.md)。
+`split` 与 `fold` 是两套不同用途的归属字段，不得把开发划分中的
+`split=val` 当作 CV3 的某一折，也不得在同一运行中混合两份 manifest。
+正式预测、COCO GT 和实验台账必须使用同一份 manifest 的 `image_id` 和
+manifest SHA。
 
 ## 5. E 的大图交接
 

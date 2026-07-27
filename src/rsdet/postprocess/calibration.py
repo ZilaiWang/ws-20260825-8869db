@@ -6,7 +6,7 @@
 
 import math
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_FLOOR
+from decimal import ROUND_FLOOR, Decimal
 from typing import Any
 
 from rsdet.evaluation.official_metric import OverallMetrics, evaluate_predictions

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""按文件名规律推导图像级 group_id，并输出分组统计。
+"""历史诊断脚本：按文件名规律输出初期分组统计。
+
+MAR20 在这里仍是“一图一组”的未解决占位逻辑，不能生成当前开发或
+正式划分。当前 K60 分组与 CV3 入口见 scripts/build_cv3.py。
 
 用法:
     PYTHONPATH=src python scripts/analyze_groups.py --data-root data/raw

@@ -1,0 +1,30 @@
+analysis:
+  version: m1_m3_cv3_oof_analysis_v1
+
+  # Both model aggregates and the GT derivation must close against these exact
+  # immutable upstream manifests.
+  cv3_manifest_version: cv3_airport_proxy_k60_v2
+  cv3_manifest_sha256: 27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331
+  formal_crop_manifest_version: formal_crop_manifest_v2
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  formal_crop_policy: tight
+  expected_images: 4481
+  expected_annotations: 20933
+
+  # The aggregate retains every detector candidate at this floor. Threshold
+  # selection on the same OOF labels is descriptive, never deployment-final.
+  candidate_floor: 0.001
+  threshold_grid:
+    start: 0.001
+    stop: 1.0
+    step: 0.01
+  threshold_selection_scope: same_oof_exploratory_only
+
+  # The first step is the official evaluator. All following labels are
+  # count-conserving diagnostics layered on its unmatched predictions/GT.
+  error_attribution_hierarchy:
+    - official_match
+    - FP_DUP
+    - FP_CLS
+    - FP_LOC
+    - FP_BG

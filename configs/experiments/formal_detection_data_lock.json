@@ -1,0 +1,44 @@
+{
+  "schema_version": "formal_detection_data_lock_spec_v1",
+  "cv3_manifest": {
+    "sha256": "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331",
+    "version": "cv3_airport_proxy_k60_v2",
+    "data_version": "official_raw_v1",
+    "fold_count": 3,
+    "sample_count": 4481,
+    "source_group_count": 255,
+    "fold_image_counts": [
+      1507,
+      1613,
+      1361
+    ],
+    "fold_group_counts": [
+      82,
+      95,
+      78
+    ]
+  },
+  "p02_manifest": {
+    "sha256": "f259cd33542f4bfaad8f6af31cc71a87819fe3e4fd27ebd9a8b3da5922a0e26e",
+    "row_count": 62799,
+    "annotation_count": 20933
+  },
+  "formal_crop_manifest": {
+    "sha256": "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128",
+    "row_count": 62799,
+    "annotation_count": 20933
+  },
+  "dataset": {
+    "image_prefix": "images",
+    "label_prefix": "labels",
+    "class_count": 25,
+    "object_count": 20933,
+    "crop_policies": [
+      "tight",
+      "context_1p25",
+      "jitter_light"
+    ],
+    "tight_policy": "tight",
+    "coordinate_tolerance": 5e-06
+  }
+}

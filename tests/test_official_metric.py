@@ -2,7 +2,12 @@
 
 import pytest
 
-from rsdet.evaluation.official_metric import IOU_THRESHOLDS, _compute_iou, evaluate_predictions
+from rsdet.evaluation.official_metric import (
+    IOU_THRESHOLDS,
+    _compute_iou,
+    evaluate_predictions,
+    evaluate_predictions_with_trace,
+)
 
 
 def _make_gt(image_id, bbox_xyxy, category_id=0):
@@ -162,6 +167,36 @@ class TestOfficialMetric:
         gt = {1: [_make_gt(1, [0, 0, 100, 100], 24)]}
         with pytest.raises(ValueError, match="缺少三大类映射"):
             evaluate_predictions(gt, {})
+
+    def test_trace_is_same_source_as_official_counts_and_preserves_indices(self):
+        mapping = {0: "ship", 1: "ship"}
+        gt = {
+            1: [
+                _make_gt(1, [0, 0, 10, 10], 0),
+                _make_gt(1, [20, 0, 30, 10], 1),
+            ]
+        }
+        pred = {
+            1: [
+                _make_pred(1, [0, 0, 10, 10], 0.9, 0),
+                _make_pred(1, [0, 0, 10, 10], 0.8, 0),
+            ]
+        }
+
+        metrics, trace = evaluate_predictions_with_trace(
+            gt,
+            pred,
+            ["ship"],
+            mapping,
+        )
+
+        assert len(trace.matches) == metrics.details["tp"] == 1
+        assert len(trace.unmatched_predictions) == metrics.details["fp"] == 1
+        assert len(trace.unmatched_ground_truths) == metrics.details["fn"] == 1
+        assert trace.matches[0].prediction_index == 0
+        assert trace.matches[0].ground_truth_index == 0
+        assert trace.unmatched_predictions[0].prediction_index == 1
+        assert trace.unmatched_ground_truths[0].ground_truth_index == 1
 
 
 class TestIoU:

@@ -1,0 +1,63 @@
+experiment:
+  id: "P03-FORMAL-CV3-V2-CONVNEXT-T224"
+  purpose: "formal grouped-CV3 given-object crop classification replay"
+  status: "preregistered_requires_formal_input_audit"
+
+data:
+  manifest_version: "formal_crop_manifest_v2"
+  manifest_sha256: "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128"
+  cv3_version: "cv3_airport_proxy_k60_v2"
+  cv3_manifest_sha256: "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331"
+  policy: "tight"
+  resolution: 224
+  folds: [0, 1, 2]
+
+model:
+  architecture: "torchvision_convnext_tiny"
+  pretrained_source: "ImageNet-1K V1"
+  num_classes: 25
+  weight_filename: "convnext_tiny-983f1562.pth"
+  weight_sha256: "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d"
+
+training:
+  checkpoint_selection: "fixed_epoch_last"
+  allowed_regime: "fine_tune"
+  allowed_sampler: "natural"
+  allowed_seed: 42
+  selection_metric: "fixed_epoch_last"
+  fine_tune:
+    epochs: 30
+    minimum_epochs: 30
+    backbone_lr: 0.0001
+    head_lr: 0.0005
+    weight_decay: 0.05
+    warmup_epochs: 2.0
+    label_smoothing: 0.1
+    grad_clip_norm: 1.0
+    early_stopping_patience: 0
+    early_stopping_min_delta: 0.0
+
+sampler:
+  first_linear_probe: "natural"
+  validation: "natural"
+  sqrt_inverse:
+    exponent: 0.5
+    max_weight_ratio: 10.0
+    replacement: true
+
+runtime:
+  batch_size_224: 96
+  num_workers: 8
+  image_cache_size_per_worker: 8
+  amp: "fp16"
+  deterministic_cudnn: true
+
+reporting:
+  primary: ["three_fold_macro_recall", "pooled_oof_macro_recall"]
+  secondary: ["macro_f1", "accuracy", "aircraft20_macro_recall"]
+  required:
+    - "per-fold metrics and sample standard deviation"
+    - "pooled OOF logits and fixed 25x25 confusion matrix"
+    - "TU-160 9-shot pressure-fold result"
+    - "head/middle/tail and three major classes"
+  scientific_scope: "given GT object crop; not official detection Recall/FDR"

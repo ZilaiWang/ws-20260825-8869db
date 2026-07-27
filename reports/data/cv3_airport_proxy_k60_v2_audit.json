@@ -1,0 +1,882 @@
+{
+  "status": "cv3_airport_proxy_k60_v2_ready",
+  "formal_cv3_admission": true,
+  "version": "cv3_airport_proxy_k60_v2",
+  "protocol": "k60_immutable_hard_coverage_frozen_assignment_v1",
+  "manifest": "data/splits/cv3_airport_proxy_k60_v2.json",
+  "manifest_sha256": "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331",
+  "airport_group_map_sha256": "3cd2fdb1db0b95ec3069db569fe56019942b9760a3a261f44800164135256f00",
+  "frozen_assignment_sha256": "5b87536cd49eb1ebcb79a0d1bc539a623d07c19557e07a082954cdb793ce2033",
+  "group_statistics_sha256": "086bf5c6e0e1e09baef2c29acec847c8c3707872b5a7ff1065cc6185b332b9f7",
+  "label_set_sha256": "4fdc9beae2a6b0c860b496579315fc1de822961e2e3d9a03cd97209a84481a82",
+  "assignment_metadata": {
+    "version": "cv3_airport_proxy_k60_v2_group_assignment_v1",
+    "protocol": "hard_coverage_grouped_milp_reviewed_and_frozen_v1",
+    "seed": 202625,
+    "fold_count": 3,
+    "group_statistics_sha256": "086bf5c6e0e1e09baef2c29acec847c8c3707872b5a7ff1065cc6185b332b9f7",
+    "solver": {
+      "family": "mixed_integer_linear_program",
+      "hard_constraints": [
+        "one_fold_per_source_group",
+        "every_class_has_at_least_one_source_group_per_fold",
+        "class_specific_minimum_train_boxes",
+        "tu160_groups_018_019_020_are_all_different"
+      ],
+      "selection": "reviewed feasible solution frozen for cross-environment reproducibility"
+    }
+  },
+  "legacy_near_duplicate_audit": {
+    "policy": "audit_only_never_merge_k60",
+    "path": "reports/data/near_duplicates_mar20.json",
+    "sha256": "c0f915a4c632240d26a60622fc59dd56af987b9675d11cdaaa750511a8dfa957",
+    "candidate_groups": 7,
+    "cross_k60_candidate_groups": 4,
+    "cross_k60_candidates": [
+      {
+        "stems": [
+          "MAR20_1570",
+          "MAR20_3258",
+          "MAR20_366"
+        ],
+        "k60_group_ids": [
+          "mar20-airport-proxy-018",
+          "mar20-airport-proxy-035",
+          "mar20-airport-proxy-040"
+        ]
+      },
+      {
+        "stems": [
+          "MAR20_198",
+          "MAR20_2124",
+          "MAR20_3698"
+        ],
+        "k60_group_ids": [
+          "mar20-airport-proxy-002",
+          "mar20-airport-proxy-018",
+          "mar20-airport-proxy-020"
+        ]
+      },
+      {
+        "stems": [
+          "MAR20_1046",
+          "MAR20_2507"
+        ],
+        "k60_group_ids": [
+          "mar20-airport-proxy-012",
+          "mar20-airport-proxy-040"
+        ]
+      },
+      {
+        "stems": [
+          "MAR20_1836",
+          "MAR20_890"
+        ],
+        "k60_group_ids": [
+          "mar20-airport-proxy-054",
+          "mar20-airport-proxy-057"
+        ]
+      }
+    ]
+  },
+  "scientific_audit": {
+    "status": "pass",
+    "formal_cv3_admission": true,
+    "hard_gate_violations": [],
+    "warnings": [
+      "A6_TU-160: validation box share is group-dominated (0.975)",
+      "A7_E-3: validation box share is group-dominated (0.709)",
+      "A8_B-52: validation box share is group-dominated (0.648)",
+      "A17_TU-95: at least one fold has only one source group"
+    ],
+    "sample_count": 4481,
+    "source_group_count": 255,
+    "fold_image_counts": [
+      1507,
+      1613,
+      1361
+    ],
+    "fold_box_counts": [
+      7350,
+      7179,
+      6404
+    ],
+    "fold_group_counts": [
+      82,
+      95,
+      78
+    ],
+    "fold_coarse_image_counts": [
+      {
+        "aircraft": 1031,
+        "ship": 454,
+        "vehicle": 22
+      },
+      {
+        "aircraft": 1142,
+        "ship": 448,
+        "vehicle": 23
+      },
+      {
+        "aircraft": 900,
+        "ship": 439,
+        "vehicle": 22
+      }
+    ],
+    "group_cross_fold_count": 0,
+    "mar20_image_count": 3073,
+    "mar20_group_count": 60,
+    "k60_mapping_mismatch_count": 0,
+    "per_class": [
+      {
+        "class_id": 0,
+        "class_name": "HM",
+        "total_boxes": 17,
+        "source_group_count": 11,
+        "minimum_train_boxes": 11,
+        "val_boxes": [
+          6,
+          6,
+          5
+        ],
+        "val_images": [
+          4,
+          6,
+          5
+        ],
+        "val_groups": [
+          3,
+          4,
+          4
+        ],
+        "train_boxes": [
+          11,
+          11,
+          12
+        ],
+        "minimum_observed_train_boxes": 11,
+        "largest_validation_box_share": 0.35294117647058826
+      },
+      {
+        "class_id": 1,
+        "class_name": "LQS",
+        "total_boxes": 30,
+        "source_group_count": 15,
+        "minimum_train_boxes": 20,
+        "val_boxes": [
+          10,
+          10,
+          10
+        ],
+        "val_images": [
+          9,
+          8,
+          8
+        ],
+        "val_groups": [
+          5,
+          5,
+          5
+        ],
+        "train_boxes": [
+          20,
+          20,
+          20
+        ],
+        "minimum_observed_train_boxes": 20,
+        "largest_validation_box_share": 0.3333333333333333
+      },
+      {
+        "class_id": 2,
+        "class_name": "QHS",
+        "total_boxes": 641,
+        "source_group_count": 55,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          216,
+          209,
+          216
+        ],
+        "val_images": [
+          76,
+          67,
+          61
+        ],
+        "val_groups": [
+          19,
+          19,
+          17
+        ],
+        "train_boxes": [
+          425,
+          432,
+          425
+        ],
+        "minimum_observed_train_boxes": 425,
+        "largest_validation_box_share": 0.3369734789391576
+      },
+      {
+        "class_id": 3,
+        "class_name": "MS",
+        "total_boxes": 1994,
+        "source_group_count": 167,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          673,
+          640,
+          681
+        ],
+        "val_images": [
+          399,
+          395,
+          394
+        ],
+        "val_groups": [
+          55,
+          62,
+          50
+        ],
+        "train_boxes": [
+          1321,
+          1354,
+          1313
+        ],
+        "minimum_observed_train_boxes": 1313,
+        "largest_validation_box_share": 0.3415245737211635
+      },
+      {
+        "class_id": 4,
+        "class_name": "A1_SU-35",
+        "total_boxes": 1317,
+        "source_group_count": 18,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          396,
+          496,
+          425
+        ],
+        "val_images": [
+          100,
+          98,
+          80
+        ],
+        "val_groups": [
+          6,
+          7,
+          5
+        ],
+        "train_boxes": [
+          921,
+          821,
+          892
+        ],
+        "minimum_observed_train_boxes": 821,
+        "largest_validation_box_share": 0.37661351556567957
+      },
+      {
+        "class_id": 5,
+        "class_name": "A2_C-130",
+        "total_boxes": 1297,
+        "source_group_count": 32,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          448,
+          223,
+          626
+        ],
+        "val_images": [
+          132,
+          85,
+          71
+        ],
+        "val_groups": [
+          11,
+          13,
+          8
+        ],
+        "train_boxes": [
+          849,
+          1074,
+          671
+        ],
+        "minimum_observed_train_boxes": 671,
+        "largest_validation_box_share": 0.4826522744795682
+      },
+      {
+        "class_id": 6,
+        "class_name": "A3_C-17",
+        "total_boxes": 998,
+        "source_group_count": 28,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          320,
+          427,
+          251
+        ],
+        "val_images": [
+          78,
+          101,
+          78
+        ],
+        "val_groups": [
+          10,
+          9,
+          9
+        ],
+        "train_boxes": [
+          678,
+          571,
+          747
+        ],
+        "minimum_observed_train_boxes": 571,
+        "largest_validation_box_share": 0.4278557114228457
+      },
+      {
+        "class_id": 7,
+        "class_name": "A4_C-5",
+        "total_boxes": 500,
+        "source_group_count": 11,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          166,
+          169,
+          165
+        ],
+        "val_images": [
+          39,
+          45,
+          32
+        ],
+        "val_groups": [
+          6,
+          2,
+          3
+        ],
+        "train_boxes": [
+          334,
+          331,
+          335
+        ],
+        "minimum_observed_train_boxes": 331,
+        "largest_validation_box_share": 0.338
+      },
+      {
+        "class_id": 8,
+        "class_name": "A5_F-16",
+        "total_boxes": 1017,
+        "source_group_count": 17,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          385,
+          289,
+          343
+        ],
+        "val_images": [
+          59,
+          81,
+          100
+        ],
+        "val_groups": [
+          4,
+          7,
+          6
+        ],
+        "train_boxes": [
+          632,
+          728,
+          674
+        ],
+        "minimum_observed_train_boxes": 632,
+        "largest_validation_box_share": 0.3785644051130777
+      },
+      {
+        "class_id": 9,
+        "class_name": "A6_TU-160",
+        "total_boxes": 361,
+        "source_group_count": 3,
+        "minimum_train_boxes": 9,
+        "val_boxes": [
+          352,
+          8,
+          1
+        ],
+        "val_images": [
+          81,
+          4,
+          1
+        ],
+        "val_groups": [
+          1,
+          1,
+          1
+        ],
+        "train_boxes": [
+          9,
+          353,
+          360
+        ],
+        "minimum_observed_train_boxes": 9,
+        "largest_validation_box_share": 0.9750692520775623
+      },
+      {
+        "class_id": 10,
+        "class_name": "A7_E-3",
+        "total_boxes": 547,
+        "source_group_count": 14,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          388,
+          33,
+          126
+        ],
+        "val_images": [
+          86,
+          15,
+          56
+        ],
+        "val_groups": [
+          3,
+          4,
+          7
+        ],
+        "train_boxes": [
+          159,
+          514,
+          421
+        ],
+        "minimum_observed_train_boxes": 159,
+        "largest_validation_box_share": 0.7093235831809872
+      },
+      {
+        "class_id": 11,
+        "class_name": "A8_B-52",
+        "total_boxes": 750,
+        "source_group_count": 13,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          136,
+          486,
+          128
+        ],
+        "val_images": [
+          51,
+          87,
+          27
+        ],
+        "val_groups": [
+          3,
+          5,
+          5
+        ],
+        "train_boxes": [
+          614,
+          264,
+          622
+        ],
+        "minimum_observed_train_boxes": 264,
+        "largest_validation_box_share": 0.648
+      },
+      {
+        "class_id": 12,
+        "class_name": "A9_P-3C",
+        "total_boxes": 895,
+        "source_group_count": 16,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          304,
+          254,
+          337
+        ],
+        "val_images": [
+          76,
+          72,
+          40
+        ],
+        "val_groups": [
+          5,
+          6,
+          5
+        ],
+        "train_boxes": [
+          591,
+          641,
+          558
+        ],
+        "minimum_observed_train_boxes": 558,
+        "largest_validation_box_share": 0.376536312849162
+      },
+      {
+        "class_id": 13,
+        "class_name": "A10_B-1B",
+        "total_boxes": 762,
+        "source_group_count": 10,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          119,
+          378,
+          265
+        ],
+        "val_images": [
+          48,
+          68,
+          41
+        ],
+        "val_groups": [
+          3,
+          4,
+          3
+        ],
+        "train_boxes": [
+          643,
+          384,
+          497
+        ],
+        "minimum_observed_train_boxes": 384,
+        "largest_validation_box_share": 0.49606299212598426
+      },
+      {
+        "class_id": 14,
+        "class_name": "A11_E-8",
+        "total_boxes": 432,
+        "source_group_count": 23,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          147,
+          139,
+          146
+        ],
+        "val_images": [
+          41,
+          35,
+          79
+        ],
+        "val_groups": [
+          6,
+          7,
+          10
+        ],
+        "train_boxes": [
+          285,
+          293,
+          286
+        ],
+        "minimum_observed_train_boxes": 285,
+        "largest_validation_box_share": 0.3402777777777778
+      },
+      {
+        "class_id": 15,
+        "class_name": "A12_TU-22",
+        "total_boxes": 583,
+        "source_group_count": 11,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          143,
+          212,
+          228
+        ],
+        "val_images": [
+          50,
+          63,
+          74
+        ],
+        "val_groups": [
+          4,
+          3,
+          4
+        ],
+        "train_boxes": [
+          440,
+          371,
+          355
+        ],
+        "minimum_observed_train_boxes": 355,
+        "largest_validation_box_share": 0.3910806174957118
+      },
+      {
+        "class_id": 16,
+        "class_name": "A13_F-15",
+        "total_boxes": 1265,
+        "source_group_count": 19,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          434,
+          404,
+          427
+        ],
+        "val_images": [
+          65,
+          84,
+          62
+        ],
+        "val_groups": [
+          4,
+          8,
+          7
+        ],
+        "train_boxes": [
+          831,
+          861,
+          838
+        ],
+        "minimum_observed_train_boxes": 831,
+        "largest_validation_box_share": 0.3430830039525692
+      },
+      {
+        "class_id": 17,
+        "class_name": "A14_KC-135",
+        "total_boxes": 1424,
+        "source_group_count": 31,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          474,
+          448,
+          502
+        ],
+        "val_images": [
+          135,
+          105,
+          118
+        ],
+        "val_groups": [
+          13,
+          8,
+          10
+        ],
+        "train_boxes": [
+          950,
+          976,
+          922
+        ],
+        "minimum_observed_train_boxes": 922,
+        "largest_validation_box_share": 0.35252808988764045
+      },
+      {
+        "class_id": 18,
+        "class_name": "A15_F-22",
+        "total_boxes": 493,
+        "source_group_count": 14,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          129,
+          131,
+          233
+        ],
+        "val_images": [
+          32,
+          35,
+          47
+        ],
+        "val_groups": [
+          4,
+          5,
+          5
+        ],
+        "train_boxes": [
+          364,
+          362,
+          260
+        ],
+        "minimum_observed_train_boxes": 260,
+        "largest_validation_box_share": 0.4726166328600406
+      },
+      {
+        "class_id": 19,
+        "class_name": "A16_FA-18",
+        "total_boxes": 2147,
+        "source_group_count": 20,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          921,
+          1001,
+          225
+        ],
+        "val_images": [
+          90,
+          119,
+          32
+        ],
+        "val_groups": [
+          6,
+          7,
+          7
+        ],
+        "train_boxes": [
+          1226,
+          1146,
+          1922
+        ],
+        "minimum_observed_train_boxes": 1146,
+        "largest_validation_box_share": 0.4662319515603167
+      },
+      {
+        "class_id": 20,
+        "class_name": "A17_TU-95",
+        "total_boxes": 1114,
+        "source_group_count": 8,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          505,
+          345,
+          264
+        ],
+        "val_images": [
+          111,
+          103,
+          85
+        ],
+        "val_groups": [
+          3,
+          4,
+          1
+        ],
+        "train_boxes": [
+          609,
+          769,
+          850
+        ],
+        "minimum_observed_train_boxes": 609,
+        "largest_validation_box_share": 0.4533213644524237
+      },
+      {
+        "class_id": 21,
+        "class_name": "A18_KC-10",
+        "total_boxes": 262,
+        "source_group_count": 16,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          108,
+          120,
+          34
+        ],
+        "val_images": [
+          34,
+          30,
+          18
+        ],
+        "val_groups": [
+          6,
+          4,
+          6
+        ],
+        "train_boxes": [
+          154,
+          142,
+          228
+        ],
+        "minimum_observed_train_boxes": 142,
+        "largest_validation_box_share": 0.4580152671755725
+      },
+      {
+        "class_id": 22,
+        "class_name": "A19_SU-34",
+        "total_boxes": 933,
+        "source_group_count": 15,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          242,
+          307,
+          384
+        ],
+        "val_images": [
+          59,
+          119,
+          103
+        ],
+        "val_groups": [
+          4,
+          6,
+          5
+        ],
+        "train_boxes": [
+          691,
+          626,
+          549
+        ],
+        "minimum_observed_train_boxes": 549,
+        "largest_validation_box_share": 0.4115755627009646
+      },
+      {
+        "class_id": 23,
+        "class_name": "A20_SU-24",
+        "total_boxes": 752,
+        "source_group_count": 16,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          195,
+          310,
+          247
+        ],
+        "val_images": [
+          49,
+          100,
+          51
+        ],
+        "val_groups": [
+          5,
+          6,
+          5
+        ],
+        "train_boxes": [
+          557,
+          442,
+          505
+        ],
+        "minimum_observed_train_boxes": 442,
+        "largest_validation_box_share": 0.4122340425531915
+      },
+      {
+        "class_id": 24,
+        "class_name": "FSC",
+        "total_boxes": 402,
+        "source_group_count": 21,
+        "minimum_train_boxes": 30,
+        "val_boxes": [
+          133,
+          134,
+          135
+        ],
+        "val_images": [
+          22,
+          23,
+          22
+        ],
+        "val_groups": [
+          7,
+          7,
+          7
+        ],
+        "train_boxes": [
+          269,
+          268,
+          267
+        ],
+        "minimum_observed_train_boxes": 267,
+        "largest_validation_box_share": 0.3358208955223881
+      }
+    ],
+    "tu160_stress_fold": {
+      "group_boxes": {
+        "mar20-airport-proxy-018": 352,
+        "mar20-airport-proxy-019": 1,
+        "mar20-airport-proxy-020": 8
+      },
+      "group_folds": {
+        "mar20-airport-proxy-018": 0,
+        "mar20-airport-proxy-019": 2,
+        "mar20-airport-proxy-020": 1
+      },
+      "val_boxes": [
+        352,
+        8,
+        1
+      ],
+      "train_boxes": [
+        9,
+        353,
+        360
+      ],
+      "minimum_train_boxes": 9,
+      "interpretation": "The 9-box training fold is an unavoidable grouped stress fold, not an optimization failure."
+    }
+  }
+}

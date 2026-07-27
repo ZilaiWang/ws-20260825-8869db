@@ -48,7 +48,55 @@ class OverallMetrics:
     details: dict[str, Any] = field(default_factory=dict)
 
 
-def _compute_iou(box_a: list[float], box_b: list[float]) -> float:
+@dataclass(frozen=True)
+class OfficialMatch:
+    """一次官方贪心匹配及其原始列表位置。
+
+    ``prediction_index`` 和 ``ground_truth_index`` 都是对应 ``image_id``
+    下输入列表中的零基下标。它们让诊断模块能够复用同一套官方匹配，而
+    不必重新实现或猜测匹配归属。
+    """
+
+    image_id: int
+    class_name: str
+    category_id: int
+    prediction_index: int
+    ground_truth_index: int
+    score: float
+    iou: float
+
+
+@dataclass(frozen=True)
+class OfficialUnmatchedPrediction:
+    """官方匹配后仍未命中的一条预测。"""
+
+    image_id: int
+    class_name: str
+    category_id: int
+    prediction_index: int
+    score: float
+
+
+@dataclass(frozen=True)
+class OfficialUnmatchedGroundTruth:
+    """官方匹配后仍未命中的一条 GT。"""
+
+    image_id: int
+    class_name: str
+    category_id: int
+    ground_truth_index: int
+
+
+@dataclass(frozen=True)
+class OfficialEvaluationTrace:
+    """与 ``OverallMetrics`` 同源的逐对象官方匹配轨迹。"""
+
+    matches: tuple[OfficialMatch, ...]
+    unmatched_predictions: tuple[OfficialUnmatchedPrediction, ...]
+    unmatched_ground_truths: tuple[OfficialUnmatchedGroundTruth, ...]
+
+
+def compute_iou(box_a: list[float], box_b: list[float]) -> float:
     """计算两个 xyxy 像素框的 IoU。"""
     if len(box_a) != 4 or len(box_b) != 4:
         raise ValueError("bbox 必须包含 4 个数值")
@@ -63,6 +111,12 @@ def _compute_iou(box_a: list[float], box_b: list[float]) -> float:
     area_b = max(0.0, box_b[2] - box_b[0]) * max(0.0, box_b[3] - box_b[1])
     union = area_a + area_b - inter_area
     return inter_area / union if union > 0 else 0.0
+
+
+def _compute_iou(box_a: list[float], box_b: list[float]) -> float:
+    """兼容旧内部调用；新诊断代码应使用公开 ``compute_iou``。"""
+
+    return compute_iou(box_a, box_b)
 
 
 def evaluate_predictions(
@@ -86,6 +140,29 @@ def evaluate_predictions(
     Raises:
         ValueError: 类别映射缺失或包含未知大类。
     """
+    result, _ = evaluate_predictions_with_trace(
+        gt_boxes,
+        pred_boxes,
+        class_names=class_names,
+        category_mapping=category_mapping,
+        iou_thresholds=iou_thresholds,
+    )
+    return result
+
+
+def evaluate_predictions_with_trace(
+    gt_boxes: dict[int, list[dict[str, Any]]],
+    pred_boxes: dict[int, list[dict[str, Any]]],
+    class_names: list[str] | None = None,
+    category_mapping: dict[int, str] | None = None,
+    iou_thresholds: dict[str, float] | None = None,
+) -> tuple[OverallMetrics, OfficialEvaluationTrace]:
+    """计算官方指标并返回完全同源的逐对象匹配轨迹。
+
+    该函数与 :func:`evaluate_predictions` 使用相同的细类约束、分数降序、
+    一对一贪心和 IoU 阈值。轨迹仅增加可审计性，不改变官方指标。
+    """
+
     names = class_names or list(IOU_THRESHOLDS)
     unknown_names = set(names) - set(IOU_THRESHOLDS)
     if unknown_names:
@@ -117,22 +194,35 @@ def evaluate_predictions(
     normalized_pred = _normalize_records(pred_boxes, normalized_mapping, require_score=True)
 
     per_class: dict[str, PerClassMetrics] = {}
+    all_matches: list[OfficialMatch] = []
+    all_unmatched_predictions: list[OfficialUnmatchedPrediction] = []
+    all_unmatched_ground_truths: list[OfficialUnmatchedGroundTruth] = []
     total_tp = total_fp = total_fn = 0
     for class_name in names:
-        tp, fp, fn = _evaluate_per_class(
+        (
+            matches,
+            unmatched_predictions,
+            unmatched_ground_truths,
+        ) = _evaluate_per_class_with_trace(
             normalized_gt,
             normalized_pred,
             class_name,
             thresholds[class_name],
         )
+        tp = len(matches)
+        fp = len(unmatched_predictions)
+        fn = len(unmatched_ground_truths)
         per_class[class_name] = PerClassMetrics(tp=tp, fp=fp, fn=fn)
+        all_matches.extend(matches)
+        all_unmatched_predictions.extend(unmatched_predictions)
+        all_unmatched_ground_truths.extend(unmatched_ground_truths)
         total_tp += tp
         total_fp += fp
         total_fn += fn
 
     recall_denominator = total_tp + total_fn
     fdr_denominator = total_tp + total_fp
-    return OverallMetrics(
+    result = OverallMetrics(
         recall=total_tp / recall_denominator if recall_denominator else 1.0,
         fdr=total_fp / fdr_denominator if fdr_denominator else 0.0,
         per_class=per_class,
@@ -149,6 +239,12 @@ def evaluate_predictions(
             "empty_prediction_fdr_policy": 0.0,
         },
     )
+    trace = OfficialEvaluationTrace(
+        matches=tuple(all_matches),
+        unmatched_predictions=tuple(all_unmatched_predictions),
+        unmatched_ground_truths=tuple(all_unmatched_ground_truths),
+    )
+    return result, trace
 
 
 def _normalize_records(
@@ -161,7 +257,7 @@ def _normalize_records(
     normalized: dict[int, list[dict[str, Any]]] = {}
     for image_id, items in records.items():
         normalized[image_id] = []
-        for item in items:
+        for source_index, item in enumerate(items):
             category_id = int(item["category_id"])
             if category_id not in category_mapping:
                 raise ValueError(f"category_id={category_id} 缺少三大类映射")
@@ -177,6 +273,7 @@ def _normalize_records(
                 "bbox_xyxy": box,
                 "category_id": category_id,
                 "class_name": category_mapping[category_id],
+                "source_index": source_index,
             }
             if require_score:
                 score = float(item["score"])
@@ -194,8 +291,33 @@ def _evaluate_per_class(
     iou_threshold: float,
 ) -> tuple[int, int, int]:
     """在同一细类内匹配，并为一个大类累计 TP、FP、FN。"""
-    tp = fp = fn = 0
-    for image_id in set(gt_boxes) | set(pred_boxes):
+    matches, unmatched_predictions, unmatched_ground_truths = (
+        _evaluate_per_class_with_trace(
+            gt_boxes,
+            pred_boxes,
+            class_name,
+            iou_threshold,
+        )
+    )
+    return len(matches), len(unmatched_predictions), len(unmatched_ground_truths)
+
+
+def _evaluate_per_class_with_trace(
+    gt_boxes: dict[int, list[dict[str, Any]]],
+    pred_boxes: dict[int, list[dict[str, Any]]],
+    class_name: str,
+    iou_threshold: float,
+) -> tuple[
+    list[OfficialMatch],
+    list[OfficialUnmatchedPrediction],
+    list[OfficialUnmatchedGroundTruth],
+]:
+    """执行单个大类的官方匹配并保留输入列表位置。"""
+
+    matches: list[OfficialMatch] = []
+    unmatched_predictions: list[OfficialUnmatchedPrediction] = []
+    unmatched_ground_truths: list[OfficialUnmatchedGroundTruth] = []
+    for image_id in sorted(set(gt_boxes) | set(pred_boxes)):
         gts = [
             item
             for item in gt_boxes.get(image_id, [])
@@ -221,10 +343,40 @@ def _evaluate_per_class(
                     best_index = index
             if best_index >= 0:
                 matched[best_index] = True
-                tp += 1
+                gt = gts[best_index]
+                matches.append(
+                    OfficialMatch(
+                        image_id=image_id,
+                        class_name=class_name,
+                        category_id=int(prediction["category_id"]),
+                        prediction_index=int(prediction["source_index"]),
+                        ground_truth_index=int(gt["source_index"]),
+                        score=float(prediction["score"]),
+                        iou=float(best_iou),
+                    )
+                )
             else:
-                fp += 1
+                unmatched_predictions.append(
+                    OfficialUnmatchedPrediction(
+                        image_id=image_id,
+                        class_name=class_name,
+                        category_id=int(prediction["category_id"]),
+                        prediction_index=int(prediction["source_index"]),
+                        score=float(prediction["score"]),
+                    )
+                )
 
-        fn += matched.count(False)
+        for index, is_matched in enumerate(matched):
+            if is_matched:
+                continue
+            gt = gts[index]
+            unmatched_ground_truths.append(
+                OfficialUnmatchedGroundTruth(
+                    image_id=image_id,
+                    class_name=class_name,
+                    category_id=int(gt["category_id"]),
+                    ground_truth_index=int(gt["source_index"]),
+                )
+            )
 
-    return tp, fp, fn
+    return matches, unmatched_predictions, unmatched_ground_truths

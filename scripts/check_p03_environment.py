@@ -24,6 +24,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--weights", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument(
+        "--expected-manifest-sha256",
+        default=EXPECTED_MANIFEST_SHA256,
+        help="默认保持 P0-2 历史合同；正式复验必须显式传 formal manifest SHA",
+    )
+    parser.add_argument(
         "--verify-source-count",
         type=int,
         default=32,
@@ -48,8 +53,11 @@ def main() -> int:
     if weight_sha != CONVNEXT_TINY_WEIGHT_SHA256:
         raise RuntimeError(f"权重 SHA256 不匹配: {weight_sha}")
     manifest_sha = sha256_file(args.manifest)
-    if manifest_sha != EXPECTED_MANIFEST_SHA256:
-        raise RuntimeError(f"P0-2 manifest SHA256 不匹配: {manifest_sha}")
+    if manifest_sha != args.expected_manifest_sha256:
+        raise RuntimeError(
+            "manifest SHA256 不匹配: "
+            f"expected={args.expected_manifest_sha256}, actual={manifest_sha}"
+        )
     if args.verify_source_count < 0:
         raise ValueError("--verify-source-count 不得为负")
 

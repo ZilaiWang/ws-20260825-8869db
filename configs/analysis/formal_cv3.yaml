@@ -1,0 +1,14 @@
+formal_cv3:
+  version: "cv3_airport_proxy_k60_v2"
+  data_version: "official_raw_v1"
+  manifest_sha256: "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331"
+  fold_count: 3
+  sample_count: 4481
+  source_group_count: 255
+  fold_image_counts: [1507, 1613, 1361]
+  fold_group_counts: [82, 95, 78]
+
+output:
+  schema_version: "formal_cv3_runtime_view_v1"
+  write_csv_views: true
+  write_audit_json: true
