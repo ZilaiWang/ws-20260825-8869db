@@ -166,9 +166,11 @@ docs/server/E_10K_PIPELINE_TASK.md
 
 本轮选定的 CV3 某折 checkpoint 只作工程测速，结果必须明确标记
 `engineering_checkpoint_only=true`。synthetic、stitched 或 project proxy
-图不得写成官方时延通过。当前官方 10K manifest 注册表为空，且 A00 冻结
-4080 SUPER，因此本轮 E 无论速度如何都只形成工程证据；官方声明需另立
-RTX 3090 + 注册官方 manifest + 最终 checkpoint 的任务。
+图不得写成官方时延通过。当前官方 10K manifest 注册表为空，
+且使用的是折 checkpoint，因此本轮 E 无论速度如何都只形成工程
+证据。GPU 型号必须记录但不作为代码门禁；不同 GPU 结果不直接
+横向归因。官方声明需另立“注册官方 manifest + 最终 checkpoint +
+独占 GPU”的任务。
 
 ### 2.8 M3-OOF：异构检测器
 

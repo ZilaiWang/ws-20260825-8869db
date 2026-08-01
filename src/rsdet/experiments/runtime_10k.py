@@ -23,7 +23,10 @@ IMAGE_SOURCE_TYPES = {
 # reviewed.  Adding an entry changes the scientific claim boundary and must be
 # accompanied by a code-lock update and a new server task.
 OFFICIAL_IMAGE_MANIFEST_REGISTRY: dict[str, str] = {}
-OFFICIAL_TIMING_GPU_NAMES = {"NVIDIA GeForce RTX 3090"}
+# Empty means that any recorded CUDA GPU model is accepted. Runtime numbers
+# remain hardware-specific and must not be compared across GPU models as though
+# they came from a controlled model-only experiment.
+OFFICIAL_TIMING_GPU_NAMES: frozenset[str] = frozenset()
 PHASES = (
     "image_read",
     "tiling",
@@ -553,10 +556,12 @@ def audit_runtime_file(
         "benchmark_contract_sha256": sha256_file(benchmark_file),
     }
     summary["hardware"] = dict(hardware)
-    hardware_eligible = (
-        str(hardware["gpu_name"]).strip() in OFFICIAL_TIMING_GPU_NAMES
-        and str(hardware.get("other_gpu_processes", "")).strip().lower()
-        == "none"
+    gpu_name = str(hardware["gpu_name"]).strip()
+    gpu_name_eligible = (
+        not OFFICIAL_TIMING_GPU_NAMES or gpu_name in OFFICIAL_TIMING_GPU_NAMES
+    )
+    hardware_eligible = gpu_name_eligible and (
+        str(hardware.get("other_gpu_processes", "")).strip().lower() == "none"
     )
     official_setup_eligible = (
         summary["time_gate"]["official_image_source_eligible"]
@@ -579,9 +584,9 @@ def audit_runtime_file(
     else:
         summary["claim_note"] = (
             "Engineering evidence only: official eligibility additionally "
-            "requires a code-registered official manifest, the approved RTX "
-            "3090 hardware with no competing GPU process, and a non-engineering "
-            "checkpoint contract."
+            "requires a code-registered official manifest, a recorded CUDA GPU "
+            "with no competing compute process, and a non-engineering checkpoint "
+            "contract. GPU model is recorded for provenance but is not allowlisted."
         )
     atomic_write_json(output_path, summary)
     return summary
