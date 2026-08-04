@@ -58,6 +58,15 @@ official_evaluation:
     one_prediction_per_ground_truth: true
     duplicate_predictions_count_as_fp: true
 
+  # 官方评分方案 V1.6 排名口径：三大类各自的 Recall/FDR = 大类内细类指标的
+  # 简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即 FSC 本身），
+  # 用于 7 排名二次排序。刚性门槛（recall_min/fdr_max）仍按三类合并 pooled。
+  # 团队内部 Overall 目标（如官方口径 FDR≤0.17）一律以该口径为准；
+  # 评估入口见 evaluate_ranking_metrics（scripts/evaluate.py 默认同时输出）。
+  ranking:
+    fine_macro_average: true
+    fine_average_policy: present_in_gt_only
+
 runtime_scope:
   exclude_image_disk_read: true
   include_preprocess_after_read: true

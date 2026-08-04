@@ -1,12 +1,20 @@
 # 当前项目状态与总体方向
 
-更新日期：2026-07-25  
+更新日期：2026-08-04  
 状态：`current`
 
 ## 1. 当前已经掌握的事实
 
 - 官方任务是 25 个细类检测，匹配时细类必须一致；舰船/飞机 IoU 为 0.50，车辆为 0.35。
 - 硬门槛为 Overall Recall ≥ 0.85、Overall FDR ≤ 0.20；通过后仍分别比较三大类 Recall/FDR 和 10K 大图时延。
+- **评分方案 V1.6（2026-08-04）排名口径**：三大类各自的 Recall/FDR =
+  大类内细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型
+  即 FSC），7 项排名二次排序决定初赛方案/创新/落地三项打分区间。M1 工作点
+  官方 macro：舰船 0.7235/0.5201、飞机 0.9076/0.1571、车辆 0.6169/0.6161
+  （25 细类平均 Overall 0.8665/0.2335）；**舰船 macro FDR 0.52 是最大官方
+  排名风险**，LQS（Recall 0.50）、HM（0.706）、TU-160（0.332）、F-22（0.789）
+  是优先靶点。所有实验必须同时报 pooled（门槛校验）与官方 macro（排名优化）
+  双口径，`scripts/evaluate.py` 默认输出 `official_ranking` 块。
 - 训练集共有 4,481 张图、20,933 个框。数据少、类别长尾、来源域有限，因此“小样本”主要体现为细类与来源覆盖不足，而非固定 K-shot 协议。
 - MAR20 的 3,073 张飞机图已得到 60 个机场代理视觉组；当前 `dev_v2` 为 3,548 train / 933 val、跨集合代理组为 0。代理组不等于真实机场真值。
 - 正式 `cv3_airport_proxy_k60_v2` 已冻结：4,481 图、255 个不可拆来源组、
@@ -71,7 +79,7 @@ ImageNet、DINOv2 和 YOLO/RT-DETR 不是三选一：
 
 - 总体创新评估：[`doc/下一阶段创新方向评估与总体逻辑.md`](../../../../doc/下一阶段创新方向评估与总体逻辑.md)
 - 详细实验路线：[`doc/扩散模型创新路线详细执行报告.md`](../../../../doc/扩散模型创新路线详细执行报告.md)
-- 当前分工：[`doc/XH-202625_20260715.md`](../../../../doc/XH-202625_20260715.md)
+- 当前分工（第二阶段，含 V1.6 口径对齐）：[`doc/第二阶段分工.md`](../../../../doc/第二阶段分工.md)
 - 两份划分总索引：[`DATA_SPLITS_MASTER_INDEX_v1.md`](../../../reports/data/DATA_SPLITS_MASTER_INDEX_v1.md)
 - 正式三折验收：[`CV3_AIRPORT_PROXY_K60_V2_ACCEPTANCE.md`](../../../reports/data/CV3_AIRPORT_PROXY_K60_V2_ACCEPTANCE.md)
 - C 交付审计：[`reports/members/C/DELIVERY_AUDIT.md`](../../../reports/members/C/DELIVERY_AUDIT.md)

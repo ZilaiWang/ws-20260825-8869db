@@ -7,7 +7,12 @@ import sys
 from pathlib import Path
 
 from rsdet.evaluation.coco import load_coco_ground_truth, load_coco_predictions
-from rsdet.evaluation.official_metric import OverallMetrics, evaluate_predictions
+from rsdet.evaluation.official_metric import (
+    OverallMetrics,
+    RankingMetrics,
+    evaluate_predictions,
+    evaluate_ranking_metrics,
+)
 from rsdet.evaluation.protocol import parse_evaluation_protocol
 from rsdet.utils.config import load_config
 from rsdet.utils.logging import setup_logging
@@ -38,11 +43,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def _format_metrics(
     result: OverallMetrics,
+    ranking: RankingMetrics,
     *,
     recall_min: float,
     fdr_max: float,
 ) -> list[str]:
-    """生成简洁的指标输出。"""
+    """生成简洁的指标输出（pooled 门槛 + 官方排名口径）。"""
     recall_status = "PASS" if result.recall >= recall_min else "FAIL"
     fdr_status = "PASS" if result.fdr <= fdr_max else "FAIL"
     lines = [
@@ -53,6 +59,16 @@ def _format_metrics(
         lines.append(
             f"{name}: Recall={metrics.recall:.4f}, FDR={metrics.fdr:.4f}, "
             f"TP={metrics.tp}, FP={metrics.fp}, FN={metrics.fn}"
+        )
+    lines.append(
+        f"官方排名口径（细类平均）: Overall Recall={ranking.overall_recall:.4f}, "
+        f"Overall FDR={ranking.overall_fdr:.4f}"
+    )
+    for name, coarse in ranking.per_coarse.items():
+        lines.append(
+            f"{name} macro: Recall={coarse.macro_recall:.4f}, FDR={coarse.macro_fdr:.4f} "
+            f"(pooled Recall={coarse.pooled_recall:.4f}, FDR={coarse.pooled_fdr:.4f}, "
+            f"{coarse.fine_count} 细类)"
         )
     return lines
 
@@ -80,12 +96,20 @@ def main(argv: list[str] | None = None) -> int:
             category_mapping=protocol.category_mapping,
             iou_thresholds=protocol.iou_thresholds,
         )
+        ranking = evaluate_ranking_metrics(
+            gt_boxes,
+            pred_boxes,
+            class_names=protocol.class_names,
+            category_mapping=protocol.category_mapping,
+            iou_thresholds=protocol.iou_thresholds,
+        )
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         logger.error("评估输入无效: %s", error)
         return 1
 
     for line in _format_metrics(
         result,
+        ranking,
         recall_min=protocol.recall_min,
         fdr_max=protocol.fdr_max,
     ):
@@ -117,6 +141,33 @@ def main(argv: list[str] | None = None) -> int:
                     "fn": metrics.fn,
                 }
                 for name, metrics in result.per_class.items()
+            },
+            "official_ranking": {
+                "overall_recall": ranking.overall_recall,
+                "overall_fdr": ranking.overall_fdr,
+                "per_coarse": {
+                    name: {
+                        "macro_recall": coarse.macro_recall,
+                        "macro_fdr": coarse.macro_fdr,
+                        "pooled_recall": coarse.pooled_recall,
+                        "pooled_fdr": coarse.pooled_fdr,
+                        "fine_count": coarse.fine_count,
+                        "fine_ids": coarse.fine_ids,
+                    }
+                    for name, coarse in ranking.per_coarse.items()
+                },
+                "per_fine": {
+                    str(category_id): {
+                        "coarse_class": fine.coarse_class,
+                        "recall": fine.recall,
+                        "fdr": fine.fdr,
+                        "tp": fine.tp,
+                        "fp": fine.fp,
+                        "fn": fine.fn,
+                    }
+                    for category_id, fine in sorted(ranking.per_fine.items())
+                },
+                "details": ranking.details,
             },
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)

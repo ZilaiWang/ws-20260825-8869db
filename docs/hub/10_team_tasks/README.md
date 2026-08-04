@@ -1,9 +1,15 @@
 # 当前团队任务
 
-更新日期：2026-07-25  
+更新日期：2026-08-04  
 状态：`current`
 
-当前职责以根目录外的 [`doc/XH-202625_20260715.md`](../../../../doc/XH-202625_20260715.md) 为准。更早的项目计划和《分工调整》只作为历史讨论，不再用于派工。
+当前职责以根目录外的 [`doc/第二阶段分工.md`](../../../../doc/第二阶段分工.md) 为准。更早的项目计划和《分工调整》只作为历史讨论，不再用于派工。
+
+**指标口径纪律（评分方案 V1.6）**：官方排名按大类内细类指标简单平均计，
+所有正式实验在 `scripts/evaluate.py` 输出中同时报告 pooled（门槛校验）与
+官方 macro（排名优化）双口径；`official_ranking` 块里的 macro Recall/FDR
+进入 leaderboard 的 `*_macro_*` 列。内部目标（FDR≤0.17 等）一律以官方
+macro 口径计。
 
 下一阶段 A—E 共同参与创新的待启用方案见
 [`NEXT_STAGE_TEAM_INNOVATION_EXECUTION_MASTER_v1.md`](../../../reports/experiments/NEXT_STAGE_TEAM_INNOVATION_EXECUTION_MASTER_v1.md)。

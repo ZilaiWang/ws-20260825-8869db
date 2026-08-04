@@ -11,6 +11,14 @@
 | 10000×10000 端到端推理 | ≤ 20 秒（RTX 3090） |
 | IoU | 舰船/飞机 0.50，车辆 0.35 |
 
+刚性门槛按三类合并 pooled 计算。**官方评分方案 V1.6（2026-08-04）** 另明确了
+排名口径：三大类各自的 Recall/FDR = **大类内细类指标的简单平均**（船 4 型
+各 1/4、飞机 20 型各 1/20、车辆 1 型即 FSC），7 项排名（三大类 × Recall/FDR +
+时效）二次排序直接决定初赛方案合理性/技术创新/工程可落地性三项打分的区间。
+因此所有正式实验同时报告两种口径：pooled（`overall_recall/overall_fdr`，
+门槛校验）与官方排名口径（`official_ranking` 块，`evaluate.py` 默认输出）；
+团队内部目标（如官方口径 FDR≤0.17）一律以官方排名口径为准。
+
 预测按分数降序贪心匹配，只有相同细类 ID 才能匹配；每个 GT 最多匹配一次，
 重复框计为 FP。匹配后按舰船、飞机、车辆汇总指标，最终提交保留 25 个细类 ID 的
 COCO detection JSON。
@@ -26,6 +34,7 @@ COCO detection JSON。
   [`DATA_SPLITS_MASTER_INDEX_v1.md`](reports/data/DATA_SPLITS_MASTER_INDEX_v1.md)。
 - 统一数据加载器 `XHDataset` 已集成，含 YOLO 标签解析、PyTorch 适配、COCO 导出和数据自检。详见 [`reports/data/数据集详细说明.md`](reports/data/数据集详细说明.md)。
 - 协作契约和官方评估已冻结版本；类别映射、IoU 阈值和版本号均以 [`configs/project.yaml`](configs/project.yaml) 为唯一配置源。
+- 官方评分方案 V1.6（2026-08-04）明确排名口径为"大类内细类指标简单平均"；评估器已支持双口径输出（pooled + `official_ranking` 块），M1 双口径基线见 [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](reports/experiments/M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)。
 - 全局阈值扫描和三个固定工作点已可用；正式实验统一登记到 [`reports/experiments/leaderboard.csv`](reports/experiments/leaderboard.csv)。
 - 正式 CV3 v2 的公共输入、检测数据字节锁、P03/P04 复验、M1/M3 OOF、
   模型资产锁与 10K 工程代码/任务单已实现，尚待服务器运行；执行顺序与
@@ -45,7 +54,7 @@ COCO detection JSON。
 | 数据读取、自检和 COCO 导出 | [`XHDataset`](src/rsdet/data/xh_dataset.py)、[`check_dataset.py`](scripts/check_dataset.py)、[`export_coco.py`](scripts/export_coco.py) | 可用 |
 | 预测契约、批量调用和交付校验 | [`contracts.py`](src/rsdet/contracts.py)、[`predictor.py`](src/rsdet/engine/predictor.py)、[`validate_predictions.py`](scripts/validate_predictions.py) | 可用 |
 | 滑窗位置和 tile/原图坐标转换 | [`slicer.py`](src/rsdet/tiling/slicer.py)、[`coordinates.py`](src/rsdet/tiling/coordinates.py) | 可用 |
-| 官方 Recall/FDR 评估 | [`official_metric.py`](src/rsdet/evaluation/official_metric.py)、[`evaluate.py`](scripts/evaluate.py) | 可用，禁止另写评分逻辑 |
+| 官方 Recall/FDR 评估 | [`official_metric.py`](src/rsdet/evaluation/official_metric.py)、[`evaluate.py`](scripts/evaluate.py) | 可用，禁止另写评分逻辑；输出含 pooled 与官方排名（细类平均）双口径 |
 | 全局阈值扫描与工作点选择 | [`calibration.py`](src/rsdet/postprocess/calibration.py)、[`sweep_thresholds.py`](scripts/sweep_thresholds.py) | 可用 |
 | 实验结果登记 | [`leaderboard.csv`](reports/experiments/leaderboard.csv) | 可用 |
 | 公共训练、完整推理和跨 tile 融合 | [`train.py`](scripts/train.py)、[`infer.py`](scripts/infer.py)、[`tile_fusion.py`](src/rsdet/postprocess/tile_fusion.py) | 仍是骨架，不要误当成已完成流水线 |

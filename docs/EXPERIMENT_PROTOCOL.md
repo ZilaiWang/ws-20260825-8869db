@@ -14,6 +14,13 @@
 `rsdet.__version__` 与两者独立。历史实验不改写；不同协议版本的结果不得直接横向比较。
 `evaluate.py`、阈值扫描产物和正式实验总表都必须记录这两个版本。
 
+**评分方案 V1.6 排名口径（2026-08-04）**：官方明确三大类各自的 Recall/FDR =
+大类内细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即
+FSC），7 项排名二次排序；刚性门槛仍按三类合并 pooled。这是 `official_eval_v1`
+之上的补充聚合视图（`evaluate_ranking_metrics` / `evaluate.py` 的
+`official_ranking` 块），不改变 v1 的匹配与 pooled 规则，故 `eval_version`
+不升级；新实验一律同时报告两种口径，旧实验的 pooled 数字无需改写。
+
 ## 2. 实验总表
 
 总表为 [`reports/experiments/leaderboard.csv`](../reports/experiments/leaderboard.csv)，每个
@@ -22,7 +29,10 @@
 - 身份：`experiment_id,date,status,git_commit,contract_version,eval_version`；
 - 数据与模型：`dataset_version,split_version,seed,model_name,config_path,pretrained_weight,checkpoint_checksum`；
 - 推理设置：`evaluation_scope,input_size,tile_size,tile_overlap,operating_point,score_threshold,threshold_stage`；
-- 结果：`overall_recall,overall_fdr` 及 ship、aircraft、vehicle 的 Recall/FDR；
+- 结果：`overall_recall,overall_fdr` 及 ship、aircraft、vehicle 的 Recall/FDR（均为 pooled），
+  另加官方排名口径列 `ship_macro_recall,ship_macro_fdr,aircraft_macro_recall,aircraft_macro_fdr`
+  （车辆单细类 macro 与 pooled 相同，不设独立列；`overall_macro_recall,overall_macro_fdr`
+  为全部参与细类的简单平均，对应内部目标）；
 - 资源与追溯：`latency_p50,latency_p95,peak_vram,artifact_ref,notes`。
 
 `status` 仅用 `exploratory/complete/failed/invalid`。完整正式实验必须有 commit、配置、
@@ -50,11 +60,14 @@ PYTHONPATH=src python scripts/sweep_thresholds.py \
 
 固定输出三个工作点：
 
-- `official_best`：FDR ≤ 0.20 时 Recall 最高，门槛为 Recall ≥ 0.85；
-- `internal_best`：FDR ≤ 0.17 时 Recall 最高，内部目标为 Recall ≥ 0.88；
+- `official_best`：pooled FDR ≤ 0.20 时 Recall 最高，门槛为 pooled Recall ≥ 0.85；
+- `internal_best`：官方排名口径（细类平均）FDR ≤ 0.17 时 Recall 最高，
+  内部目标为官方排名口径 Recall ≥ 0.88；
 - `recall_ceiling`：不限制 FDR 的 Recall 上限，只用于判断召回瓶颈。
 
 并列时依次选择 FDR 更低、阈值更高的点。扫描直接复用官方评测器，不另写匹配逻辑。
+选点依据以官方排名口径为主指标（决定 7 项排名），pooled 用于刚性门槛达标判断；
+每个工作点同时输出两套指标到 `metrics_at_selected_thresholds.json`。
 输出包括完整曲线 `threshold_sweep.csv`、选择结果 `selected_thresholds.yaml` 和三个工作点
 的完整指标 `metrics_at_selected_thresholds.json`。将使用的工作点、阈值、阶段和产物
 目录写入 leaderboard；暂不支持 25 类独立阈值或学习式校准。

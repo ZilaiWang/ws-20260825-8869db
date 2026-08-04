@@ -7,6 +7,7 @@ from rsdet.evaluation.official_metric import (
     _compute_iou,
     evaluate_predictions,
     evaluate_predictions_with_trace,
+    evaluate_ranking_metrics,
 )
 
 
@@ -197,6 +198,123 @@ class TestOfficialMetric:
         assert trace.matches[0].ground_truth_index == 0
         assert trace.unmatched_predictions[0].prediction_index == 1
         assert trace.unmatched_ground_truths[0].ground_truth_index == 1
+
+
+class TestRankingMetrics:
+    """官方评分方案 V1.6 排名口径（大类内细类指标简单平均）测试。"""
+
+    def test_macro_is_fine_average_not_pooled(self):
+        """大类 macro = 细类 Recall/FDR 的简单平均，与 pooled 不同。"""
+        mapping = {0: "ship", 1: "ship"}  # 两个船细类
+        # 细类 0：2 GT 全对；细类 1：1 GT 全漏 + 1 错检（TP=0, FP=1 → FDR 1.0）。
+        # macro: Recall=(1+0)/2=0.5, FDR=(0+1.0)/2=0.5
+        # pooled: Recall=2/3≈0.667, FDR=1/3≈0.333
+        gt = {
+            1: [
+                _make_gt(1, [0, 0, 100, 100], 0),
+                _make_gt(1, [200, 200, 300, 300], 0),
+            ],
+            2: [_make_gt(2, [0, 0, 100, 100], 1)],
+        }
+        pred = {
+            1: [
+                _make_pred(1, [0, 0, 100, 100], 0.9, 0),
+                _make_pred(1, [200, 200, 300, 300], 0.8, 0),
+            ],
+            2: [_make_pred(2, [500, 500, 600, 600], 0.7, 1)],
+        }
+        ranking = evaluate_ranking_metrics(gt, pred, ["ship"], category_mapping=mapping)
+
+        fine0 = ranking.per_fine[0]
+        fine1 = ranking.per_fine[1]
+        assert fine0.recall == 1.0
+        assert fine0.fdr == 0.0
+        assert fine1.recall == 0.0
+        assert fine1.fdr == 1.0
+
+        coarse = ranking.per_coarse["ship"]
+        assert coarse.macro_recall == pytest.approx(0.5)
+        assert coarse.macro_fdr == pytest.approx(0.5)
+        # pooled 对照：Recall 与 FDR 都偏向"大户"细类 0
+        assert coarse.pooled_recall == pytest.approx(2 / 3)
+        assert coarse.pooled_fdr == pytest.approx(1 / 3)
+        assert coarse.fine_count == 2
+        assert coarse.fine_ids == [0, 1]
+
+    def test_vehicle_single_fine_macro_equals_pooled(self):
+        """车辆只有 FSC 一个细类：macro 与 pooled 相同。"""
+        mapping = {24: "vehicle"}
+        gt = {1: [_make_gt(1, [0, 0, 100, 100], 24)]}
+        pred = {1: [_make_pred(1, [25, 25, 125, 125], 0.9, 24)]}
+        ranking = evaluate_ranking_metrics(gt, pred, ["vehicle"], category_mapping=mapping)
+        coarse = ranking.per_coarse["vehicle"]
+        assert coarse.macro_recall == pytest.approx(coarse.pooled_recall)
+        assert coarse.macro_fdr == pytest.approx(coarse.pooled_fdr)
+
+    def test_fine_identity_error_hurts_macro_recall(self):
+        """细类身份错误（错型号）在官方口径下同时伤 Recall 与 FDR。"""
+        mapping = {4: "aircraft", 5: "aircraft"}
+        gt = {
+            1: [_make_gt(1, [0, 0, 100, 100], 4)],
+            2: [_make_gt(2, [0, 0, 100, 100], 5)],
+        }
+        pred = {
+            # 细类 4 被错报成细类 5
+            1: [_make_pred(1, [0, 0, 100, 100], 0.99, 5)],
+            2: [_make_pred(2, [0, 0, 100, 100], 0.9, 5)],
+        }
+        ranking = evaluate_ranking_metrics(gt, pred, ["aircraft"], category_mapping=mapping)
+        coarse = ranking.per_coarse["aircraft"]
+        # 细类 4：TP=0, FN=1 → Recall 0；细类 5：TP=1, FP=1 → Recall 1, FDR 0.5
+        assert coarse.macro_recall == pytest.approx(0.5)
+        assert coarse.macro_fdr == pytest.approx(0.25)
+        assert coarse.pooled_recall == pytest.approx(0.5)
+        assert coarse.pooled_fdr == pytest.approx(0.5)
+
+    def test_zero_gt_fine_classes_do_not_participate(self):
+        """0-GT 细类不参与 macro 平均（present_in_gt_only 策略）。"""
+        mapping = {0: "ship", 1: "ship", 2: "ship"}
+        gt = {1: [_make_gt(1, [0, 0, 100, 100], 0)]}
+        pred = {1: [_make_pred(1, [0, 0, 100, 100], 0.9, 0)]}
+        ranking = evaluate_ranking_metrics(gt, pred, ["ship"], category_mapping=mapping)
+
+        assert ranking.per_coarse["ship"].fine_count == 1
+        assert ranking.per_coarse["ship"].fine_ids == [0]
+        assert ranking.details["fine_average_policy"] == "present_in_gt_only"
+        # 细类 1、2 无 GT 无预测，不产生记录也不参与平均
+        assert 1 not in ranking.per_fine
+        assert 2 not in ranking.per_fine
+
+    def test_overall_is_fine_macro_average_across_coarse(self):
+        """overall = 全部参与细类的简单平均（团队内部官方口径 Overall）。"""
+        mapping = {0: "ship", 4: "aircraft"}
+        gt = {
+            1: [_make_gt(1, [0, 0, 100, 100], 0)],
+            2: [_make_gt(2, [0, 0, 100, 100], 4)],
+        }
+        pred = {
+            1: [_make_pred(1, [0, 0, 100, 100], 0.9, 0)],
+            2: [_make_pred(2, [500, 500, 600, 600], 0.8, 4)],
+        }
+        ranking = evaluate_ranking_metrics(
+            gt, pred, ["ship", "aircraft"], category_mapping=mapping
+        )
+        assert ranking.per_coarse["ship"].macro_recall == pytest.approx(1.0)
+        assert ranking.per_coarse["aircraft"].macro_recall == pytest.approx(0.0)
+        assert ranking.overall_recall == pytest.approx(0.5)
+        assert ranking.details["aggregation_policy"] == (
+            "official_ranking_v1_6_fine_macro_average"
+        )
+
+    def test_ranking_matches_pooled_when_single_fine_per_coarse(self):
+        """细类数=1 时 macro 与 pooled 完全一致（同源验证）。"""
+        mapping = {0: "ship"}
+        gt = {1: [_make_gt(1, [0, 0, 100, 100], 0)]}
+        pred = {1: [_make_pred(1, [0, 0, 100, 100], 0.9, 0)]}
+        result = evaluate_predictions(gt, pred, ["ship"], category_mapping=mapping)
+        ranking = evaluate_ranking_metrics(gt, pred, ["ship"], category_mapping=mapping)
+        assert ranking.per_coarse["ship"].macro_recall == pytest.approx(result.recall)
+        assert ranking.per_coarse["ship"].macro_fdr == pytest.approx(result.fdr)
 
 
 class TestIoU:
