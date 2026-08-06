@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- 官方评分方案 V1.6 排名口径聚合 `evaluate_ranking_metrics`：大类指标 = 大类内
+  细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即 FSC），
+  0-GT 细类不参与平均；`evaluate.py` 默认输出 `official_ranking` 块
+- `leaderboard.csv` 增加 `*_macro_*` 列并登记 M1 正式工作点（双口径基线）
 - `contract_v1` / `official_eval_v1` 协议版本及其评估产物传播
 - 全局置信度阈值扫描、官方/内部/Recall 上限三个固定工作点
 - `reports/experiments/leaderboard.csv` 正式实验总表
@@ -24,6 +28,11 @@
 
 ### Changed
 
+- README、实验协议、项目状态与团队任务文档对齐评分方案 V1.6：所有正式实验
+  同时报告 pooled（门槛校验）与官方 macro（排名优化）双口径；内部目标
+  （FDR≤0.17 等）以官方 macro 口径计
+- M1 报告新增 5.3 节官方排名口径基线（舰船 macro FDR 0.52 为最大排名风险，
+  LQS/HM/TU-160/F-22 为优先靶点）
 - 评估和阈值扫描共用 COCO 读取、配置解析与官方匹配实现
 - 实验记录规范与 README 增加可直接执行的阈值扫描入口
 - README 增加公共能力索引，明确可复用实现与尚未完成的骨架

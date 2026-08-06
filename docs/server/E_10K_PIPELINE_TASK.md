@@ -108,10 +108,13 @@ candidate threshold: 0.001
 }
 ```
 
-当前模板固定 `engineering_checkpoint_only=true`，A00 又冻结为 RTX 4080
-SUPER，因此本轮只能形成工程证据。官方声明还要求：注册过的
-`real_official` manifest、RTX 3090、`other_gpu_processes=none`、最终冻结
-checkpoint 且 `engineering_checkpoint_only=false`；四项缺一不可。
+当前模板固定 `engineering_checkpoint_only=true`，因此本轮只能形成
+工程证据。本任务不限制 GPU 型号，但必须记录实际型号、驱动、
+CUDA 环境和显存，且 measured runs 期间不允许其他 GPU 计算进程。
+不同 GPU 上的耗时只能分别报告，不得直接归因为模型或切片策略差异。
+官方声明资格取决于已注册的 `real_official` manifest、
+`other_gpu_processes=none`、最终冻结 checkpoint 且
+`engineering_checkpoint_only=false`；不以 GPU 商标或型号作为代码门禁。
 
 另建 `hardware.json`：
 
@@ -189,7 +192,11 @@ GPU 阶段必须在开始计时前、结束取时前调用
 
 主仓库当前只有模型无关接口；生产 adapter、批推理、切片与 NMS 位于同级
 `xh-202625-model`。因此必须让同级仓库的 `src` 排在 `PYTHONPATH` 第一位，
-先按以下命令一次性生成五个冻结输入。只修改开头九个变量：
+先按以下命令一次性生成五个冻结输入。从本节到打包必须在
+同一个 Bash 会话中按顺序执行，以保留 `RUN`、`DATA_ROOT` 等变量和
+清理 trap；服务器 AI 也可将本文档的 Bash 代码块按顺序合并成一个
+临时脚本执行。只修改开头九个变量；`GPU_NAME` 由现场自动读取，
+不手工填写：
 
 ```bash
 set -euo pipefail
@@ -206,17 +213,31 @@ source /workspace/venvs/cv3-model-cu121/bin/activate
 export PYTHONNOUSERSITE=1
 
 ASSET_ROOT=/workspace/cv3-model-assets
-ASSET_LOCK="$ASSET_ROOT/MODEL_ASSET_ENV_LOCK.json"
 ASSET_SPEC=/workspace/xh-202625/configs/experiments/cv3_model_asset_env.json
-ASSET_VERIFY_REPORT="$(mktemp /tmp/E-10K-model-asset-verify.XXXXXX.json)"
+GPU_NAME="$(nvidia-smi --query-gpu=name --format=csv,noheader \
+  | sed -n '1{s/^[[:space:]]*//;s/[[:space:]]*$//;p;}')"
+test -n "$GPU_NAME"
+ASSET_GATE_DIR="$(mktemp -d /tmp/E-10K-model-asset-gate.XXXXXX)"
+ASSET_LOCK="$ASSET_GATE_DIR/MODEL_ASSET_ENV_LOCK.json"
+ASSET_VERIFY_REPORT="$ASSET_GATE_DIR/model_asset_env_verification.json"
+cleanup_asset_gate() {
+  rm -f -- "$ASSET_LOCK" "$ASSET_VERIFY_REPORT"
+  rmdir -- "$ASSET_GATE_DIR" 2>/dev/null || true
+}
+trap cleanup_asset_gate EXIT
 
 cd /workspace/xh-202625
 sha256sum -c docs/server/CV3_FORMAL_EXPERIMENT_CODE_SHA256.txt
 sha256sum -c docs/server/XH_MODEL_INTEGRATION_CODE_SHA256.txt
+PYTHONPATH=src python scripts/lock_cv3_model_assets.py create \
+  --config "$ASSET_SPEC" \
+  --asset-root "$ASSET_ROOT" \
+  --expected-gpu "$GPU_NAME" \
+  --output "$ASSET_LOCK"
 PYTHONPATH=src python scripts/lock_cv3_model_assets.py verify \
   --config "$ASSET_SPEC" \
   --asset-root "$ASSET_ROOT" \
-  --expected-gpu "NVIDIA GeForce RTX 4080 SUPER" \
+  --expected-gpu "$GPU_NAME" \
   --lock "$ASSET_LOCK" \
   --report "$ASSET_VERIFY_REPORT"
 
@@ -259,7 +280,7 @@ test -s "$FOLD_METADATA"
 test -s "$OOF_METADATA"
 mkdir -p "$RUN"
 cp "$ASSET_VERIFY_REPORT" "$RUN/model_asset_env_verification.json"
-rm -f "$ASSET_VERIFY_REPORT"
+cp "$ASSET_LOCK" "$RUN/model_asset_env_lock.json"
 
 RUN="$RUN" DATA_ROOT="$DATA_ROOT" CHECKPOINT="$CHECKPOINT" \
 FOLD_METADATA="$FOLD_METADATA" OOF_METADATA="$OOF_METADATA" \
@@ -498,8 +519,9 @@ test "$AUDIT_RC" -eq 0 -o "$AUDIT_RC" -eq 2
 ```
 
 退出码 `0` 表示工程时限通过；`2` 表示实验正常完成但至少一幅超时；`1`
-表示合同或数据错误。只有代码注册过的 `real_official` 输入、RTX 3090
-独占硬件和非工程 checkpoint 同时成立，工具才会标记为可作正式声明。
+表示合同或数据错误。只有代码注册过的 `real_official` 输入、
+无其他 GPU 计算进程和非工程 checkpoint 同时成立，工具才会标记
+为可作正式声明。GPU 型号只记录于证据中，不作为通过/失败条件。
 
 无论时限通过或科学失败，都保留完整记录并打包；大型 checkpoint 不重复打包：
 
@@ -515,6 +537,7 @@ exit "$AUDIT_RC"
 ```text
 E-10K/
 ├── model_asset_env_verification.json
+├── model_asset_env_lock.json
 ├── resolved_config.yaml
 ├── benchmark_contract.json
 ├── checkpoint_provenance.json

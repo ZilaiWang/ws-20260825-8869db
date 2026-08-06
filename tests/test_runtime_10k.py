@@ -267,7 +267,7 @@ def test_runtime_audit_binds_hardware_sha256(tmp_path: Path) -> None:
     hardware.write_text(
         json.dumps(
             {
-                "gpu_name": "NVIDIA GeForce RTX 4080 SUPER",
+                "gpu_name": "Example CUDA GPU",
                 "driver_version": "test-driver",
                 "torch_version": "test-torch",
                 "cuda_runtime": "test-cuda",
@@ -296,6 +296,7 @@ def test_runtime_audit_binds_hardware_sha256(tmp_path: Path) -> None:
         benchmark_contract_path=contract_path,
     )
     assert summary["input"]["hardware_sha256"] == contract["hardware_sha256"]
+    assert summary["time_gate"]["official_hardware_eligible"] is True
     assert summary["time_gate"]["official_claim_eligible"] is False
 
     hardware.write_text(

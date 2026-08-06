@@ -144,10 +144,11 @@ GPU 时按任务单串行即可。
 P05/P06 不在本轮无条件启动。
 
 A00 只建立一次：冻结 Python 3.10.12、PyTorch 2.5.1+cu121、
-Ultralytics 8.4.103、批准的 RTX 4080 SUPER，以及两个官方初始化权重的
-URL、字节数和 SHA-256。M1、M3、E-10K 每次运行前都必须重算并通过同一
-`MODEL_ASSET_ENV_LOCK.json`，不能在子任务中用“对当前文件现场取 SHA”
-替代预先登记的可信常量。
+Ultralytics 8.4.103、当次训练硬件，以及两个官方初始化权重的
+URL、字节数和 SHA-256。M1/M3 正式训练必须重算并通过对应
+`MODEL_ASSET_ENV_LOCK.json`。E-10K 允许使用其他 GPU，但必须在运行前
+按实际 GPU 重新生成一份不可变环境锁，同时继续核验同一软件版本
+和权重预登记 SHA；不能用“对当前权重现场取 SHA”替代可信常量。
 
 D00 也只创建一次，其唯一锁为：
 
@@ -361,9 +362,11 @@ p50/p95/max。
 
 不是均值或 p95 通过即可。synthetic/stitched/proxy 图只能形成工程证据。
 即使填写 `real_official`，也必须同时满足：图像 manifest 已进入代码内官方
-注册表、硬件是 RTX 3090、GPU 无其他计算进程、使用最终冻结 checkpoint 且
-`engineering_checkpoint_only=false`，才允许标记为官方时延声明候选。当前
-4080 SUPER、fold checkpoint 和模板默认值只能形成工程证据。
+注册表、GPU 无其他计算进程、使用最终冻结 checkpoint 且
+`engineering_checkpoint_only=false`，才允许标记为官方时延声明候选。
+GPU 型号必须绑定在硬件记录中，但不作为代码通过/失败条件；
+不同 GPU 上的时延数据不得当作同硬件对照。当前 fold checkpoint 和模板
+默认值只能形成工程证据。
 
 任务单：`docs/server/E_10K_PIPELINE_TASK.md`。
 

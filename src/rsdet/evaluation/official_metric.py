@@ -4,6 +4,12 @@
 汇总 TP、FP、FN。预测按分数降序贪心匹配；预测与 GT 的细类 ``category_id``
 必须相同；每个 GT 只匹配一次；重复框计为 FP。三大类映射只用于选择 IoU
 阈值和汇总指标，不能在匹配前消除细类。
+
+评分方案 V1.6 进一步明确了官方排名口径：三大类各自的 Recall 与 FDR =
+**大类内细类指标的简单平均**（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即
+FSC 本身），用于 7 排名二次排序；刚性门槛（Recall≥0.85 / FDR≤0.20）仍按
+三类合并 pooled 计算。因此本模块同时提供 pooled（``evaluate_predictions``）
+与官方排名（``evaluate_ranking_metrics``）两种聚合，二者共用同一匹配轨迹。
 """
 
 import math
@@ -380,3 +386,166 @@ def _evaluate_per_class_with_trace(
             )
 
     return matches, unmatched_predictions, unmatched_ground_truths
+
+
+@dataclass
+class FineClassMetrics:
+    """单个细类的 TP、FP、FN 及其派生指标。
+
+    官方排名口径的最小单位：大类指标 = 大类内各细类指标的简单平均。
+    空 GT 细类按 Recall=1.0 / FDR=0.0 处理，与 :class:`PerClassMetrics`
+    的空策略一致；不过 :func:`evaluate_ranking_metrics` 只把 GT 中
+    出现过的细类纳入平均，0-GT 细类不参与（见 ``details``）。
+    """
+
+    category_id: int
+    coarse_class: str
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
+
+    @property
+    def recall(self) -> float:
+        denominator = self.tp + self.fn
+        return self.tp / denominator if denominator else 1.0
+
+    @property
+    def fdr(self) -> float:
+        denominator = self.fp + self.tp
+        return self.fp / denominator if denominator else 0.0
+
+
+@dataclass
+class CoarseMacroMetrics:
+    """一个大类的官方排名口径汇总（macro）及 pooled 对照。"""
+
+    macro_recall: float
+    macro_fdr: float
+    pooled_recall: float
+    pooled_fdr: float
+    fine_count: int
+    fine_ids: list[int]
+
+
+@dataclass
+class RankingMetrics:
+    """官方 V1.6 排名口径评估结果。
+
+    - ``per_fine``：细类级 TP/FP/FN 与派生指标。
+    - ``per_coarse``：各大类的 macro（细类简单平均）与 pooled 对照。
+    - ``overall_recall`` / ``overall_fdr``：全部参与细类的简单平均，是
+      团队自定义的"官方口径 Overall"，用于内部目标（如 FDR≤0.17）追踪；
+      官方排名本身只定义到大类级（7 项排名）。
+    """
+
+    per_fine: dict[int, FineClassMetrics] = field(default_factory=dict)
+    per_coarse: dict[str, CoarseMacroMetrics] = field(default_factory=dict)
+    overall_recall: float = 0.0
+    overall_fdr: float = 0.0
+    details: dict[str, Any] = field(default_factory=dict)
+
+
+def evaluate_ranking_metrics(
+    gt_boxes: dict[int, list[dict[str, Any]]],
+    pred_boxes: dict[int, list[dict[str, Any]]],
+    class_names: list[str] | None = None,
+    category_mapping: dict[int, str] | None = None,
+    iou_thresholds: dict[str, float] | None = None,
+) -> RankingMetrics:
+    """按官方评分方案 V1.6 排名口径计算指标。
+
+    匹配规则与 :func:`evaluate_predictions` 完全一致（同源 trace），差异只在
+    聚合层：细类级 TP/FP/FN 先按细类算出 Recall/FDR，再在大类内简单平均。
+    参与平均的细类 = GT 中出现过的细类（0-GT 细类不参与，避免空类稀释）。
+
+    Args 与 :func:`evaluate_predictions` 相同。
+    """
+    result, trace = evaluate_predictions_with_trace(
+        gt_boxes,
+        pred_boxes,
+        class_names=class_names,
+        category_mapping=category_mapping,
+        iou_thresholds=iou_thresholds,
+    )
+
+    names = result.per_class.keys()
+
+    # GT 中出现过的细类才参与 macro 平均。
+    present_fine: set[int] = set()
+    for items in gt_boxes.values():
+        for item in items:
+            present_fine.add(int(item["category_id"]))
+
+    per_fine: dict[int, FineClassMetrics] = {}
+    for match in trace.matches:
+        key = int(match.category_id)
+        metrics = per_fine.setdefault(
+            key, FineClassMetrics(key, match.class_name)
+        )
+        metrics.tp += 1
+    for prediction in trace.unmatched_predictions:
+        key = int(prediction.category_id)
+        metrics = per_fine.setdefault(
+            key, FineClassMetrics(key, prediction.class_name)
+        )
+        metrics.fp += 1
+    for ground_truth in trace.unmatched_ground_truths:
+        key = int(ground_truth.category_id)
+        metrics = per_fine.setdefault(
+            key, FineClassMetrics(key, ground_truth.class_name)
+        )
+        metrics.fn += 1
+
+    coarse_fine_ids: dict[str, list[int]] = {}
+    for key, metrics in per_fine.items():
+        coarse_fine_ids.setdefault(metrics.coarse_class, []).append(key)
+
+    per_coarse: dict[str, CoarseMacroMetrics] = {}
+    overall_recall_sum = overall_fdr_sum = 0.0
+    overall_fine_count = 0
+    for coarse_name in names:
+        fine_ids = sorted(coarse_fine_ids.get(coarse_name, []))
+        if not fine_ids:
+            continue
+        participating = [fine_id for fine_id in fine_ids if fine_id in present_fine]
+        if not participating:
+            continue
+        macro_recall = sum(per_fine[fine_id].recall for fine_id in participating) / len(
+            participating
+        )
+        macro_fdr = sum(per_fine[fine_id].fdr for fine_id in participating) / len(
+            participating
+        )
+        pooled = result.per_class[coarse_name]
+        per_coarse[coarse_name] = CoarseMacroMetrics(
+            macro_recall=macro_recall,
+            macro_fdr=macro_fdr,
+            pooled_recall=pooled.recall,
+            pooled_fdr=pooled.fdr,
+            fine_count=len(participating),
+            fine_ids=participating,
+        )
+        overall_recall_sum += macro_recall * len(participating)
+        overall_fdr_sum += macro_fdr * len(participating)
+        overall_fine_count += len(participating)
+
+    return RankingMetrics(
+        per_fine=per_fine,
+        per_coarse=per_coarse,
+        overall_recall=(
+            overall_recall_sum / overall_fine_count if overall_fine_count else 1.0
+        ),
+        overall_fdr=(
+            overall_fdr_sum / overall_fine_count if overall_fine_count else 0.0
+        ),
+        details={
+            "matching_policy": result.details["matching_policy"],
+            "aggregation_policy": "official_ranking_v1_6_fine_macro_average",
+            "fine_average_policy": "present_in_gt_only",
+            "empty_gt_recall_policy": result.details["empty_gt_recall_policy"],
+            "empty_prediction_fdr_policy": result.details[
+                "empty_prediction_fdr_policy"
+            ],
+            "iou_thresholds": result.details["iou_thresholds"],
+        },
+    )
