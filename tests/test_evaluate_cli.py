@@ -156,3 +156,165 @@ def test_missing_protocol_versions_is_rejected(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "protocol_versions" in result.stdout + result.stderr
+
+
+def test_timing_gate_and_seven_ranking_metrics(tmp_path: Path) -> None:
+    """--latency-seconds 触发时效门槛判定并输出七项排名指标块。"""
+    root = Path(__file__).parent.parent
+    gt_path = tmp_path / "gt.json"
+    pred_path = tmp_path / "pred.json"
+    output_path = tmp_path / "metrics.json"
+    gt_path.write_text(
+        json.dumps(
+            {
+                "images": [{"id": 1}],
+                "annotations": [
+                    {"id": 1, "image_id": 1, "category_id": 24, "bbox": [0, 0, 100, 100]}
+                ],
+                "categories": [{"id": 24, "name": "FSC"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pred_path.write_text(
+        json.dumps([{"image_id": 1, "category_id": 24, "bbox": [25, 25, 100, 100], "score": 0.9}]),
+        encoding="utf-8",
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(root / "src")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/evaluate.py",
+            "--gt",
+            str(gt_path),
+            "--pred",
+            str(pred_path),
+            "--project-config",
+            "configs/project.yaml",
+            "--latency-seconds",
+            "8.5",
+            "--output",
+            str(output_path),
+        ],
+        cwd=root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    metrics = json.loads(output_path.read_text(encoding="utf-8"))
+    assert metrics["latency_seconds"] == 8.5
+    assert metrics["timing_gate"] == {
+        "latency_seconds": 8.5,
+        "latency_max_seconds": 20.0,
+        "passed": True,
+    }
+    seven = metrics["official_ranking"]["seven_ranking_metrics_v1_6"]
+    assert seven["vehicle_recall"] == 1.0
+    assert seven["vehicle_fdr"] == 0.0
+    assert seven["ship_recall"] is None
+    assert seven["aircraft_recall"] is None
+    assert seven["latency_seconds"] == 8.5
+
+
+def test_timing_gate_fails_over_limit(tmp_path: Path) -> None:
+    """时延超 20s 时 timing_gate.passed 为 False。"""
+    root = Path(__file__).parent.parent
+    gt_path = tmp_path / "gt.json"
+    pred_path = tmp_path / "pred.json"
+    output_path = tmp_path / "metrics.json"
+    gt_path.write_text(
+        json.dumps(
+            {
+                "images": [{"id": 1}],
+                "annotations": [
+                    {"id": 1, "image_id": 1, "category_id": 24, "bbox": [0, 0, 100, 100]}
+                ],
+                "categories": [{"id": 24, "name": "FSC"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pred_path.write_text(
+        json.dumps([{"image_id": 1, "category_id": 24, "bbox": [25, 25, 100, 100], "score": 0.9}]),
+        encoding="utf-8",
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(root / "src")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/evaluate.py",
+            "--gt",
+            str(gt_path),
+            "--pred",
+            str(pred_path),
+            "--project-config",
+            "configs/project.yaml",
+            "--latency-seconds",
+            "25.0",
+            "--output",
+            str(output_path),
+        ],
+        cwd=root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    metrics = json.loads(output_path.read_text(encoding="utf-8"))
+    assert metrics["timing_gate"]["passed"] is False
+
+
+def test_invalid_latency_rejected(tmp_path: Path) -> None:
+    """非有限时延应被拒绝。"""
+    root = Path(__file__).parent.parent
+    gt_path = tmp_path / "gt.json"
+    pred_path = tmp_path / "pred.json"
+    gt_path.write_text(
+        json.dumps(
+            {
+                "images": [{"id": 1}],
+                "annotations": [
+                    {"id": 1, "image_id": 1, "category_id": 24, "bbox": [0, 0, 100, 100]}
+                ],
+                "categories": [{"id": 24, "name": "FSC"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pred_path.write_text(
+        json.dumps([{"image_id": 1, "category_id": 24, "bbox": [25, 25, 100, 100], "score": 0.9}]),
+        encoding="utf-8",
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(root / "src")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/evaluate.py",
+            "--gt",
+            str(gt_path),
+            "--pred",
+            str(pred_path),
+            "--project-config",
+            "configs/project.yaml",
+            "--latency-seconds",
+            "nan",
+            "--output",
+            str(tmp_path / "metrics.json"),
+        ],
+        cwd=root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 1
+    assert "有限" in result.stdout + result.stderr

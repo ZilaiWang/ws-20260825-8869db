@@ -77,6 +77,9 @@ ImageNet、DINOv2 和 YOLO/RT-DETR 不是三选一：
 
 ## 5. 当前主要证据入口
 
+- **官方 V1.6 评分标准速查与团队工具**：
+  [`docs/hub/01_scoring_standard/README.md`](../../../hub/01_scoring_standard/README.md)
+  （七项排名/二次排序口径、`evaluate.py --latency-seconds`、`rank_official.py` 用法）
 - 总体创新评估：[`doc/下一阶段创新方向评估与总体逻辑.md`](../../../../doc/下一阶段创新方向评估与总体逻辑.md)
 - 详细实验路线：[`doc/扩散模型创新路线详细执行报告.md`](../../../../doc/扩散模型创新路线详细执行报告.md)
 - 当前分工（第二阶段，含 V1.6 口径对齐）：[`doc/第二阶段分工.md`](../../../../doc/第二阶段分工.md)
