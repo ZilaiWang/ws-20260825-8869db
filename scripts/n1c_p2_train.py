@@ -39,8 +39,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=160)
     parser.add_argument("--imgsz", type=int, default=1024)
     parser.add_argument("--batch", type=int, default=12)
-    parser.add_argument("--weights", default="yolo26-p2s.pt",
-                        help="P2 模型预训练权重（官方自动下载或本地路径）")
+    parser.add_argument(
+        "--model-yaml",
+        default="yolo26-p2s.yaml",
+        help="P2 模型定义（s 尺度，ultralytics 内置）",
+    )
+    parser.add_argument(
+        "--pretrained",
+        default="yolo26s.pt",
+        help="迁移来源权重（yolo26s COCO 预训练，公共层复用，P2 头随机初始化）",
+    )
     parser.add_argument("--workers", type=int, default=8)
     return parser.parse_args(argv)
 
@@ -113,14 +121,16 @@ def main(argv: list[str] | None = None) -> int:
         # 配置记录（可回溯）。
         config_payload = {
             "experiment": "V1-FULL-P2-fold" + str(args.fold),
-            "model": args.weights,
+            "model_yaml": args.model_yaml,
+            "pretrained": args.pretrained,
             "data_yaml": str(dataset_yaml),
             "fold": args.fold,
             "imgsz": args.imgsz,
             "batch": args.batch,
             "epochs": args.epochs,
             "cv3_manifest": str(args.cv3_manifest),
-            "note": "与 M1 单因素对照：唯一差异 = P2 stride-4 检测通路",
+            "note": "与 M1 单因素对照：唯一差异 = P2 stride-4 检测通路；"
+            "P2 头随机初始化，公共层从 yolo26s COCO 预训练迁移",
         }
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "p2_config.json").write_text(
@@ -128,7 +138,10 @@ def main(argv: list[str] | None = None) -> int:
             encoding="utf-8",
         )
 
-        model = YOLO(args.weights)
+        model = YOLO(args.model_yaml)
+        if args.pretrained:
+            logger.info("从 %s 迁移公共层权重（P2 头随机初始化）", args.pretrained)
+            model.load(args.pretrained)
         results = model.train(
             data=str(dataset_yaml),
             epochs=args.epochs,
