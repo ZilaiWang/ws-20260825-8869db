@@ -134,6 +134,7 @@ def _sample_features(model, image: Image.Image, bbox: list[float], imgsz: int):
     # 注册 hook：收集 Detect 前各尺度特征。
     hooks = []
     storage = {}
+    candidates: dict[str, torch.nn.Module] = {}
 
     def make_hook(name):
         def hook_fn(module, inp, out):
