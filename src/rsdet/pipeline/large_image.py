@@ -15,6 +15,11 @@ import numpy as np
 from rsdet.contracts import InferenceSample, Prediction, TileRecord
 from rsdet.engine.predictor import predict_batches
 from rsdet.models.base import BaseDetector
+from rsdet.postprocess.global_aggregation import (
+    GlobalObject,
+    fuse_global_predictions,
+    global_object_manifest,
+)
 from rsdet.postprocess.tile_fusion import fuse_tile_predictions
 from rsdet.tiling.slicer import generate_tiles
 
@@ -26,8 +31,14 @@ class PipelineConfig:
     tile_size: int = 1024
     overlap: int = 128
     batch_size: int = 16
-    score_threshold: float = 0.0
-    iou_thresholds: Dict[int, float] | None = None  # None = 使用默认三大类阈值
+    score_threshold: float = 0.0      # tile 路径：融合前过滤；global 路径：聚合后过滤
+    fine_nms_iou: float = 0.55        # tile_fusion 细类内 NMS 阈值
+    coarse_nms_iou: float | None = 0.85  # tile_fusion 官方粗类 NMS 阈值（None 关闭）
+    max_detections: int | None = None    # 最终保留检测数上限
+    fusion: str = "tile"              # "tile" = 基线 tile_fusion；"global" = E 的全局聚合
+    cluster_eps: float = 50.0         # 全局聚合 Spatial Gate 中心距离阈值
+    merge_iou: float = 0.3            # 全局聚合语义门 IoU 阈值
+    nms_iou: float = 0.5              # 全局聚合同类 NMS 阈值
 
 
 @dataclass
@@ -97,6 +108,19 @@ def _extract_tile_image(
     return patch.copy()
 
 
+def _filter_low_score(prediction: Prediction, threshold: float) -> Prediction:
+    """融合前按分数阈值过滤检测（保留 score >= threshold 的框）。"""
+    if threshold <= 0.0:
+        return prediction
+    keep = [i for i, s in enumerate(prediction.scores) if s >= threshold]
+    return Prediction(
+        prediction.image_id,
+        [prediction.boxes_xyxy[i] for i in keep],
+        [prediction.scores[i] for i in keep],
+        [prediction.labels[i] for i in keep],
+    )
+
+
 def run_pipeline(
     image: np.ndarray,
     detector: BaseDetector,
@@ -104,7 +128,8 @@ def run_pipeline(
     config: PipelineConfig | None = None,
     parent_image_id: int = 0,
     tile_metadata_fn: Any | None = None,
-) -> tuple[Prediction, PipelineTiming]:
+    collect_objects: bool = False,
+) -> tuple[Prediction, PipelineTiming] | tuple[Prediction, PipelineTiming, List[GlobalObject]]:
     """对大图运行完整推理流水线。
 
     流程:
@@ -122,8 +147,19 @@ def run_pipeline(
         tile_metadata_fn: 可选回调 (tile: TileRecord) → dict，
             为每个 tile 生成额外的 metadata（如 mock 真值注入）。
 
+    Args:
+        image: 大图 numpy 数组 (H, W, 3) uint8 RGB。
+        detector: 已加载的检测器实例。
+        config: pipeline 配置；默认使用 PipelineConfig()。
+        parent_image_id: 原图 image_id，填入输出 Prediction。
+        tile_metadata_fn: 可选回调 (tile: TileRecord) → dict，
+            为每个 tile 生成额外的 metadata（如 mock 真值注入）。
+        collect_objects: 为 True 且 fusion="global" 时返回三元组，
+            第三项为对象级清单（主线 2 输出契约）。
+
     Returns:
-        (融合后的全局 Prediction, PipelineTiming)
+        collect_objects=False：(融合后的全局 Prediction, PipelineTiming)
+        collect_objects=True：上述二元组外加 List[GlobalObject]。
     """
     if config is None:
         config = PipelineConfig()
@@ -182,18 +218,55 @@ def run_pipeline(
 
     # -------- 融合 --------
     t0 = time.perf_counter()
-    fused = fuse_tile_predictions(
-        tile_predictions,
-        tiles,
-        image_width=w,
-        image_height=h,
-        parent_image_id=parent_image_id,
-        score_threshold=config.score_threshold,
-        iou_thresholds=config.iou_thresholds,
-    )
+    if config.fusion == "global":
+        # global 路径：低分候选保留作证据，过滤放到聚合后（见 fuse_global_predictions）
+        fused = fuse_global_predictions(
+            tile_predictions,
+            tiles,
+            image_width=w,
+            image_height=h,
+            parent_image_id=parent_image_id,
+            cluster_eps=config.cluster_eps,
+            merge_iou=config.merge_iou,
+            nms_iou=config.nms_iou,
+            score_threshold=config.score_threshold,
+            max_detections=config.max_detections,
+        )
+    else:
+        if config.score_threshold > 0.0:
+            tile_predictions = [
+                _filter_low_score(p, config.score_threshold)
+                for p in tile_predictions
+            ]
+        fused = fuse_tile_predictions(
+            tile_predictions,
+            tiles,
+            image_width=w,
+            image_height=h,
+            parent_image_id=parent_image_id,
+            fine_nms_iou=config.fine_nms_iou,
+            coarse_nms_iou=config.coarse_nms_iou,
+            max_detections=config.max_detections,
+        )
     timing.fusion_s = time.perf_counter() - t0
 
     timing.pipeline_s = timing.tiling_s + timing.model_only_s + timing.fusion_s
     timing.n_detections = len(fused.boxes_xyxy)
 
+    if collect_objects:
+        if config.fusion != "global":
+            raise ValueError("collect_objects=True requires config.fusion == 'global'")
+        objects = global_object_manifest(
+            tile_predictions,
+            tiles,
+            image_width=w,
+            image_height=h,
+            parent_image_id=parent_image_id,
+            cluster_eps=config.cluster_eps,
+            merge_iou=config.merge_iou,
+            nms_iou=config.nms_iou,
+            score_threshold=config.score_threshold,
+            max_detections=config.max_detections,
+        )
+        return fused, timing, objects
     return fused, timing
