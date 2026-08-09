@@ -42,6 +42,7 @@ ALLOWED_VIEWS: frozenset[str] = frozenset(
 
 PROPOSAL_CROP_COLUMNS: tuple[str, ...] = (
     "proposal_uid",
+    "image_id",
     "annotation_uid",
     "source_relative_path",
     "source_width",
@@ -205,6 +206,7 @@ def build_proposal_crop_manifest(
         rows.append(
             {
                 "proposal_uid": str(record["proposal_uid"]),
+                "image_id": image_id,
                 "annotation_uid": f"pred-{record['proposal_uid']}",
                 "source_relative_path": path_info["source_relative_path"],
                 "source_width": path_info["source_width"],
