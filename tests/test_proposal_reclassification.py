@@ -15,14 +15,12 @@ class TestBuildReclassifiedPredictions:
         return {
             1: [
                 {
-                    "proposal_uid": "p1",
                     "image_id": 1,
                     "category_id": 24,
                     "score": 0.9,
                     "bbox_xyxy": [0, 0, 10, 10],
                 },
                 {
-                    "proposal_uid": "p2",
                     "image_id": 1,
                     "category_id": 24,
                     "score": 0.8,
@@ -31,7 +29,6 @@ class TestBuildReclassifiedPredictions:
             ],
             2: [
                 {
-                    "proposal_uid": "p3",
                     "image_id": 2,
                     "category_id": 5,
                     "score": 0.7,
@@ -43,13 +40,17 @@ class TestBuildReclassifiedPredictions:
     def _reclassified(self):
         return [
             {
-                "proposal_uid": "p1",
+                "image_id": 1,
+                "score": 0.9,
+                "original_category_id": 24,
                 "category_id": 4,
                 "student_score": 0.95,
                 "dropped": False,
             },
             {
-                "proposal_uid": "p2",
+                "image_id": 1,
+                "score": 0.8,
+                "original_category_id": 24,
                 "category_id": 25,
                 "student_score": 0.60,
                 "dropped": True,
@@ -60,13 +61,17 @@ class TestBuildReclassifiedPredictions:
         # reclassify 模式下 background 保留原类别且不 drop（dropped=False）。
         reclassified = [
             {
-                "proposal_uid": "p1",
+                "image_id": 1,
+                "score": 0.9,
+                "original_category_id": 24,
                 "category_id": 4,
                 "student_score": 0.95,
                 "dropped": False,
             },
             {
-                "proposal_uid": "p2",
+                "image_id": 1,
+                "score": 0.8,
+                "original_category_id": 24,
                 "category_id": 24,  # 判为 background 时保留原类别
                 "student_score": 0.60,
                 "dropped": False,
@@ -77,7 +82,7 @@ class TestBuildReclassifiedPredictions:
             reclassified=reclassified,
             mode=MODE_RECLASSIFY,
         )
-        p1 = [r for r in result[1] if r["proposal_uid"] == "p1"][0]
+        p1 = result[1][0]
         assert p1["category_id"] == 4
         assert len(result[1]) == 2  # 未丢弃
         assert len(result[2]) == 1
@@ -88,9 +93,9 @@ class TestBuildReclassifiedPredictions:
             reclassified=self._reclassified(),
             mode=MODE_BACKGROUND,
         )
-        uids = [r["proposal_uid"] for r in result[1]]
-        assert "p2" not in uids  # dropped
-        assert "p1" in uids
+        categories = [r["category_id"] for r in result[1]]
+        assert 24 not in categories  # p2 dropped
+        assert categories == [4]
 
     def test_joint_replaces_and_drops(self):
         result = build_reclassified_predictions(
@@ -105,7 +110,7 @@ class TestBuildReclassifiedPredictions:
 
     def test_unmatched_kept(self):
         result = build_reclassified_predictions(
-            oof_predictions={3: [{"proposal_uid": "p9", "category_id": 0}]},
+            oof_predictions={3: [{"image_id": 3, "category_id": 0, "score": 0.5}]},
             reclassified=[],
             mode=MODE_JOINT,
         )

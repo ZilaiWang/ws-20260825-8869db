@@ -151,20 +151,29 @@ def build_reclassified_predictions(
 ) -> dict[int, list[dict[str, Any]]]:
     """把重分类结果融合回 M1 原始预测，输出 COCO 格式预测。
 
-    - MODE_RECLASSIFY / MODE_JOINT：按 proposal_uid 对应替换类别；
-    - MODE_BACKGROUND / MODE_JOINT：dropped 的候选被剔除；
-    - 未在 manifest 中的 M1 预测（如低于 manifest 阈值的）保持原样。
+    匹配键：``(image_id, score)``。重分类结果只覆盖 manifest 中的候选
+    （score >= manifest 阈值），OOF 聚合里更低的候选没有重分类记录，
+    保持原样（它们低于工作点，不影响 cross-fit 的评估窗口）。
+
+    - MODE_RECLASSIFY / MODE_JOINT：替换类别；
+    - MODE_BACKGROUND / MODE_JOINT：dropped 的候选被剔除。
     """
-    by_uid: dict[str, Mapping[str, Any]] = {
-        str(record["proposal_uid"]): record for record in reclassified
-    }
+    by_image_score: dict[tuple[int, float], Mapping[str, Any]] = {}
+    for record in reclassified:
+        key = (int(record["image_id"]), float(record["score"]))
+        by_image_score[key] = record
+
     result: dict[int, list[dict[str, Any]]] = {}
     for image_id, records in oof_predictions.items():
         kept: list[dict[str, Any]] = []
         for record in records:
-            uid = str(record.get("proposal_uid", ""))
-            if uid in by_uid:
-                rc = by_uid[uid]
+            key = (int(record["image_id"]), float(record["score"]))
+            rc = by_image_score.get(key)
+            if rc is not None:
+                # manifest 中的背景训练样本（原类别 25）不属于检测候选，
+                # 一律剔除；学生判背景的按模式处理。
+                if int(rc["original_category_id"]) == BACKGROUND_CLASS_ID:
+                    continue
                 if rc.get("dropped"):
                     continue
                 new_record = dict(record)
