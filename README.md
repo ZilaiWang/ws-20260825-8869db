@@ -1,5 +1,25 @@
 # XH-202625 小样本遥感图像目标检测
 
+## 当前活动模型
+
+训练、推理和测速主线已经切换为 `bhcdetr`，实现论文 arXiv:2512.24074v1 的
+Decoupled Queries 与 Balanced Hierarchical Contrastive Learning。旧 YOLO、
+RT-DETR 和 HPR 文件只保留作历史审计，当前入口不会加载它们。
+
+在此基础上已增加可选的小目标训练扩展：从 ResNet-50 C4 引入 stride-16 局部
+细节，并按 arXiv:2604.21435v1 的 Gain Map、DFL、LPM 和 ISSGA 思路选择有上限的
+局部 memory。该扩展面向当前裁剪数据和 tile 推理，属于 UHR-inspired 工程适配，
+不是论文完整的 10K UHR-DETR 复现。
+
+这是论文核心方法在比赛水平框数据上的可执行移植：承载网络为单尺度 ResNet-C5
+vanilla DETR，而论文实验使用 OrientedFormer/RHINO 与旋转框。因此目前不能称为论文
+实验模型的完整复现，也没有尚未训练就宣称达到 Recall、FDR 或 20 秒门槛。
+
+完整安装、训练、恢复、推理、评估、CV3 和 10K 测速步骤见
+[`docs/BHCDETR_IMPLEMENTATION.md`](docs/BHCDETR_IMPLEMENTATION.md)；启用小目标扩展
+及从旧 `best.pt` warm-start 的步骤见
+[`docs/UHR_BHCDETR_TRAINING.md`](docs/UHR_BHCDETR_TRAINING.md)。
+
 ## 项目目标
 
 不均衡小样本遥感影像检测舰船、飞机和车辆。
@@ -57,7 +77,7 @@ COCO detection JSON。
 | 官方 Recall/FDR 评估 | [`official_metric.py`](src/rsdet/evaluation/official_metric.py)、[`evaluate.py`](scripts/evaluate.py) | 可用，禁止另写评分逻辑；输出含 pooled 与官方排名（细类平均）双口径 |
 | 全局阈值扫描与工作点选择 | [`calibration.py`](src/rsdet/postprocess/calibration.py)、[`sweep_thresholds.py`](scripts/sweep_thresholds.py) | 可用 |
 | 实验结果登记 | [`leaderboard.csv`](reports/experiments/leaderboard.csv) | 可用 |
-| 公共训练、完整推理和跨 tile 融合 | [`train.py`](scripts/train.py)、[`infer.py`](scripts/infer.py)、[`tile_fusion.py`](src/rsdet/postprocess/tile_fusion.py) | 仍是骨架，不要误当成已完成流水线 |
+| BHC-DETR/UHR 小目标适配训练、完整推理和跨 tile 融合 | [`train.py`](scripts/train.py)、[`uhr_small_object.py`](src/rsdet/models/uhr_small_object.py)、[`infer.py`](scripts/infer.py)、[`tile_fusion.py`](src/rsdet/postprocess/tile_fusion.py) | 可执行；UHR 适配正式权重和指标待服务器训练 |
 
 上述公共能力只规定模块交接格式，不限制成员使用的模型、训练框架或内部实现。调用约定
 见 [`docs/INTEGRATION_CONTRACT.md`](docs/INTEGRATION_CONTRACT.md)，实验规则见
@@ -87,11 +107,13 @@ outputs/     实验输出（不提交）
 # 1. 安装
 python -m venv .venv
 source .venv/bin/activate                  # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-cp configs/local.example.yaml configs/local.yaml
+pip install -e ".[model,dev]"
+cp configs/models/bhcdetr_r50_1024.yaml configs/bhcdetr.local.yaml
 
-# 2. 验证
-python -m pytest -q                        # 应全部通过
+# 2. 验证当前 BHC-DETR 主线（历史模型测试不属于当前活动入口）
+python -m pytest -q tests/test_bhcl.py tests/test_bhcdetr_hierarchy.py \
+  tests/test_bhcdetr_detection_loss.py tests/test_bhcdetr_dataset.py \
+  tests/test_bhcdetr_architecture.py
 
 # 3. 数据检查与导出
 python scripts/check_dataset.py --data-root /path/to/data --official-train
@@ -104,9 +126,10 @@ python scripts/evaluate.py --gt gt.json --pred pred.json --output outputs/metric
 python scripts/sweep_thresholds.py --gt gt.json --pred pred.json \
   --output-dir outputs/实验ID/threshold_sweep
 
-# 6. 模型接入
-# 训练和完整推理入口仍在接入真实基线；模型成员可先使用原生框架训练，
-# 按 docs/INTEGRATION_CONTRACT.md 交付标准 COCO prediction JSON。
+# 6. BHC-DETR 数据审计、训练与推理
+python scripts/train.py --config configs/bhcdetr.local.yaml --dry-run
+python scripts/train.py --config configs/bhcdetr.local.yaml
+python scripts/infer.py --config configs/infer.example.yaml
 python scripts/validate_predictions.py --pred pred.json --gt gt.json
 ```
 

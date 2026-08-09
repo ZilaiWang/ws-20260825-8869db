@@ -19,6 +19,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+model = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "scipy>=1.10",
+]
 dev = [
     "pytest>=7.4",
     "ruff>=0.3",

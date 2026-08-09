@@ -1,0 +1,29 @@
+model:
+  adapter: "ultralytics"
+  family: "yolo"
+  checkpoint: "outputs/E-M1-yolo26s-1024-devv1-seed42/runs/foundation/weights/best.pt"
+  imgsz: 1024
+  confidence: 0.001
+  iou: 0.70
+  max_detections: 500
+  half: true
+
+device: "cuda:0"
+batch_size: 8
+
+input:
+  data_root: "F:/study/XH-2026/data"
+  manifest: "data/splits/dev_v1.json"
+  split: "val"
+
+score_thresholds:
+  ship: 0.001
+  aircraft: 0.001
+  vehicle: 0.001
+
+output_json: "outputs/hpr_search/base_low_predictions.json"
+
+evaluation:
+  gt: "outputs/dev_v1_gt.json"
+  project_config: "configs/project.yaml"
+  metrics_output: "outputs/hpr_search/base_low_metrics.json"
