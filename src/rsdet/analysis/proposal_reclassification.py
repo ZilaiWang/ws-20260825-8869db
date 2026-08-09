@@ -124,7 +124,7 @@ def reclassify_proposals(
                     dropped = True
                 else:
                     # reclassify 模式下背景哨兵退化为保留原类别（保守）。
-                    category_id = int(row["category_id"])
+                    category_id = int(row["class_id"])
             elif mode == MODE_RECLASSIFY or mode == MODE_JOINT:
                 category_id = int(pred)
             results.append(
@@ -132,7 +132,7 @@ def reclassify_proposals(
                     "proposal_uid": str(row["proposal_uid"]),
                     "image_id": int(row["image_id"]),
                     "fold": int(row["fold"]),
-                    "original_category_id": int(row["category_id"]),
+                    "original_category_id": int(row["class_id"]),
                     "category_id": category_id,
                     "score": float(row["score"]),
                     "student_score": float(prob_score),
