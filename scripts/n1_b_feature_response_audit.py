@@ -143,17 +143,27 @@ def _sample_features(model, image: Image.Image, bbox: list[float], imgsz: int):
         return hook_fn
 
     model_nn = model.model if hasattr(model, "model") else model
-    # 找到 Detect 层（最后一层），向前扫描 backbone/neck。
-    n_layers = len(model_nn)
-    detect_idx = n_layers - 1
-    # YOLO26 Detect 层通常是最后一层；特征来源是它前面的若干层。
-    # 根据 stride 匹配：检查层输出通道与特征图尺寸。
-    candidates = {}
-    for idx in range(detect_idx - 5, detect_idx):
-        layer = model_nn[idx]
-        if hasattr(layer, "cv3") or hasattr(layer, "cv2"):
-            candidates[f"P{idx}"] = layer
-            hooks.append(layer.register_forward_hook(make_hook(f"P{idx}")))
+    # Detect 层（最后一层）的输入来源 = P3/P4/P5 三路径。
+    detect_idx = len(model_nn) - 1
+    detect = model_nn[detect_idx]
+    # stride 由 Detect 层提供：strides = [8, 16, 32]。
+    strides = [int(s) for s in detect.stride.tolist()]
+    source_layers = [int(f) for f in detect.f]
+    stride_to_name = {4: "P2", 8: "P3", 16: "P4", 32: "P5"}
+    for src_idx, stride in zip(source_layers, strides):
+        name = stride_to_name.get(stride, f"P{stride}x")
+        candidates[name] = model_nn[src_idx]
+        hooks.append(
+            model_nn[src_idx].register_forward_hook(make_hook(name))
+        )
+    # 同时 hook 前两个 C2f（浅层特征，若 stride 不同会重复捕获）。
+    # 该模型 stride 只到 8，无 P2；浅层 C2f 层 6/8 是 backbone 中段。
+    for extra_idx in (6, 8):
+        extra_name = f"backbone{extra_idx}"
+        candidates[extra_name] = model_nn[extra_idx]
+        hooks.append(
+            model_nn[extra_idx].register_forward_hook(make_hook(extra_name))
+        )
 
     try:
         model(tensor)
