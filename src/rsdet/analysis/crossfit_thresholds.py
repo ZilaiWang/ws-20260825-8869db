@@ -317,8 +317,14 @@ def run_crossfit(
     internal_recall_min: float = 0.85,
     internal_fdr_max: float = 0.20,
     internal_fdr_strict: float = 0.17,
+    override_predictions: Mapping[int, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """执行严格 cross-fit 阈值基线。
+
+    Args:
+        override_predictions: 可选。若提供，则用该预测替代 aggregate 中的
+            原始 OOF 预测（例如对象学生重分类后的预测）；image_id 集合必须
+            与 GT 一致。
 
     Returns:
         结果字典（含 per-fold 与合并工作点、阈值离散度、达标情况），可直接
@@ -328,6 +334,8 @@ def run_crossfit(
         aggregate_dir,
         candidate_floor=candidate_floor,
     )
+    if override_predictions is not None:
+        predictions = dict(override_predictions)
     gt_boxes = load_gt_from_formal_crop_manifest(
         formal_crop_manifest_path,
         expected_images=expected_images,
