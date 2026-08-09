@@ -20,6 +20,8 @@ import pytest
         "rsdet.engine.trainer",
         "rsdet.evaluation.classification",
         "rsdet.evaluation.official_metric",
+        "rsdet.evaluation.official_ranking",
+        "rsdet.evaluation.protocol",
         "rsdet.evaluation.runtime",
         "rsdet.features",
         "rsdet.features.p04_cache",

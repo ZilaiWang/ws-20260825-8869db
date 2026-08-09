@@ -1,16 +1,62 @@
+# BHC-DETR baseline: Chen et al., CVPR 2026 / arXiv:2512.24074v1.
+# For the opt-in small-object extension use models/bhcdetr_uhr_r50_1024.yaml.
+experiment_id: "BHCDETR-R50-1024-devv2-seed42"
+model: "bhcdetr"
 seed: 42
-device: "cuda"
-epochs: 100
-batch_size: 4
-num_workers: 4
-model: ""                 # 模型名称，需在 registry 中注册
-optimizer:
-  type: "AdamW"
-  lr: 0.0001
-  weight_decay: 0.0001
-scheduler:
-  type: "CosineAnnealingLR"
-  T_max: 100
-output_dir: "outputs/train"
+output_dir: "outputs/BHCDETR-R50-1024-devv2-seed42"
 resume: null
-mixed_precision: true
+
+data:
+  # Run commands from the repository root. Change this on the training server.
+  root: "../data"
+  manifest: "data/splits/dev_v2_airport_proxy_k60.json"
+  held_out_fold: null
+
+architecture:
+  num_classes: 25
+  image_size: 1024
+  backbone: "resnet50"
+  backbone_pretrained: true
+  backbone_weights: null       # offline server: local ResNet-50 state_dict
+  train_backbone: true
+  hidden_dim: 256
+  num_queries: 300
+  encoder_layers: 6
+  decoder_layers: 6
+  nheads: 8
+  dim_feedforward: 1024
+  dropout: 0.1
+  projection_dim: 128          # paper does not state d'; documented engineering default
+  prior_probability: 0.01
+
+loss:
+  # Detection/matching weights inherit standard DETR defaults because the paper omits them.
+  match_class_cost: 2.0
+  match_bbox_cost: 5.0
+  match_giou_cost: 2.0
+  class_loss_weight: 2.0
+  bbox_loss_weight: 5.0
+  giou_loss_weight: 2.0
+  bhcl_weight: 0.6             # paper Section 4.2
+  auxiliary_loss_weight: 1.0
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  temperature: 0.1             # paper Section 4.2
+  prototype_momentum: 0.1      # epsilon in paper Eq. (10)
+
+train:
+  device: "cuda:0"
+  epochs: 120                  # paper omits epochs; engineering default
+  batch_size: 4                # 4 sources x 2 views = 8 samples visible to BHCL
+  views_per_image: 2           # paper: two augmented views per source image
+  gradient_accumulation_steps: 1  # accumulation does not enlarge BHCL's contrastive set
+  workers: 4
+  learning_rate: 0.00005       # AdamW and 5e-5 are stated by the paper
+  weight_decay: 0.0001         # paper omits it; engineering default
+  scheduler: "none"            # paper omits the schedule
+  amp: true
+  deterministic: true
+  clip_max_norm: 0.1
+  augmentation:
+    flip_probability: 0.5
+    max_shift_ratio: 0.1       # paper says random shift but omits magnitude

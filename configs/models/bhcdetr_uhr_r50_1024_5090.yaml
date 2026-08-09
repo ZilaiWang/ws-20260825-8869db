@@ -1,0 +1,92 @@
+# BHC-DETR + UHR-DETR-derived small-object training adaptation.
+# This is a crop-data-compatible adaptation of arXiv:2604.21435v1, not a
+# claim of full 10K-image UHR-DETR reproduction.
+experiment_id: "BHCDETR-UHR-R50-1024-devv2-seed42-5090"
+model: "bhcdetr"
+seed: 42
+output_dir: "outputs/BHCDETR-UHR-R50-1024-devv2-seed42-5090"
+resume: null
+
+# Load only name/shape-compatible BHC-DETR, backbone and BHCL tensors. New UHR
+# tensors keep their normal initialization. Use resume only on this run's last.pt.
+init_checkpoint: "outputs/BHCDETR-R50-1024-devv2-seed42/best.pt"
+
+data:
+  root: "../data"
+  manifest: "data/splits/dev_v2_airport_proxy_k60.json"
+  held_out_fold: null
+
+architecture:
+  num_classes: 25
+  image_size: 1024
+  backbone: "resnet50"
+  backbone_pretrained: false
+  backbone_weights: null
+  train_backbone: true
+  hidden_dim: 256
+  num_queries: 300
+  encoder_layers: 6
+  decoder_layers: 6
+  nheads: 8
+  dim_feedforward: 1024
+  dropout: 0.1
+  projection_dim: 128
+  prior_probability: 0.01
+  uhr_enabled: true
+  uhr_gain_bin_limit: 6
+  uhr_patch_size: 512
+  uhr_patch_budget: 4
+  uhr_max_local_tokens: 1024
+  uhr_gain_head_groups: 32
+
+loss:
+  match_class_cost: 2.0
+  match_bbox_cost: 5.0
+  match_giou_cost: 2.0
+  class_loss_weight: 2.0
+  bbox_loss_weight: 5.0
+  giou_loss_weight: 2.0
+  bhcl_weight: 0.6
+  auxiliary_loss_weight: 1.0
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  temperature: 0.1
+  prototype_momentum: 0.1
+  # The paper does not publish these lambda values; these are explicit,
+  # fixed engineering defaults for the first controlled experiment.
+  gain_map_weight: 1.0
+  gain_lpm_weight: 1.0
+  gain_lpm_margin: 0.05
+
+train:
+  device: "cuda:0"
+  epochs: 12
+  batch_size: 4
+  views_per_image: 2
+  gradient_accumulation_steps: 1
+  # 4 source images x 2 views x 1 accumulation = 8 views per optimizer update.
+  # This preserves the nominal update size and update/LR schedule of 1 x 2 x 4,
+  # but the four sources now share one detection/BHCL forward-loss batch.  Keep
+  # the separate experiment id because that changes loss batching semantics.
+  # If the 20-step smoke test reports CUDA OOM, use batch_size: 2 and
+  # gradient_accumulation_steps: 2 (still 8 views per optimizer update).
+  workers: 8
+  prefetch_factor: 4
+  validation_interval: 2
+  log_interval: 50
+  learning_rate: 0.0001
+  backbone_learning_rate: 0.00001
+  weight_decay: 0.0001
+  scheduler: "warmup_multistep"
+  warmup_steps: 500
+  lr_milestones: [8, 11]
+  lr_gamma: 0.1
+  amp: true
+  channels_last: true
+  matmul_precision: "high"
+  fused_optimizer: true
+  deterministic: false
+  clip_max_norm: 0.1
+  augmentation:
+    flip_probability: 0.5
+    max_shift_ratio: 0.1

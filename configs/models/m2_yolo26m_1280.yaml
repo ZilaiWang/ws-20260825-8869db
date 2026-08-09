@@ -1,0 +1,46 @@
+experiment_id: "E-M2-yolo26m-1280-devv1-seed42"
+seed: 42
+output_dir: "outputs/E-M2-yolo26m-1280-devv1-seed42"
+model:
+  family: "yolo"
+  weights: "yolo26m.pt"
+data:
+  root: ""
+  manifest: "data/splits/dev_v1.json"
+imbalance:
+  repeat_threshold: 0.05
+  max_repeat: 4.0
+  effective_beta: 0.9999
+  max_class_weight: 5.0
+train:
+  device: "cuda:0"
+  args:
+    imgsz: 1280
+    batch: 6
+    workers: 8
+    optimizer: "AdamW"
+    lr0: 0.0015
+    lrf: 0.01
+    weight_decay: 0.0005
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true
+    deterministic: true
+    patience: 35
+    val: true
+    plots: true
+  stages:
+    - name: "foundation"
+      epochs: 160
+      balanced: false
+      args: {close_mosaic: 20}
+    - name: "rare_rebalance"
+      epochs: 40
+      balanced: true
+      args:
+        freeze: 10
+        lr0: 0.0004
+        cls_pw: 0.25
+        mosaic: 0.2
+        mixup: 0.0
+        close_mosaic: 10

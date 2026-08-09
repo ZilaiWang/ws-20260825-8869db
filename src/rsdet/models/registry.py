@@ -8,6 +8,7 @@
     detector = build_model("my_detector", config)
 """
 
+import importlib
 from collections.abc import Sequence
 from typing import Any, Dict, Type
 
@@ -15,6 +16,10 @@ from rsdet.contracts import InferenceSample, Prediction
 from rsdet.models.base import BaseDetector
 
 _MODEL_REGISTRY: Dict[str, Type[BaseDetector]] = {}
+_LAZY_MODEL_MODULES = {
+    # Keep heavyweight torch/torchvision imports out of data and metric tools.
+    "bhcdetr": "rsdet.models.bhcdetr_adapter",
+}
 
 
 def register_model(name: str):
@@ -46,8 +51,10 @@ def build_model(name: str, config: Dict[str, Any]) -> BaseDetector:
     Raises:
         KeyError: 模型名称未注册。
     """
+    if name not in _MODEL_REGISTRY and name in _LAZY_MODEL_MODULES:
+        importlib.import_module(_LAZY_MODEL_MODULES[name])
     if name not in _MODEL_REGISTRY:
-        available = ", ".join(_MODEL_REGISTRY.keys()) or "（无）"
+        available = ", ".join(sorted(set(_MODEL_REGISTRY) | set(_LAZY_MODEL_MODULES))) or "（无）"
         raise KeyError(f"未找到模型 '{name}'。已注册: {available}")
     cls = _MODEL_REGISTRY[name]
     return cls(**config.get("init_args", {}))

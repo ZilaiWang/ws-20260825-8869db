@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+
+- 论文 arXiv:2512.24074v1 的 Decoupled Queries、BHCL、分层 EMA 原型及逐 decoder 层监督
+- 仅使用 `bhcdetr` 的活动训练、推理、checkpoint、滑窗融合与 10K 端到端测速链路
+- 双视图翻转/平移数据管线、冻结 manifest/fold 读取和水平框 Hungarian 损失
+- `docs/BHCDETR_IMPLEMENTATION.md` 详细复现边界与可执行运行手册
+- `configs/bhcdetr.smoke.yaml` 软件链路冒烟配置
 - 官方评分方案 V1.6 排名口径聚合 `evaluate_ranking_metrics`：大类指标 = 大类内
   细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即 FSC），
   0-GT 细类不参与平均；`evaluate.py` 默认输出 `official_ranking` 块

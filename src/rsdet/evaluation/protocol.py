@@ -16,6 +16,7 @@ class EvaluationProtocol:
     iou_thresholds: dict[str, float]
     recall_min: float
     fdr_max: float
+    latency_max_seconds: float | None = None
 
 
 def parse_evaluation_protocol(
@@ -43,6 +44,14 @@ def parse_evaluation_protocol(
         raise ValueError("recall_min 必须在 [0, 1] 内")
     if not math.isfinite(fdr_max) or not 0.0 <= fdr_max <= 1.0:
         raise ValueError("fdr_max 必须在 [0, 1] 内")
+    latency_max_seconds: float | None = None
+    if official_config.get("latency_max_seconds") is not None:
+        latency_max_seconds = float(official_config["latency_max_seconds"])
+        if (
+            not math.isfinite(latency_max_seconds)
+            or latency_max_seconds <= 0.0
+        ):
+            raise ValueError("latency_max_seconds 必须是正有限数")
     return EvaluationProtocol(
         contract_version=contract_version,
         eval_version=eval_version,
@@ -57,4 +66,5 @@ def parse_evaluation_protocol(
         },
         recall_min=recall_min,
         fdr_max=fdr_max,
+        latency_max_seconds=latency_max_seconds,
     )

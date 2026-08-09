@@ -1,13 +1,41 @@
-checkpoint: ""            # 模型权重路径（必填）
-device: "cuda"
-mixed_precision: true
-tile_size: 1024
-tile_overlap: 200
-batch_size: 1
-candidate_score_floor: 0.001  # 扫描前尽量保留低分候选，不是正式工作点阈值
-selected_score_threshold: null # 由 scripts/sweep_thresholds.py 选择后填写
-max_detections_per_tile: 500
-postprocess:
-  nms_iou_threshold: 0.5
-  threshold_stage: "post_fusion"
-output_json: "outputs/predictions.json"
+# Only the paper-aligned BHC-DETR adapter is active in this configuration.
+model:
+  adapter: "bhcdetr"
+  checkpoint: "outputs/BHCDETR-R50-1024-devv2-seed42/best.pt"
+  image_size: 1024
+  confidence: 0.001
+  max_detections: 300
+  half: true
+
+device: "cuda:0"
+batch_size: 4
+
+input:
+  data_root: "../data"
+  manifest: "data/splits/dev_v2_airport_proxy_k60.json"
+  split: "val"
+
+tiling:
+  enabled: true
+  force: false
+  tile_size: 1024
+  overlap: 200
+  fine_nms_iou: 0.55
+  coarse_nms_iou: 0.85
+  max_detections: 2000
+
+# Keep a low candidate floor, then select final working points with sweep_thresholds.py.
+score_thresholds:
+  ship: 0.001
+  aircraft: 0.001
+  vehicle: 0.001
+fine_score_thresholds: {}
+
+output_json: "outputs/BHCDETR-R50-1024-devv2-seed42/val_predictions_low.json"
+benchmark_output: "outputs/BHCDETR-R50-1024-devv2-seed42/benchmark_10k.json"
+
+# Uncomment after exporting validation GT to enable automatic Recall/FDR reporting.
+# evaluation:
+#   gt: "outputs/dev_v2_val_gt.json"
+#   project_config: "configs/project.yaml"
+#   metrics_output: "outputs/BHCDETR-R50-1024-devv2-seed42/val_metrics.json"
