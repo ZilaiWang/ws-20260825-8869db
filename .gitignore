@@ -78,3 +78,6 @@ dist/
 .DS_Store
 .venv-mar20-cluster/
 tmp/
+
+# Claude
+.claude/
