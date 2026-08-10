@@ -39,12 +39,12 @@ feat(e): 主线3 全局对象聚合与条件计算（WP1/2/5/6）+ 真实数据 
   - Recall 96.9%、细类 Macro Recall 95.5%
   - score≥0.25 时 FDR 3.83%（目标 ≤17%）
   - 聚合几乎不伤召回（98.4% → 96.9%）
-- 未触发场景：OOF 为整图级预测，无 tile 切分，故跨细类冲突归并（evidence 来自多细类）=0，该场景需 10K 切片路径验证（依赖 WP4 服务器环境）
+- 未触发场景：OOF 为整图级预测，无 tile 切分，故跨细类冲突归并（evidence 来自多细类）=0，该场景需在 10K 切片路径上验证
 
 ## 风险和回滚
 
 - 本 PR 新增 `global_aggregation.py` 独立于现有模块；`large_image.py` 的 `fusion` 参数默认保持 `"tile"`，不影响既有 tile 路径
-- 跨细类冲突归并的最终验证依赖服务器 10K 环境（WP4）
+- 跨细类冲突归并的最终验证需在 10K 切片路径上完成
 - 回滚方式：删除 `global_aggregation.py` + 恢复 `large_image.py` 默认路径即可
 
 ## 检查清单

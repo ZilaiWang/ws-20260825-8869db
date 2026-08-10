@@ -3,6 +3,33 @@
 状态：可执行工程任务；正式比赛时延结论取决于图像来源  
 模板：`configs/experiments/e_10k_pipeline_cv3.template.yaml`
 
+## 0. 权重获取（gitee Release 附件）
+
+M1（YOLO26s）正式 CV3 三折权重与初始预训练权重已发布为 gitee Release
+附件（tag `v0.1-m1-weights`），无需申请权限、直接下载即可使用：
+
+```bash
+# M1 三折 best.pt（62MB）：fold_0/1/2/runs/foundation/weights/best.pt
+curl -L -o M1-CV3-OOF-fold012-best.tar.gz \
+  https://gitee.com/zilai-wang/xh-202625/releases/download/v0.1-m1-weights/M1-CV3-OOF-fold012-best.tar.gz
+
+# YOLO26s 官方初始预训练权重（19MB）
+curl -L -o yolo26s.pt \
+  https://gitee.com/zilai-wang/xh-202625/releases/download/v0.1-m1-weights/yolo26s.pt
+```
+
+下载后建议用 SHA-256 校验（登记于 `reports/experiments/SERVER_ARTIFACT_REGISTER.csv`）：
+
+```bash
+sha256sum -c <<'EOF'
+8409c849a8d6629193c666d8e0b424b79eeb4459e908c39e3adc6c3d220d7af1  M1-CV3-OOF-fold012-best.tar.gz
+646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b  yolo26s.pt
+EOF
+```
+
+10K 大图需自行合成（官方不提供）：使用 `src/rsdet/tiling/synthetic.py`
+生成 10K 级带 GT 的合成图跑通跨 tile 路径。
+
 ## 1. 任务边界
 
 E 负责：
