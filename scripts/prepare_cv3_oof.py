@@ -12,11 +12,11 @@ from rsdet.experiments.cv3_oof import prepare_oof_run_plan
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="准备 M1/M3 正式 CV3 OOF 三折输入")
+    parser = argparse.ArgumentParser(description="准备 M1/M3/P2/Y3 正式 CV3 OOF 三折输入")
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--manifest-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--model-key", choices=("M1", "M3"), required=True)
+    parser.add_argument("--model-key", choices=("M1", "M3", "P2", "Y3"), required=True)
     parser.add_argument("--model-family", required=True)
     parser.add_argument("--model-name", required=True)
     parser.add_argument("--seed", type=int, default=42)

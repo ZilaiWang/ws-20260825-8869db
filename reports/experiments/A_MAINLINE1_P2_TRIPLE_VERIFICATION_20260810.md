@@ -1,11 +1,16 @@
 # A 主线 1：V1-FULL-P2 三折验证报告
 
 日期：2026-08-10
-实验：V1-FULL-P2 = yolo26-p2s（Detect 四输入 P2/P3/P4/P5，stride 4/8/16/32）
+实验：历史 V1-FULL-P2（Detect 四输入 P2/P3/P4/P5，stride 4/8/16/32）
 对照：M1 = yolo26s（Detect 三输入 P3/P4/P5，stride 8/16/32）
 GPU：autodl RTX 3090（`connect.nmb2`，新实例）
 状态：`invalid_for_formal_comparison` —— **机制证据保留，正式效果结论撤销**
 
+> 2026-08-11 追加审核：历史配置使用 `yolo26-p2s.yaml`，
+> Ultralytics 8.4.103 会警告未给定 scale 并回退到 n 级（2,662,400 参数）；
+> 正确 s 级名称是 `yolo26s-p2.yaml`（9,765,856 参数）。因此历史
+> P2 除了 60 epoch/best 与非官方评估外，还存在模型容量不对齐。
+>
 > 2026-08-10 收尾审核：历史 P2 实验实际训练 60 epoch 并使用
 > `best.pt`；正式 M1 为 160 epoch 固定 `last.pt`。`n1d_p2_evaluate.py`
 > 又是逐 GT 最佳候选的机制诊断，不是官方一对一 Recall/FDR。
@@ -15,7 +20,7 @@ GPU：autodl RTX 3090（`connect.nmb2`，新实例）
 
 | 项 | M1 基线 | V1-FULL-P2 |
 |---|---|---|
-| 模型 | yolo26s.pt | yolo26-p2s.yaml（官方 P2 变体） |
+| 模型 | yolo26s.pt | `yolo26-p2s.yaml`（实际回退为 n 级 P2） |
 | 初始化 | COCO 预训练 | yolo26s 迁移公共层 + P2 头随机初始化 |
 | 数据 | CV3 三折（fold0/1/2 各为验证折） | **完全相同** |
 | 超参 | 正式 M1: 160 epoch / fixed last | 历史 P2: 60 epoch / best |

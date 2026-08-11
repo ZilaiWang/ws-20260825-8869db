@@ -2,7 +2,7 @@
 """V1-FULL-P2：高分辨率候选通路（stride-4 P2 检测头）验证实验。
 
 对齐 M1（yolo26s-1024-CV3）严格单因素：
-- 模型：yolo26-p2s.pt（官方 P2 变体，Detect 四输入 P2/P3/P4/P5）
+- 模型：yolo26s-p2.yaml（官方 s 级 P2 变体，Detect 四输入 P2/P3/P4/P5）
 - 数据：CV3 三折，与 M1 完全相同的 fold 划分
 - 训练：与 M1 相同超参（imgsz 1024 / batch 12 / AdamW / 160 epoch）
 - 唯一变化：模型多了 P2 检测通路
@@ -50,7 +50,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch", type=int, default=12)
     parser.add_argument(
         "--model-yaml",
-        default="yolo26-p2s.yaml",
+        default="yolo26s-p2.yaml",
         help="P2 模型定义（s 尺度，ultralytics 内置）",
     )
     parser.add_argument(

@@ -18,6 +18,10 @@
   Release/附件、SHA256、权重血缘和用途（当前权威登记）；
 - [`YOLO_INNOVATION_DIRECTIONS_20260811.md`](YOLO_INNOVATION_DIRECTIONS_20260811.md)：
   依据当前错误分解和本地论文清单形成的 YOLO 改进优先级、单变量实验顺序与停止条件；
+- [`Y1_CROSSFIT_CALIBRATION_RESULT_20260811.md`](Y1_CROSSFIT_CALIBRATION_RESULT_20260811.md)：
+  M1 严格外层 cross-fit C0-C3 校准结果，C2 类别先验分支准入；
+- [`Y2_Y3_FORMAL_IMPLEMENTATION_20260811.md`](Y2_Y3_FORMAL_IMPLEMENTATION_20260811.md)：
+  真正 s 级 P2 正式三折合同、历史 P2 命名问题、以及受 Y2 决策门控的单对 IBS 质量实验；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
   不再作跨成员交付依据；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；

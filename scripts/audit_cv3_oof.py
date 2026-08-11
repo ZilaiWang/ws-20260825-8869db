@@ -12,7 +12,7 @@ from rsdet.experiments.cv3_oof import audit_and_aggregate_oof
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="审计并汇总 M1/M3 三折 OOF")
+    parser = argparse.ArgumentParser(description="审计并汇总 M1/M3/P2/Y3 三折 OOF")
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--manifest-sha256", required=True)
     parser.add_argument("--plan", type=Path, required=True)

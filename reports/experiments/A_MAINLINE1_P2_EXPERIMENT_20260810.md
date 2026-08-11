@@ -1,7 +1,7 @@
 # A 主线 1：V1-FULL-P2 高分辨率候选通路实验（fold0）
 
 日期：2026-08-10
-实验：V1-FULL-P2 = yolo26-p2s（Detect 四输入 P2/P3/P4/P5，stride 4/8/16/32）
+实验：历史 V1-FULL-P2（实际为 n 级 P2；详见三折收尾报告）
 对照：M1 = yolo26s（Detect 三输入 P3/P4/P5，stride 8/16/32）
 GPU：autodl RTX 3090
 状态：`superseded_invalid_for_formal_comparison`
@@ -15,7 +15,7 @@ GPU：autodl RTX 3090
 
 | 项 | M1 基线 | V1-FULL-P2 |
 |---|---|---|
-| 模型 | yolo26s.pt | yolo26-p2s.yaml（官方 P2 变体） |
+| 模型 | yolo26s.pt | `yolo26-p2s.yaml`（命名错误导致回退为 n 级） |
 | 初始化 | COCO 预训练 | yolo26s 迁移公共层 + P2 头随机初始化 |
 | 数据 | CV3 fold0（训练 fold1+2，验证 fold0） | **完全相同** |
 | 超参 | imgsz 1024 / batch 12 / 60 epoch / AdamW | **完全相同** |

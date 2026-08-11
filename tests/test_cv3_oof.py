@@ -142,6 +142,35 @@ def _prepare(tmp_path: Path) -> tuple[Path, Path]:
     return manifest, run_root
 
 
+def test_prepare_p2_uses_formal_single_factor_contract(tmp_path: Path) -> None:
+    manifest = _manifest(tmp_path / "cv3.json")
+    pretrained = tmp_path / "yolo26s.pt"
+    pretrained.write_bytes(b"official-pretrained-fixture")
+    data_lock = _data_lock(tmp_path / "formal_detection_data_lock.json", manifest)
+    plan = prepare_oof_run_plan(
+        manifest_path=manifest,
+        output_dir=tmp_path / "p2_run",
+        model_key="P2",
+        model_family="yolo",
+        model_name="yolo26s-p2",
+        seed=42,
+        input_size=1024,
+        foundation_epochs=160,
+        low_score_threshold=0.001,
+        max_detections=500,
+        pretrained_weight=str(pretrained),
+        pretrained_weight_sha256=sha256_file(pretrained),
+        detection_data_lock=str(data_lock),
+        detection_data_lock_sha256=sha256_file(data_lock),
+        expected_manifest_sha256=sha256_file(manifest),
+        expected_image_count=6,
+    )
+    assert plan["model_key"] == "P2"
+    assert plan["model_name"] == "yolo26s-p2"
+    assert plan["training_config_contract"]["train_args"]["imgsz"] == 1024
+    assert plan["inference_config_contract"]["model"]["confidence"] == 0.001
+
+
 def _complete_fold(
     run_root: Path,
     fold: int,

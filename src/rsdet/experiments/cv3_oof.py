@@ -82,6 +82,48 @@ FORMAL_TRAINING_CONTRACTS: dict[str, dict[str, Any]] = {
         },
         "stage_args": {},
     },
+    "P2": {
+        "device": "cuda:0",
+        "checkpoint_selection": "last",
+        "train_args": {
+            "imgsz": 1024,
+            "batch": 12,
+            "workers": 8,
+            "optimizer": "AdamW",
+            "lr0": 0.002,
+            "lrf": 0.01,
+            "weight_decay": 0.0005,
+            "warmup_epochs": 3,
+            "cos_lr": True,
+            "amp": True,
+            "deterministic": True,
+            "patience": 0,
+            "val": False,
+            "plots": False,
+        },
+        "stage_args": {"close_mosaic": 20},
+    },
+    "Y3": {
+        "device": "cuda:0",
+        "checkpoint_selection": "last",
+        "train_args": {
+            "imgsz": 1024,
+            "batch": 12,
+            "workers": 8,
+            "optimizer": "AdamW",
+            "lr0": 0.002,
+            "lrf": 0.01,
+            "weight_decay": 0.0005,
+            "warmup_epochs": 3,
+            "cos_lr": True,
+            "amp": True,
+            "deterministic": True,
+            "patience": 0,
+            "val": False,
+            "plots": False,
+        },
+        "stage_args": {"close_mosaic": 20},
+    },
 }
 FORMAL_INFERENCE_CONTRACTS: dict[str, dict[str, Any]] = {
     "M1": {
@@ -138,6 +180,60 @@ FORMAL_INFERENCE_CONTRACTS: dict[str, dict[str, Any]] = {
             "metrics_output": "",
         },
     },
+    "P2": {
+        "device": "cuda:0",
+        "batch_size": 8,
+        "model": {
+            "adapter": "ultralytics",
+            "family": "yolo",
+            "imgsz": 1024,
+            "confidence": 0.001,
+            "iou": 0.70,
+            "max_detections": 500,
+            "half": True,
+            "agnostic_nms": False,
+        },
+        "input": {"split": "val"},
+        "tiling": {"enabled": False, "force": False},
+        "score_thresholds": {
+            "ship": 0.001,
+            "aircraft": 0.001,
+            "vehicle": 0.001,
+        },
+        "fine_score_thresholds": {},
+        "evaluation": {
+            "gt": "",
+            "project_config": "configs/project.yaml",
+            "metrics_output": "",
+        },
+    },
+    "Y3": {
+        "device": "cuda:0",
+        "batch_size": 8,
+        "model": {
+            "adapter": "ultralytics",
+            "family": "yolo",
+            "imgsz": 1024,
+            "confidence": 0.001,
+            "iou": 0.70,
+            "max_detections": 500,
+            "half": True,
+            "agnostic_nms": False,
+        },
+        "input": {"split": "val"},
+        "tiling": {"enabled": False, "force": False},
+        "score_thresholds": {
+            "ship": 0.001,
+            "aircraft": 0.001,
+            "vehicle": 0.001,
+        },
+        "fine_score_thresholds": {},
+        "evaluation": {
+            "gt": "",
+            "project_config": "configs/project.yaml",
+            "metrics_output": "",
+        },
+    },
 }
 FORMAL_EXPERIMENT_SPECS: dict[str, dict[str, Any]] = {
     "M1": {
@@ -155,6 +251,22 @@ FORMAL_EXPERIMENT_SPECS: dict[str, dict[str, Any]] = {
         "foundation_epochs": 120,
         "low_score_threshold": 0.001,
         "max_detections": 300,
+    },
+    "P2": {
+        "model_family": "yolo",
+        "model_name": "yolo26s-p2",
+        "input_size": 1024,
+        "foundation_epochs": 160,
+        "low_score_threshold": 0.001,
+        "max_detections": 500,
+    },
+    "Y3": {
+        "model_family": "yolo",
+        "model_name": "yolo26s-p2-ibs-pair",
+        "input_size": 1024,
+        "foundation_epochs": 160,
+        "low_score_threshold": 0.001,
+        "max_detections": 500,
     },
 }
 
@@ -371,8 +483,8 @@ def prepare_oof_run_plan(
     """Materialize three loader-compatible views and a frozen OOF run plan."""
 
     model_key = model_key.strip().upper()
-    if model_key not in {"M1", "M3"}:
-        raise ValueError("model_key 必须是 M1 或 M3")
+    if model_key not in FORMAL_EXPERIMENT_SPECS:
+        raise ValueError(f"model_key 必须是 {sorted(FORMAL_EXPERIMENT_SPECS)} 之一")
     if not model_family.strip() or not model_name.strip():
         raise ValueError("model_family/model_name 不能为空")
     if seed < 0 or input_size <= 0 or foundation_epochs <= 0 or max_detections <= 0:

@@ -42,7 +42,7 @@ P2、小目标特征融合、长尾校准、困难样本采样、旋转等变、
 
 ## 3. 优先级结论
 
-### 3.1 第一优先：cross-fit 类别—空间校准
+### 3.1 第一优先：cross-fit 类别—空间校准（已完成）
 
 基线：M1 原始低阈值 OOF 与当前 cross-fit 阈值选择代码。
 参考论文：**Fractal Calibration for Long-Tailed Object Detection (FRACAL)**。
@@ -57,7 +57,11 @@ macro 放大、舰船/车辆 FDR 很高、不同 fold 的分数分布发生漂�
 1. `C0`：现有 cross-fit 全局阈值；
 2. `C1`：三大类共享阈值；
 3. `C2`：只做有收缩约束的 class-prior logit adjustment；
-4. `C3`：FRACAL 类别 + 空间校准。
+4. `C3`：FRACAL-inspired 类别 + 空间分形代理校准。
+
+当前 OOF 只保留 NMS 后的已选类别和单标量分数，因此 C2/C3
+只是后 NMS 筛选，不能宣称为 FRACAL 完整复现。完整方法需要在
+NMS 前对全部类别 logits 校准。
 
 空间统计只允许从每个外层训练 fold 计算，阈值和超参只在内层校准数据拟合；
 held-out fold 仅评一次。稀有类不能独立自由拟合大量参数，必须向船/飞机大类
@@ -65,11 +69,17 @@ held-out fold 仅评一次。稀有类不能独立自由拟合大量参数，必
 
 准入信号：pooled Recall 不下降超过 `0.005`；pooled FDR 明显低于当前
 `0.1990`；ship/vehicle macro FDR 至少一项稳定下降，且 2/3 folds 同方向。
-这是成本最低、最应先跑的 YOLO 改进。
+正式结果：C2 相对 C0 的 pooled Recall 变化为 `-0.0041`，
+pooled FDR 变化为 `-0.0397`，macro FDR 变化为 `-0.0297`，
+三折 FDR 均改善，因此 C2 准入。C1 跌破 FDR 硬门槛；C3 相对
+C2 无增量，不准入，也不启动完整 FRACAL 工程改造。
 
 ### 3.2 第二优先：正式 P2 基线，再解决“候选有了但质量不足”
 
-基线：官方 `yolo26-p2s`，只增加 stride-4 的 P2/P3/P4/P5 检测路径。
+基线：官方 `yolo26s-p2.yaml`，只增加 stride-4 的
+P2/P3/P4/P5 检测路径。注意 Ultralytics 的尺度字母必须位于
+`yolo26` 之后；历史脚本中的 `yolo26-p2s.yaml` 会回退为 n 级，
+不能与 M1 构成容量对齐的正式对照。
 参考论文：
 
 - **Edge-Constrained UAV Small-Object Detection with P2 Enhancement and
