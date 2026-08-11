@@ -200,7 +200,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             grade = "Q1"
         elif score >= 0.5 or sift_stable or patch_stable:
             grade = "Q2"
-        elif _number(row, "formal_route_support") >= 2 or _number(row, "best_formal_rank", 999) <= 10:
+        elif (
+            _number(row, "formal_route_support") >= 2 or _number(row, "best_formal_rank", 999) <= 10
+        ):
             grade = "Q3"
         else:
             grade = "Q4"
@@ -246,7 +248,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "intercept": float(logistic.intercept_[0]),
             "random_seed": args.seed,
         },
-        "queue_counts": dict(sorted(Counter(row["queue_grade"] for row in assignment_rows).items())),
+        "queue_counts": dict(
+            sorted(Counter(row["queue_grade"] for row in assignment_rows).items())
+        ),
         "pair_evidence_sha256": sha256_file(evidence_path),
         "assignment_sha256": sha256_file(assignment_path),
         "selection_uses_heldout": False,

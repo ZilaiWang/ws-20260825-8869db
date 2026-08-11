@@ -161,8 +161,7 @@ def _teacher_options(args: argparse.Namespace) -> dict[str, Any]:
     selected_defaults = defaults.get(args.teacher, {})
     values: dict[str, Any] = {
         "weights": args.weights or selected_defaults.get("weights"),
-        "weight_sha256": args.weight_sha256
-        or selected_defaults.get("weight_sha256"),
+        "weight_sha256": args.weight_sha256 or selected_defaults.get("weight_sha256"),
         "repo": args.source_repo or selected_defaults.get("repo"),
         "base_model": args.base_model or selected_defaults.get("base_model"),
         "include_patch_mean": args.include_patch_mean,
@@ -289,7 +288,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         transform=None,
         image_cache_size=args.image_cache_size,
     )
-    entries = [(record_index, view_id) for record_index in range(len(records)) for view_id in view_ids]
+    entries = [
+        (record_index, view_id) for record_index in range(len(records)) for view_id in view_ids
+    ]
     shard_count = math.ceil(len(entries) / args.shard_size)
     start = time.perf_counter()
     processed_rows = 0
@@ -297,9 +298,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     skipped_rows = 0
     skipped_shards = 0
     for shard_index in range(shard_count):
-        shard_entries = entries[
-            shard_index * args.shard_size : (shard_index + 1) * args.shard_size
-        ]
+        shard_entries = entries[shard_index * args.shard_size : (shard_index + 1) * args.shard_size]
         if writer.valid_existing_shard(shard_index, len(shard_entries)):
             processed_rows += len(shard_entries)
             skipped_rows += len(shard_entries)
@@ -322,13 +321,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             "source_image_id": [],
             "class_id_at_extraction": [],
         }
-        feature_chunks: dict[str, list[np.ndarray]] = {
-            name: [] for name in teacher.feature_names
-        }
+        feature_chunks: dict[str, list[np.ndarray]] = {name: [] for name in teacher.feature_names}
         for batch_start in range(0, len(shard_entries), args.batch_size):
             batch_entries = shard_entries[batch_start : batch_start + args.batch_size]
             images = [apply_d4_view(canonical[index], view_id) for index, view_id in batch_entries]
-            keys = [f"{records[index].annotation_uid}|{view_id}" for index, view_id in batch_entries]
+            keys = [
+                f"{records[index].annotation_uid}|{view_id}" for index, view_id in batch_entries
+            ]
             outputs = teacher.extract(images, sample_keys=keys)
             if set(outputs) != set(teacher.feature_names):
                 raise ValueError("teacher 返回的 feature keys 与合同不一致")

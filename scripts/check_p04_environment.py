@@ -99,9 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if torch.__version__ != "2.5.1+cu121":
             failures.append(f"torch 必须是 2.5.1+cu121，当前 {torch.__version__}")
         if torchvision.__version__ != "0.20.1+cu121":
-            failures.append(
-                f"torchvision 必须是 0.20.1+cu121，当前 {torchvision.__version__}"
-            )
+            failures.append(f"torchvision 必须是 0.20.1+cu121，当前 {torchvision.__version__}")
         if torch.version.cuda != "12.1":
             failures.append(f"PyTorch CUDA runtime 必须是 12.1，当前 {torch.version.cuda}")
         if not torch.cuda.is_available():

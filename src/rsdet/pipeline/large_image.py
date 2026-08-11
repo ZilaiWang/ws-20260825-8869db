@@ -6,9 +6,8 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Sequence
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -31,27 +30,27 @@ class PipelineConfig:
     tile_size: int = 1024
     overlap: int = 128
     batch_size: int = 16
-    score_threshold: float = 0.0      # tile 路径：融合前过滤；global 路径：聚合后过滤
-    fine_nms_iou: float = 0.55        # tile_fusion 细类内 NMS 阈值
+    score_threshold: float = 0.0  # tile 路径：融合前过滤；global 路径：聚合后过滤
+    fine_nms_iou: float = 0.55  # tile_fusion 细类内 NMS 阈值
     coarse_nms_iou: float | None = 0.85  # tile_fusion 官方粗类 NMS 阈值（None 关闭）
-    max_detections: int | None = None    # 最终保留检测数上限
-    fusion: str = "tile"              # "tile" = 基线 tile_fusion；"global" = E 的全局聚合
-    cluster_eps: float = 50.0         # 全局聚合 Spatial Gate 中心距离阈值
-    merge_iou: float = 0.3            # 全局聚合语义门 IoU 阈值
-    nms_iou: float = 0.5              # 全局聚合同类 NMS 阈值
+    max_detections: int | None = None  # 最终保留检测数上限
+    fusion: str = "tile"  # "tile" = 基线 tile_fusion；"global" = E 的全局聚合
+    cluster_eps: float = 50.0  # 全局聚合 Spatial Gate 中心距离阈值
+    merge_iou: float = 0.3  # 全局聚合语义门 IoU 阈值
+    nms_iou: float = 0.5  # 全局聚合同类 NMS 阈值
 
 
 @dataclass
 class PipelineTiming:
     """端到端推理耗时拆分。"""
 
-    pipeline_s: float = 0.0       # 图在内存中 → 融合完成（不含读图）
-    model_only_s: float = 0.0     # 纯 predict_batches 耗时
-    tiling_s: float = 0.0         # 切片 + 裁图 + 构造 InferenceSample 耗时
-    fusion_s: float = 0.0          # 融合耗时
+    pipeline_s: float = 0.0  # 图在内存中 → 融合完成（不含读图）
+    model_only_s: float = 0.0  # 纯 predict_batches 耗时
+    tiling_s: float = 0.0  # 切片 + 裁图 + 构造 InferenceSample 耗时
+    fusion_s: float = 0.0  # 融合耗时
     n_tiles: int = 0
     n_detections: int = 0
-    peak_vram_gb: float = 0.0     # 峰值显存 (GiB)，仅在 torch 可用时回填
+    peak_vram_gb: float = 0.0  # 峰值显存 (GiB)，仅在 torch 可用时回填
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -68,6 +67,7 @@ class PipelineTiming:
 def _peak_vram_gb() -> float:
     try:
         import torch
+
         if torch.cuda.is_available():
             return float(torch.cuda.max_memory_allocated() / (1024**3))
     except ImportError:
@@ -78,6 +78,7 @@ def _peak_vram_gb() -> float:
 def _reset_vram_peak() -> None:
     try:
         import torch
+
         if torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
     except ImportError:
@@ -235,8 +236,7 @@ def run_pipeline(
     else:
         if config.score_threshold > 0.0:
             tile_predictions = [
-                _filter_low_score(p, config.score_threshold)
-                for p in tile_predictions
+                _filter_low_score(p, config.score_threshold) for p in tile_predictions
             ]
         fused = fuse_tile_predictions(
             tile_predictions,

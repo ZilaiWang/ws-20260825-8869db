@@ -200,11 +200,13 @@ def _automatic_evaluation(
         class_names=protocol.class_names,
         category_mapping=protocol.category_mapping,
         iou_thresholds=protocol.iou_thresholds,
+        require_complete_taxonomy=bool(evaluation_config.get("require_complete_taxonomy", True)),
     )
     metrics: dict[str, Any] = {
         "protocol_versions": {
             "contract_version": protocol.contract_version,
             "eval_version": protocol.eval_version,
+            "ranking_version": protocol.ranking_version,
         },
         "overall_recall": pooled.recall,
         "overall_fdr": pooled.fdr,
@@ -276,9 +278,7 @@ def main(argv: list[str] | None = None) -> int:
         # YAML checkpoint behind whenever --checkpoint is supplied because of
         # Python's short-circuit evaluation.
         configured_checkpoint = model_config.pop("checkpoint", None)
-        checkpoint_value = args.checkpoint or configured_checkpoint or config.get(
-            "checkpoint"
-        )
+        checkpoint_value = args.checkpoint or configured_checkpoint or config.get("checkpoint")
         if not checkpoint_value:
             raise ValueError("未指定 BHC-DETR checkpoint")
         detector = build_model(adapter, {"init_args": model_config})
@@ -293,9 +293,7 @@ def main(argv: list[str] | None = None) -> int:
         if batch_size <= 0:
             raise ValueError("batch_size 必须 > 0")
         coarse_thresholds = _mapping(config.get("score_thresholds", {}), "score_thresholds")
-        fine_thresholds = _mapping(
-            config.get("fine_score_thresholds", {}), "fine_score_thresholds"
-        )
+        fine_thresholds = _mapping(config.get("fine_score_thresholds", {}), "fine_score_thresholds")
         predictions: list[Prediction] = []
         runtime_records: list[dict[str, Any]] = []
         for record in records:

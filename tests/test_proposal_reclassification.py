@@ -1,7 +1,5 @@
 """N2-2 对象学生重分类/融合模块测试。"""
 
-import pytest
-
 from rsdet.analysis.proposal_reclassification import (
     MODE_BACKGROUND,
     MODE_JOINT,
@@ -43,6 +41,7 @@ class TestBuildReclassifiedPredictions:
                 "image_id": 1,
                 "score": 0.9,
                 "original_category_id": 24,
+                "source_prediction_index": 0,
                 "category_id": 4,
                 "student_score": 0.95,
                 "dropped": False,
@@ -51,6 +50,7 @@ class TestBuildReclassifiedPredictions:
                 "image_id": 1,
                 "score": 0.8,
                 "original_category_id": 24,
+                "source_prediction_index": 1,
                 "category_id": 25,
                 "student_score": 0.60,
                 "dropped": True,
@@ -64,6 +64,7 @@ class TestBuildReclassifiedPredictions:
                 "image_id": 1,
                 "score": 0.9,
                 "original_category_id": 24,
+                "source_prediction_index": 0,
                 "category_id": 4,
                 "student_score": 0.95,
                 "dropped": False,
@@ -72,6 +73,7 @@ class TestBuildReclassifiedPredictions:
                 "image_id": 1,
                 "score": 0.8,
                 "original_category_id": 24,
+                "source_prediction_index": 1,
                 "category_id": 24,  # 判为 background 时保留原类别
                 "student_score": 0.60,
                 "dropped": False,
@@ -94,8 +96,7 @@ class TestBuildReclassifiedPredictions:
             mode=MODE_BACKGROUND,
         )
         categories = [r["category_id"] for r in result[1]]
-        assert 24 not in categories  # p2 dropped
-        assert categories == [4]
+        assert categories == [24]  # p2 丢弃，p1 保留检测器原类别
 
     def test_joint_replaces_and_drops(self):
         result = build_reclassified_predictions(
@@ -115,3 +116,27 @@ class TestBuildReclassifiedPredictions:
             mode=MODE_JOINT,
         )
         assert result[3][0]["category_id"] == 0
+
+    def test_duplicate_scores_are_matched_by_source_index(self):
+        oof = {
+            1: [
+                {"image_id": 1, "category_id": 4, "score": 0.5},
+                {"image_id": 1, "category_id": 5, "score": 0.5},
+            ]
+        }
+        reclassified = [
+            {
+                "image_id": 1,
+                "source_prediction_index": 1,
+                "original_category_id": 5,
+                "category_id": 6,
+                "student_score": 0.9,
+                "dropped": False,
+            }
+        ]
+        result = build_reclassified_predictions(
+            oof_predictions=oof,
+            reclassified=reclassified,
+            mode=MODE_RECLASSIFY,
+        )
+        assert [item["category_id"] for item in result[1]] == [4, 6]

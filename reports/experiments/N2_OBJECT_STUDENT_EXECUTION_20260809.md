@@ -3,7 +3,17 @@
 日期：2026-08-09
 服务器：autodl `connect.nmb2.seetacloud.com`（RTX 3090 24GB）
 执行人：A 远程执行
-状态：`complete`（准入门槛未通过）
+状态：`superseded_invalid`（历史数字不得作正式准入证据）
+
+> **2026-08-10 收尾审核**：本轮依赖已废弃的 N0 evidence v1，将未人工
+> 确认的 FP_BG 直接标为 background，oracle 正例未取 oracle GT 细类；
+> 候选融合又使用 `(image_id, score)`（实际存在分数碰撞），并且
+> 验证折同时用于 checkpoint 选择和效果评估。代码合同已修复，
+> 但本轮历史训练与消融不可追溯修补，必须用 v2 数据做 outer-fold-pure
+> 重放后才能重新判断对象学生是否有效。
+> 修复合同、CPU 重放计数与重启条件统一见
+> [`N2_V2_CONTRACT_REPAIR_20260810.md`](N2_V2_CONTRACT_REPAIR_20260810.md)。下文所有
+> 成绩和“根因”都只是历史现场，不可用于否定修复后的 N2 v2。
 
 ## 1. N2-1：对象学生训练（完成）
 

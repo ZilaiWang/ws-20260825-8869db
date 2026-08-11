@@ -7,7 +7,6 @@ import sys
 
 import pytest
 
-
 torch_probe = subprocess.run(
     [sys.executable, "-c", "import torch"],
     check=False,

@@ -47,9 +47,7 @@ def _keyed_feature(
     inputs = np.asarray(payload["canonical_input_sha256"]).astype(str)
     features = np.asarray(payload[feature_name], dtype=np.float32)
     result: dict[tuple[str, ...], np.ndarray] = {}
-    for uid, view, crop, input_sha, feature in zip(
-        uids, views, crops, inputs, features
-    ):
+    for uid, view, crop, input_sha, feature in zip(uids, views, crops, inputs, features):
         key = (uid, crop, input_sha, view) if include_input_contract else (uid, view)
         if key in result:
             raise ValueError(f"cache 重复 key: {key}")
@@ -97,10 +95,7 @@ def analyze_raw_ensemble(cache_dir: str) -> dict[str, Any]:
                 reference_feature,
             )
             comparisons[f"{location}_e{size}_vs_e8"] = distribution_summary(cosine)
-    e4_values = [
-        comparisons[f"{location}_e4_vs_e8"]
-        for location in ("map0_t100", "map6_t261")
-    ]
+    e4_values = [comparisons[f"{location}_e4_vs_e8"] for location in ("map0_t100", "map6_t261")]
     passed = all(value["median"] >= 0.99 and value["p05"] >= 0.97 for value in e4_values)
     return {
         "cache_fingerprint": cache.index["config_fingerprint"],
@@ -161,9 +156,7 @@ def compare_cache_overlap(first_dir: str, second_dir: str) -> dict[str, Any]:
     return _compare_caches(first_dir, second_dir, require_same_keys=False)
 
 
-def _compare_caches(
-    first_dir: str, second_dir: str, *, require_same_keys: bool
-) -> dict[str, Any]:
+def _compare_caches(first_dir: str, second_dir: str, *, require_same_keys: bool) -> dict[str, Any]:
     first = FeatureCache(first_dir)
     second = FeatureCache(second_dir)
     common = sorted(set(first.feature_names) & set(second.feature_names))
@@ -181,12 +174,8 @@ def _compare_caches(
         keys = sorted(set(a) & set(b))
         if not keys:
             raise ValueError(f"cache {name} 无公共行 key")
-        cosine = row_cosine(
-            np.stack([a[key] for key in keys]), np.stack([b[key] for key in keys])
-        )
-        absolute = np.abs(
-            np.stack([a[key] for key in keys]) - np.stack([b[key] for key in keys])
-        )
+        cosine = row_cosine(np.stack([a[key] for key in keys]), np.stack([b[key] for key in keys]))
+        absolute = np.abs(np.stack([a[key] for key in keys]) - np.stack([b[key] for key in keys]))
         summary = distribution_summary(cosine)
         summary["max_absolute_difference"] = float(absolute.max())
         summary["common_row_count"] = len(keys)

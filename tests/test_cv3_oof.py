@@ -221,8 +221,7 @@ def _complete_fold(
         },
         "fine_score_thresholds": {},
         "output_json": str(
-            fold_dir
-            / ("wrong_predictions.json" if wrong_infer_output else "predictions_low.json")
+            fold_dir / ("wrong_predictions.json" if wrong_infer_output else "predictions_low.json")
         ),
         "evaluation": {
             "gt": "",
@@ -276,9 +275,7 @@ def _complete_fold(
                         },
                         "best": "",
                         "last": str((fold_dir / "last.pt").resolve()),
-                        "selected_checkpoint": str(
-                            (fold_dir / "last.pt").resolve()
-                        ),
+                        "selected_checkpoint": str((fold_dir / "last.pt").resolve()),
                         "checkpoint_selection": "last",
                     }
                 ],
@@ -288,11 +285,7 @@ def _complete_fold(
     )
 
     view = json.loads(view_path.read_text(encoding="utf-8"))
-    val_ids = [
-        int(record["image_id"])
-        for record in view["samples"]
-        if record["split"] == "val"
-    ]
+    val_ids = [int(record["image_id"]) for record in view["samples"] if record["split"] == "val"]
     image_id = ((fold + 1) % 3) * 2 + 1 if wrong_prediction_fold else val_ids[0]
     prediction_path = fold_dir / "predictions_low.json"
     prediction_path.write_text(
@@ -373,9 +366,7 @@ def test_prepare_fold_views_are_loader_compatible(tmp_path: Path) -> None:
     assert len(samples) == 6
     for fold in range(3):
         view = json.loads(
-            (run_root / f"fold_{fold}" / "split_view.json").read_text(
-                encoding="utf-8"
-            )
+            (run_root / f"fold_{fold}" / "split_view.json").read_text(encoding="utf-8")
         )
         assert {record["split"] for record in view["samples"]} == {"train", "val"}
         assert sum(record["split"] == "val" for record in view["samples"]) == 2
@@ -502,12 +493,9 @@ def test_prepare_and_finalize_clis_bind_detection_data_lock(tmp_path: Path) -> N
         text=True,
     )
     assert finalize.returncode == 0, finalize.stderr
-    metadata = json.loads(
-        (fold_dir / "fold_metadata.json").read_text(encoding="utf-8")
-    )
-    assert (
-        metadata["artifacts"]["data_lock_verification_sha256"]
-        == sha256_file(fold_dir / "detection_data_lock_verification.json")
+    metadata = json.loads((fold_dir / "fold_metadata.json").read_text(encoding="utf-8"))
+    assert metadata["artifacts"]["data_lock_verification_sha256"] == sha256_file(
+        fold_dir / "detection_data_lock_verification.json"
     )
 
 
@@ -540,10 +528,7 @@ def test_checked_in_m1_templates_materialize_fixed_last_protocol(
         [
             *common,
             "--template",
-            str(
-                repository
-                / "configs/experiments/m1_yolo26s_1024_cv3_oof.template.yaml"
-            ),
+            str(repository / "configs/experiments/m1_yolo26s_1024_cv3_oof.template.yaml"),
             "--output",
             str(train_request),
             "--pretrained-weight",
@@ -557,10 +542,7 @@ def test_checked_in_m1_templates_materialize_fixed_last_protocol(
         [
             *common,
             "--template",
-            str(
-                repository
-                / "configs/experiments/m1_yolo26s_1024_cv3_oof_infer.template.yaml"
-            ),
+            str(repository / "configs/experiments/m1_yolo26s_1024_cv3_oof_infer.template.yaml"),
             "--output",
             str(infer_request),
             "--checkpoint",
@@ -583,16 +565,14 @@ def test_checked_in_m1_templates_materialize_fixed_last_protocol(
 def test_checked_in_m3_templates_freeze_fixed_last_and_full_inference() -> None:
     repository = Path(__file__).resolve().parents[1]
     train_config = yaml.safe_load(
-        (
-            repository
-            / "configs/experiments/m3_rtdetr_l_1024_cv3_oof.template.yaml"
-        ).read_text(encoding="utf-8")
+        (repository / "configs/experiments/m3_rtdetr_l_1024_cv3_oof.template.yaml").read_text(
+            encoding="utf-8"
+        )
     )
     infer_config = yaml.safe_load(
-        (
-            repository
-            / "configs/experiments/m3_rtdetr_l_1024_cv3_oof_infer.template.yaml"
-        ).read_text(encoding="utf-8")
+        (repository / "configs/experiments/m3_rtdetr_l_1024_cv3_oof_infer.template.yaml").read_text(
+            encoding="utf-8"
+        )
     )
     assert train_config["train"]["checkpoint_selection"] == "last"
     assert train_config["train"]["args"]["val"] is False
@@ -635,9 +615,7 @@ def test_finalize_rejects_wrong_training_manifest(tmp_path: Path) -> None:
         "data": {"root": "/fixture", "manifest": str(wrong_view)},
         "train": {
             "device": plan["training_config_contract"]["device"],
-            "checkpoint_selection": plan["training_config_contract"][
-                "checkpoint_selection"
-            ],
+            "checkpoint_selection": plan["training_config_contract"]["checkpoint_selection"],
             "args": plan["training_config_contract"]["train_args"],
             "stages": [
                 {
@@ -711,9 +689,7 @@ def test_complete_oof_includes_zero_prediction_images(tmp_path: Path) -> None:
         rows = list(csv.DictReader(handle))
     assert len(rows) == 6
     assert sum(int(row["prediction_count"]) == 0 for row in rows) == 3
-    with (output / "oof_proposals.csv").open(
-        encoding="utf-8", newline=""
-    ) as handle:
+    with (output / "oof_proposals.csv").open(encoding="utf-8", newline="") as handle:
         proposals = list(csv.DictReader(handle))
     assert len(proposals) == 3
     assert {int(row["fold"]) for row in proposals} == {0, 1, 2}

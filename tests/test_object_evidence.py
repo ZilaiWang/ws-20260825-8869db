@@ -1,9 +1,6 @@
 """N0-3 对象证据 manifest 模块测试。"""
 
 import json
-import math
-
-import pytest
 
 from rsdet.analysis.object_evidence import (
     FP_BG,
@@ -29,9 +26,7 @@ _PROTOCOL_CONFIG = {
     },
     "task": {
         "class_names": ["ship", "aircraft", "vehicle"],
-        "dataset_category_mapping": {
-            str(key): value for key, value in _CATEGORY_MAPPING.items()
-        },
+        "dataset_category_mapping": {str(key): value for key, value in _CATEGORY_MAPPING.items()},
     },
     "official_evaluation": {
         "recall_min": 0.85,
@@ -63,55 +58,30 @@ class TestClassifyFp:
     def test_clear_background(self):
         gt_lookup = {(1, 0): _gt(24, [100, 100, 110, 110])}
         record = _pred(24, 0.5, [0, 0, 10, 10])
-        assert (
-            _classify_fp(
-            record, gt_lookup, None, PROTOCOL, pred_index=0, image_id=1
-        )
-            == FP_BG
-        )
+        assert _classify_fp(record, gt_lookup, PROTOCOL, image_id=1) == FP_BG
 
     def test_duplicate_same_fine_and_iou(self):
         gt_lookup = {(1, 0): _gt(24, [0, 0, 100, 100])}
         record = _pred(24, 0.5, [0, 0, 100, 100])  # 同细类同框 → 抢占
-        assert (
-            _classify_fp(
-            record, gt_lookup, None, PROTOCOL, pred_index=0, image_id=1
-        )
-            == FP_DUP
-        )
+        assert _classify_fp(record, gt_lookup, PROTOCOL, image_id=1) == FP_DUP
 
     def test_wrong_fine_but_overlaps(self):
         # 预测 aircraft 细类 5，GT 是 aircraft 细类 4，框重叠且 IoU 够。
         gt_lookup = {(1, 0): _gt(4, [0, 0, 100, 100])}
         record = _pred(5, 0.5, [0, 0, 100, 100])
-        assert (
-            _classify_fp(
-            record, gt_lookup, None, PROTOCOL, pred_index=0, image_id=1
-        )
-            == FP_CLS
-        )
+        assert _classify_fp(record, gt_lookup, PROTOCOL, image_id=1) == FP_CLS
 
     def test_poor_localization(self):
         # 同细类但 IoU 低于 0.35（车辆）。
         gt_lookup = {(1, 0): _gt(24, [0, 0, 100, 100])}
         record = _pred(24, 0.5, [98, 98, 100, 100])  # IoU 很小但 > 0
-        assert (
-            _classify_fp(
-            record, gt_lookup, None, PROTOCOL, pred_index=0, image_id=1
-        )
-            == FP_LOC
-        )
+        assert _classify_fp(record, gt_lookup, PROTOCOL, image_id=1) == FP_LOC
 
     def test_wrong_coarse_class(self):
         # 预测 aircraft，GT 是 ship，框重叠够 IoU → 仍是 FP_CLS（大类错也算）。
         gt_lookup = {(1, 0): _gt(0, [0, 0, 100, 100])}
         record = _pred(5, 0.5, [0, 0, 100, 100])
-        assert (
-            _classify_fp(
-            record, gt_lookup, None, PROTOCOL, pred_index=0, image_id=1
-        )
-            == FP_CLS
-        )
+        assert _classify_fp(record, gt_lookup, PROTOCOL, image_id=1) == FP_CLS
 
 
 class TestBuildManifest:
@@ -153,16 +123,13 @@ class TestBuildManifest:
         assert manifest["summary"]["fp_by_type"]["FP_CLS"] == 2
 
         # 逐记录检查。
-        by_uid = {record["proposal_uid"]: record for record in manifest["records"]}
         tp_record = [r for r in manifest["records"] if r["official_status"] == "TP"]
         assert len(tp_record) == 1
         assert tp_record[0]["checkpoint_sha256"] == "ckpt0"
         assert tp_record[0]["source_group"] == "g1"
         assert tp_record[0]["matched_iou"] is not None
 
-        fp_records = [
-            r for r in manifest["records"] if r["official_status"] != "TP"
-        ]
+        fp_records = [r for r in manifest["records"] if r["official_status"] != "TP"]
         assert len(fp_records) == 2
         # 细类错（5 vs GT 4）→ FP_CLS。
         fp_1 = [r for r in fp_records if r["image_id"] == 1][0]
@@ -170,7 +137,32 @@ class TestBuildManifest:
         # oracle：飞机类 GT 被同大类不同细类命中。
         fp_2 = [r for r in fp_records if r["image_id"] == 2][0]
         assert fp_2["oracle_hit"] is True
+        assert fp_2["oracle_gt_category"] == 5
         assert fp_2["official_status"] == FP_CLS
+
+    def test_oracle_hit_is_candidate_specific(self):
+        """同图同类的远处 FP 不得继承另一候选的 oracle 命中。"""
+        gt = {1: [_gt(24, [0, 0, 10, 10])]}
+        preds = {
+            1: [
+                _pred(24, 0.9, [0, 0, 10, 10]),
+                _pred(24, 0.8, [500, 500, 510, 510]),
+            ]
+        }
+        manifest = build_object_evidence_manifest(
+            gt_boxes=gt,
+            predictions=preds,
+            protocol=PROTOCOL,
+            threshold=0.5,
+            image_folds={1: 0},
+            checkpoint_sha256={1: "ckpt"},
+        )
+        near, far = manifest["records"]
+        assert near["oracle_hit"] is True
+        assert near["oracle_gt_category"] == 24
+        assert far["oracle_hit"] is False
+        assert far["oracle_gt_key"] is None
+        assert manifest["meta"]["manifest_version"] == "pred_oof_evidence_v2"
 
     def test_views(self):
         gt, preds, image_folds, ckpt, groups = self._setup()

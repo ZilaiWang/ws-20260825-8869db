@@ -162,9 +162,7 @@ def _read_yolo_label(
         class_text, cx_text, cy_text, width_text, height_text = parts
         try:
             class_id = int(class_text)
-            cx, cy, box_width, box_height = map(
-                float, (cx_text, cy_text, width_text, height_text)
-            )
+            cx, cy, box_width, box_height = map(float, (cx_text, cy_text, width_text, height_text))
         except ValueError as error:
             raise ValueError(f"{label_path}:{line_number}: 非法数值") from error
 
@@ -257,10 +255,7 @@ class XHDataset(Sequence[Sample]):
             missing = sorted(set(image_by_stem) - set(label_by_stem))
             orphan = sorted(set(label_by_stem) - set(image_by_stem))
             if missing or orphan:
-                raise ValueError(
-                    "图像标签配对失败: "
-                    f"缺失标签={missing[:5]}，无图标签={orphan[:5]}"
-                )
+                raise ValueError(f"图像标签配对失败: 缺失标签={missing[:5]}，无图标签={orphan[:5]}")
 
         refs: list[SampleRef] = []
         for image_id, stem in enumerate(sorted(image_by_stem), start=1):

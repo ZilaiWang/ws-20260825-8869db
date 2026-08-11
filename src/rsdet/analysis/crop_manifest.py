@@ -310,7 +310,11 @@ def load_image_sources(
         if len(checksum) != 64 or any(char not in "0123456789abcdef" for char in checksum):
             raise ValueError(f"{uid} 的 sha256 非法")
         relative_path = row["relative_path"].strip().replace("\\", "/")
-        if not relative_path or Path(relative_path).is_absolute() or ".." in Path(relative_path).parts:
+        if (
+            not relative_path
+            or Path(relative_path).is_absolute()
+            or ".." in Path(relative_path).parts
+        ):
             raise ValueError(f"{uid} 的 relative_path 不安全: {relative_path}")
         sources[uid] = ImageSource(
             image_uid=uid,
@@ -440,7 +444,9 @@ def _assignment_for_axis(
         if not set(counts) <= set(labels):
             raise ValueError(f"{field} 包含未知标签")
         maximum = max(counts.values())
-        component_candidates.append(sorted(label for label, count in counts.items() if count == maximum))
+        component_candidates.append(
+            sorted(label for label, count in counts.items() if count == maximum)
+        )
         counts_by_component.append(counts)
 
     combinations = math.prod(len(item) for item in component_candidates)
@@ -588,7 +594,9 @@ def _sha256_uniforms(key: str, count: int) -> tuple[int, list[float]]:
     if count > 4:
         raise ValueError("sha256_uniform_v1 一次最多生成 4 个均匀值")
     digest = hashlib.sha256(key.encode("utf-8")).digest()
-    integers = [int.from_bytes(digest[index * 8 : (index + 1) * 8], "big") for index in range(count)]
+    integers = [
+        int.from_bytes(digest[index * 8 : (index + 1) * 8], "big") for index in range(count)
+    ]
     denominator = float(2**64)
     return integers[0], [(value + 0.5) / denominator for value in integers]
 
@@ -618,14 +626,16 @@ def compute_crop_geometry(
         shift = float(policy.jitter["center_shift_fraction_max"])
         jitter_dx_fraction = -shift + 2 * shift * uniforms[0]
         jitter_dy_fraction = -shift + 2 * shift * uniforms[1]
-        jitter_width_scale = float(policy.jitter["width_scale_min"]) + (
-            float(policy.jitter["width_scale_max"])
-            - float(policy.jitter["width_scale_min"])
-        ) * uniforms[2]
-        jitter_height_scale = float(policy.jitter["height_scale_min"]) + (
-            float(policy.jitter["height_scale_max"])
-            - float(policy.jitter["height_scale_min"])
-        ) * uniforms[3]
+        jitter_width_scale = (
+            float(policy.jitter["width_scale_min"])
+            + (float(policy.jitter["width_scale_max"]) - float(policy.jitter["width_scale_min"]))
+            * uniforms[2]
+        )
+        jitter_height_scale = (
+            float(policy.jitter["height_scale_min"])
+            + (float(policy.jitter["height_scale_max"]) - float(policy.jitter["height_scale_min"]))
+            * uniforms[3]
+        )
         proposal_center_x += jitter_dx_fraction * annotation.width
         proposal_center_y += jitter_dy_fraction * annotation.height
         proposal_width *= jitter_width_scale
@@ -649,12 +659,8 @@ def compute_crop_geometry(
     gt_coverage_fraction = _unit_fraction(
         gt_in_crop_width * gt_in_crop_height / (annotation.width * annotation.height)
     )
-    visible_gt_width = max(
-        0.0, min(annotation.x1, source.width) - max(annotation.x0, 0.0)
-    )
-    visible_gt_height = max(
-        0.0, min(annotation.y1, source.height) - max(annotation.y0, 0.0)
-    )
+    visible_gt_width = max(0.0, min(annotation.x1, source.width) - max(annotation.x0, 0.0))
+    visible_gt_height = max(0.0, min(annotation.y1, source.height) - max(annotation.y0, 0.0))
     source_gt_visible_fraction = _unit_fraction(
         visible_gt_width * visible_gt_height / (annotation.width * annotation.height)
     )
@@ -691,7 +697,9 @@ def build_manifest_rows(
     render_config = config["render_contract"]
     manifest_version = str(manifest_config["version"])
     schema_version = str(manifest_config["schema_version"])
-    target_resolutions = ";".join(str(int(value)) for value in manifest_config["target_resolutions"])
+    target_resolutions = ";".join(
+        str(int(value)) for value in manifest_config["target_resolutions"]
+    )
     rows: list[dict[str, Any]] = []
     for annotation in annotations:
         source = sources[annotation.image_uid]
@@ -963,9 +971,9 @@ def verify_source_files(
         verified += 1
     ordered_sources = sorted(sources.values(), key=lambda item: item.relative_path)
     dataset_fingerprint = hashlib.sha256(
-        "\n".join(
-            f"{source.relative_path}\t{source.sha256}" for source in ordered_sources
-        ).encode("utf-8")
+        "\n".join(f"{source.relative_path}\t{source.sha256}" for source in ordered_sources).encode(
+            "utf-8"
+        )
     ).hexdigest()
     return {
         "data_root": str(root),
@@ -1073,9 +1081,7 @@ def validate_manifest(
         "original_near_duplicate_main_split_violations": int(
             original_near_duplicate_main_violations
         ),
-        "original_near_duplicate_fold_violations": int(
-            original_near_duplicate_fold_violations
-        ),
+        "original_near_duplicate_fold_violations": int(original_near_duplicate_fold_violations),
         "post_repair_near_duplicate_main_split_violations": 0,
         "post_repair_near_duplicate_fold_violations": 0,
         "main_split_moved_images": sum(
@@ -1147,19 +1153,19 @@ def generate_preview_contact_sheets(
             row = next(
                 item
                 for item in manifest_rows
-                if item["annotation_uid"] == annotation_uid
-                and item["crop_policy"] == policy.id
+                if item["annotation_uid"] == annotation_uid and item["crop_policy"] == policy.id
             )
-            window = tuple(
-                float(row[key]) for key in ("crop_x0", "crop_y0", "crop_x1", "crop_y1")
-            )
+            window = tuple(float(row[key]) for key in ("crop_x0", "crop_y0", "crop_x1", "crop_y1"))
             crop = _render_float_window(
                 data_root / str(row["source_relative_path"]), window, preview_size
             )
             x = (index % columns) * preview_size
             y = (index // columns) * (preview_size + label_height)
             canvas.paste(crop, (x, y))
-            draw.rectangle((x, y + preview_size, x + preview_size, y + preview_size + label_height), fill="white")
+            draw.rectangle(
+                (x, y + preview_size, x + preview_size, y + preview_size + label_height),
+                fill="white",
+            )
             draw.text((x + 3, y + preview_size + 5), category_name, fill="black")
         relative_path = f"previews/{policy.id}.png"
         canvas.save(output_dir / relative_path)
@@ -1195,10 +1201,10 @@ def _write_svg_bar_chart(
         tick = y_max * tick_index / 5
         y = top + chart_height * (1 - tick / y_max)
         parts.append(
-            f'<line x1="{left}" y1="{y:.2f}" x2="{width-right}" y2="{y:.2f}" stroke="#e5e7eb"/>'
+            f'<line x1="{left}" y1="{y:.2f}" x2="{width - right}" y2="{y:.2f}" stroke="#e5e7eb"/>'
         )
         parts.append(
-            f'<text x="{left-8}" y="{y+4:.2f}" text-anchor="end" font-family="sans-serif" font-size="11">{tick:.0f}</text>'
+            f'<text x="{left - 8}" y="{y + 4:.2f}" text-anchor="end" font-family="sans-serif" font-size="11">{tick:.0f}</text>'
         )
     group_width = chart_width / len(labels)
     bar_width = group_width * 0.72 / len(series)
@@ -1209,22 +1215,22 @@ def _write_svg_bar_chart(
             bar_height = chart_height * value / y_max
             y = top + chart_height - bar_height
             parts.append(
-                f'<rect x="{x:.2f}" y="{y:.2f}" width="{bar_width-2:.2f}" height="{bar_height:.2f}" fill="{color}"/>'
+                f'<rect x="{x:.2f}" y="{y:.2f}" width="{bar_width - 2:.2f}" height="{bar_height:.2f}" fill="{color}"/>'
             )
     for index, label in enumerate(labels):
         x = left + (index + 0.5) * group_width
         parts.append(
-            f'<text x="{x:.2f}" y="{top+chart_height+22}" text-anchor="middle" font-family="sans-serif" font-size="11">{escape(label)}</text>'
+            f'<text x="{x:.2f}" y="{top + chart_height + 22}" text-anchor="middle" font-family="sans-serif" font-size="11">{escape(label)}</text>'
         )
     for series_index, name in enumerate(series):
         x = left + series_index * 150
         color = colors[series_index % len(colors)]
-        parts.append(f'<rect x="{x}" y="{height-25}" width="12" height="12" fill="{color}"/>')
+        parts.append(f'<rect x="{x}" y="{height - 25}" width="12" height="12" fill="{color}"/>')
         parts.append(
-            f'<text x="{x+18}" y="{height-14}" font-family="sans-serif" font-size="11">{escape(name)}</text>'
+            f'<text x="{x + 18}" y="{height - 14}" font-family="sans-serif" font-size="11">{escape(name)}</text>'
         )
     parts.append(
-        f'<text x="18" y="{top+chart_height/2}" transform="rotate(-90 18 {top+chart_height/2})" text-anchor="middle" font-family="sans-serif" font-size="12">{escape(y_label)}</text>'
+        f'<text x="18" y="{top + chart_height / 2}" transform="rotate(-90 18 {top + chart_height / 2})" text-anchor="middle" font-family="sans-serif" font-size="12">{escape(y_label)}</text>'
     )
     parts.append("</svg>")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1265,9 +1271,7 @@ def write_figures(
     )
     geometry_path = figure_dir / "policy_padding_and_coverage.svg"
     overall = {
-        str(row["crop_policy"]): row
-        for row in policy_summary
-        if row["group_name"] == "all_objects"
+        str(row["crop_policy"]): row for row in policy_summary if row["group_name"] == "all_objects"
     }
     labels = list(overall)
     _write_svg_bar_chart(
@@ -1279,8 +1283,7 @@ def write_figures(
                 100 * float(overall[label]["padding_fraction_mean"]) for label in labels
             ],
             "p05_missing_gt_pct": [
-                100 * (1 - float(overall[label]["gt_coverage_fraction_p05"]))
-                for label in labels
+                100 * (1 - float(overall[label]["gt_coverage_fraction_p05"])) for label in labels
             ],
         },
         "percentage points",
@@ -1357,9 +1360,7 @@ def build_report(
                 image_split_counts[split],
                 overall["n_objects"],
                 *(
-                    _distribution_lookup(distribution_rows, "main_split", split, macro)[
-                        "n_objects"
-                    ]
+                    _distribution_lookup(distribution_rows, "main_split", split, macro)["n_objects"]
                     for macro in COARSE_NAMES
                 ),
             )
@@ -1373,15 +1374,11 @@ def build_report(
                 image_fold_counts[fold],
                 overall["n_objects"],
                 *(
-                    _distribution_lookup(distribution_rows, "fold", str(fold), macro)[
-                        "n_objects"
-                    ]
+                    _distribution_lookup(distribution_rows, "fold", str(fold), macro)["n_objects"]
                     for macro in COARSE_NAMES
                 ),
                 *(
-                    _distribution_lookup(distribution_rows, "fold", str(fold), name)[
-                        "n_objects"
-                    ]
+                    _distribution_lookup(distribution_rows, "fold", str(fold), name)["n_objects"]
                     for name in ("HM", "LQS", "FSC")
                 ),
             )
@@ -1416,8 +1413,7 @@ def build_report(
     merged_components = [
         row
         for row in component_rows
-        if int(row["estimated_group_count"]) > 1
-        or int(row["near_duplicate_edge_count"]) > 0
+        if int(row["estimated_group_count"]) > 1 or int(row["near_duplicate_edge_count"]) > 0
     ]
     source_confidence = Counter(source.group_confidence for source in sources.values())
     config_hash = metadata["inputs"]["config"]["sha256"]
@@ -1425,19 +1421,19 @@ def build_report(
 
 ## 1. 结论摘要
 
-已生成 {validation['n_annotations']:,} 个真实对象、{validation['n_policies']} 种几何策略，共 {validation['n_manifest_rows']:,} 行 crop manifest。全部 crop 仅以源图路径、浮点方窗和渲染契约表示；未修改原图，也未物化全量 crop。
+已生成 {validation["n_annotations"]:,} 个真实对象、{validation["n_policies"]} 种几何策略，共 {validation["n_manifest_rows"]:,} 行 crop manifest。全部 crop 仅以源图路径、浮点方窗和渲染契约表示；未修改原图，也未物化全量 crop。
 
 本 manifest 可直接用于 P0-3/P0-4 探索实验，但不是正式 split。原因是上游 `estimated_group_uid` 来自文件名启发式分组，置信度为 {dict(source_confidence)}；后续 B 冻结正式划分后必须以新版本重生成。
 
 ## 2. 防泄漏划分修复
 
-审计候选 split 已保证同一启发式组同折，但 {validation['near_duplicate_pair_count']} 条近重复候选中，原候选仍有 {validation['original_near_duplicate_main_split_violations']} 条跨 main split、{validation['original_near_duplicate_fold_violations']} 条跨 fold。本次将启发式同源组与近重复连边做保守并集，得到 {len(component_rows)} 个 leakage group，其中 {len(merged_components)} 个含近重复合并证据。
+审计候选 split 已保证同一启发式组同折，但 {validation["near_duplicate_pair_count"]} 条近重复候选中，原候选仍有 {validation["original_near_duplicate_main_split_violations"]} 条跨 main split、{validation["original_near_duplicate_fold_violations"]} 条跨 fold。本次将启发式同源组与近重复连边做保守并集，得到 {len(component_rows)} 个 leakage group，其中 {len(merged_components)} 个含近重复合并证据。
 
-分配先最小化移动图像数，只在票数并列时以 80/20 和三折等分为平衡目标破局。最终 main split 移动 {validation['main_split_moved_images']} 张图，fold 移动 {validation['fold_moved_images']} 张图；修复后近重复跨划分和 leakage group 泄漏均为 0。
+分配先最小化移动图像数，只在票数并列时以 80/20 和三折等分为平衡目标破局。最终 main split 移动 {validation["main_split_moved_images"]} 张图，fold 移动 {validation["fold_moved_images"]} 张图；修复后近重复跨划分和 leakage group 泄漏均为 0。
 
-{_markdown_table(['main split', 'images', 'objects', 'ship', 'aircraft', 'vehicle'], object_split_rows)}
+{_markdown_table(["main split", "images", "objects", "ship", "aircraft", "vehicle"], object_split_rows)}
 
-{_markdown_table(['fold', 'images', 'objects', 'ship', 'aircraft', 'vehicle', 'HM', 'LQS', 'FSC'], fold_rows)}
+{_markdown_table(["fold", "images", "objects", "ship", "aircraft", "vehicle", "HM", "LQS", "FSC"], fold_rows)}
 
 ## 3. crop 策略与几何结果
 
@@ -1445,7 +1441,7 @@ def build_report(
 - `context_1p25`：围绕 GT 中心扩张 1.25 倍。
 - `jitter_light`：中心偏移最多为宽高的 ±8%，宽高独立缩放为 0.9–1.1，由 SHA-256 直接派生并把实现后的参数存入每行。
 
-{_markdown_table(['policy', 'crop side P50', 'mean padding', 'padding P95', 'GT coverage P5', 'GT coverage mean', 'coverage <0.9'], policy_rows)}
+{_markdown_table(["policy", "crop side P50", "mean padding", "padding P95", "GT coverage P5", "GT coverage mean", "coverage <0.9"], policy_rows)}
 
 Jitter 只是一个固定的轻度 proposal 鲁棒性诊断集，不代表真实 M1 OOF 误差分布。它的意义是先固定链路和衡量方式，待 M1 产出后必须用真实预测 crop 替换或校准。
 
@@ -1453,9 +1449,9 @@ Jitter 只是一个固定的轻度 proposal 鲁棒性诊断集，不代表真实
 
 ## 4. 小样本覆盖
 
-{_markdown_table(['class', 'objects', 'source images', 'leakage groups'], rare_rows)}
+{_markdown_table(["class", "objects", "source images", "leakage groups"], rare_rows)}
 
-HM 和 LQS 仍分别只有 {rare_counts['HM']} 和 {rare_counts['LQS']} 个对象。manifest 不复制尾类行来伪造数据量；P0-3 若需类别均衡，应在 sampler 中实现，且验证集始终保持自然分布。
+HM 和 LQS 仍分别只有 {rare_counts["HM"]} 和 {rare_counts["LQS"]} 个对象。manifest 不复制尾类行来伪造数据量；P0-3 若需类别均衡，应在 sampler 中实现，且验证集始终保持自然分布。
 
 ## 5. P0-3/P0-4 使用契约
 
@@ -1475,11 +1471,11 @@ HM 和 LQS 仍分别只有 {rare_counts['HM']} 和 {rare_counts['LQS']} 个对�
 
 ## 7. 复现和产物
 
-- manifest version: `{metadata['manifest_version']}`
-- generated at: `{metadata['generated_at']}`
-- git commit: `{metadata['git']['commit']}`
+- manifest version: `{metadata["manifest_version"]}`
+- generated at: `{metadata["generated_at"]}`
+- git commit: `{metadata["git"]["commit"]}`
 - config SHA-256: `{config_hash}`
-- source set fingerprint: `{metadata['source_verification']['source_set_fingerprint_sha256']}`
+- source set fingerprint: `{metadata["source_verification"]["source_set_fingerprint_sha256"]}`
 - 数值产物：`crop_manifest.csv`、`image_assignments.csv`、`leakage_components.csv`、`class_distribution.csv`、`policy_geometry_summary.csv`、`validation_report.json`、`meta.json`
 - QA 产物：3 张几何统计 SVG 和 3 张每类一例的 crop 联系表。预览只做人工几何检查，不进入训练。
 """
@@ -1546,17 +1542,13 @@ def run_crop_manifest_analysis(
         raise ValueError("首轮 crop 渲染契约与预注册配置不一致")
 
     policies = parse_crop_policies(config)
-    sources = load_image_sources(
-        image_stats_path, split_candidates_path, domain_assignments_path
-    )
+    sources = load_image_sources(image_stats_path, split_candidates_path, domain_assignments_path)
     annotations = load_annotations(bbox_statistics_path, sources)
     near_duplicate_pairs = load_near_duplicate_pairs(near_duplicates_path, sources)
     assignments, component_rows = build_leakage_safe_assignments(
         sources, near_duplicate_pairs, config
     )
-    manifest_rows = build_manifest_rows(
-        annotations, sources, assignments, policies, config
-    )
+    manifest_rows = build_manifest_rows(annotations, sources, assignments, policies, config)
     validation = validate_manifest(
         manifest_rows,
         annotations,

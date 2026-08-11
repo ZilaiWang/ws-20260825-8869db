@@ -52,15 +52,15 @@ def _wilson(success: int, total: int, z: float = 1.959963984540054) -> tuple[flo
     proportion = success / total
     denominator = 1 + z * z / total
     center = (proportion + z * z / (2 * total)) / denominator
-    margin = z * math.sqrt(
-        proportion * (1 - proportion) / total + z * z / (4 * total * total)
-    ) / denominator
+    margin = (
+        z
+        * math.sqrt(proportion * (1 - proportion) / total + z * z / (4 * total * total))
+        / denominator
+    )
     return max(0.0, center - margin), min(1.0, center + margin)
 
 
-def _pair_directions(
-    pairs: list[dict[str, str]], split: str, role: str
-) -> list[tuple[str, str]]:
+def _pair_directions(pairs: list[dict[str, str]], split: str, role: str) -> list[tuple[str, str]]:
     directions = []
     for row in pairs:
         if split != "all" and row["split"] != split:
@@ -136,7 +136,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             for item in values:
                 pair_uid = canonical_pair_uid(query, item.node_uid)
                 left, right = pair_uid.split("--")
-                row = edges.setdefault(pair_uid, {"pair_uid": pair_uid, "node_u": left, "node_v": right})
+                row = edges.setdefault(
+                    pair_uid, {"pair_uid": pair_uid, "node_u": left, "node_v": right}
+                )
                 direction = "u_to_v" if query == left else "v_to_u"
                 row[f"{prefix}_rank_{direction}"] = item.rank
                 row[f"{prefix}_score_{direction}"] = item.score
@@ -151,9 +153,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             for right in group[index + 1 :]:
                 pair_uid = canonical_pair_uid(left, right)
                 node_u, node_v = pair_uid.split("--")
-                edges.setdefault(pair_uid, {"pair_uid": pair_uid, "node_u": node_u, "node_v": node_v})[
-                    "exact_pixel"
-                ] = 1
+                edges.setdefault(
+                    pair_uid, {"pair_uid": pair_uid, "node_u": node_u, "node_v": node_v}
+                )["exact_pixel"] = 1
 
     root = Path(args.mar20_root).expanduser().resolve()
     hashes: dict[str, np.ndarray] = {}
@@ -265,9 +267,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             saturation[f"{split}__recall_at_{k}"] = hits / total if total else None
             saturation[f"{split}__recall_at_{k}_wilson_low"] = low
             saturation[f"{split}__recall_at_{k}_wilson_high"] = high
-            saturation[f"{split}__known_negative_top_at_{k}"] = _union_rate(
-                neighbors, negatives, k
-            )
+            saturation[f"{split}__known_negative_top_at_{k}"] = _union_rate(neighbors, negatives, k)
     heldout_recall = saturation[f"held_out_audit__recall_at_{args.formal_k}"]
     status = "pass" if heldout_recall is not None and heldout_recall >= 0.95 else "fail_recall"
     summary = {

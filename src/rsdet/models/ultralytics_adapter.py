@@ -24,9 +24,7 @@ def create_ultralytics_model(family: str, weights: str | Path):
     try:
         from ultralytics import RTDETR, YOLO
     except ImportError as error:
-        raise ImportError(
-            'Ultralytics 模型依赖未安装。请执行 pip install -e ".[model]"'
-        ) from error
+        raise ImportError('Ultralytics 模型依赖未安装。请执行 pip install -e ".[model]"') from error
 
     normalized = family.strip().lower().replace("-", "")
     if normalized == "yolo":
@@ -143,9 +141,7 @@ class UltralyticsDetector(BaseDetector):
         )
         results = list(results)
         if len(results) != len(batch):
-            raise ValueError(
-                f"Ultralytics 返回 {len(results)} 个结果，输入 batch 为 {len(batch)}"
-            )
+            raise ValueError(f"Ultralytics 返回 {len(results)} 个结果，输入 batch 为 {len(batch)}")
 
         predictions: list[Prediction] = []
         for sample, result in zip(batch, results):
@@ -154,8 +150,7 @@ class UltralyticsDetector(BaseDetector):
                 predictions.append(Prediction(sample.image_id, [], [], []))
                 continue
             raw_boxes = [
-                [float(coordinate) for coordinate in box]
-                for box in self._as_list(boxes.xyxy)
+                [float(coordinate) for coordinate in box] for box in self._as_list(boxes.xyxy)
             ]
             raw_scores = [float(score) for score in self._as_list(boxes.conf)]
             raw_labels = [int(label) for label in self._as_list(boxes.cls)]
@@ -193,24 +188,16 @@ class UltralyticsDetector(BaseDetector):
             crop_to_tensor,
         )
 
-        enabled_coarse = set(
-            self.refiner_config.get("coarse_classes", ["ship", "aircraft"])
-        )
+        enabled_coarse = set(self.refiner_config.get("coarse_classes", ["ship", "aircraft"]))
         min_confidence = float(self.refiner_config.get("min_base_confidence", 0.0))
         max_confidence = float(self.refiner_config.get("max_base_confidence", 0.75))
         prototype_weight = float(self.refiner_config.get("prototype_weight", 0.35))
         score_blend = float(self.refiner_config.get("score_blend", 0.0))
-        min_refined_confidence = float(
-            self.refiner_config.get("min_refined_confidence", 0.0)
-        )
-        min_refined_margin = float(
-            self.refiner_config.get("min_refined_margin", 0.0)
-        )
+        min_refined_confidence = float(self.refiner_config.get("min_refined_confidence", 0.0))
+        min_refined_margin = float(self.refiner_config.get("min_refined_margin", 0.0))
         refiner_batch_size = int(self.refiner_config.get("batch_size", 128))
         input_size = int(
-            self.refiner_config.get(
-                "input_size", self._refiner_metadata.get("input_size", 128)
-            )
+            self.refiner_config.get("input_size", self._refiner_metadata.get("input_size", 128))
         )
         context_ratio = float(
             self.refiner_config.get(
@@ -219,8 +206,7 @@ class UltralyticsDetector(BaseDetector):
         )
         if not 0.0 <= min_confidence <= max_confidence <= 1.0:
             raise ValueError(
-                "refiner 置信度范围必须满足 0 <= min_base_confidence "
-                "<= max_base_confidence <= 1"
+                "refiner 置信度范围必须满足 0 <= min_base_confidence <= max_base_confidence <= 1"
             )
         if not 0.0 <= score_blend <= 1.0:
             raise ValueError("refiner.score_blend 必须在 [0, 1]")
@@ -242,9 +228,7 @@ class UltralyticsDetector(BaseDetector):
         ]
         candidates: list[tuple[int, int, str]] = []
         crops = []
-        for prediction_index, (sample, prediction) in enumerate(
-            zip(batch, predictions)
-        ):
+        for prediction_index, (sample, prediction) in enumerate(zip(batch, predictions)):
             source_image = as_rgb_image(sample.image)
             for detection_index, (box, score, label) in enumerate(
                 zip(prediction.boxes_xyxy, prediction.scores, prediction.labels)
@@ -269,9 +253,7 @@ class UltralyticsDetector(BaseDetector):
 
         device = next(self._refiner.parameters()).device
         for start in range(0, len(crops), refiner_batch_size):
-            crop_batch = torch.stack(crops[start : start + refiner_batch_size]).to(
-                device
-            )
+            crop_batch = torch.stack(crops[start : start + refiner_batch_size]).to(device)
             with (
                 torch.inference_mode(),
                 torch.autocast(
@@ -281,13 +263,9 @@ class UltralyticsDetector(BaseDetector):
                 ),
             ):
                 outputs = self._refiner(crop_batch)
-                logits = self._refiner.fused_logits(
-                    outputs, prototype_weight=prototype_weight
-                )
+                logits = self._refiner.fused_logits(outputs, prototype_weight=prototype_weight)
             for local_index, row in enumerate(logits.float().cpu()):
-                prediction_index, detection_index, group = candidates[
-                    start + local_index
-                ]
+                prediction_index, detection_index, group = candidates[start + local_index]
                 if group == "ship":
                     allowed = list(range(0, 4))
                 elif group == "aircraft":
@@ -301,12 +279,9 @@ class UltralyticsDetector(BaseDetector):
                 base_label = int(refined[prediction_index].labels[detection_index])
                 base_local = allowed.index(base_label)
                 base_probability = float(probabilities[base_local].item())
-                if (
-                    refined_label != base_label
-                    and (
-                        refined_confidence < min_refined_confidence
-                        or refined_confidence - base_probability < min_refined_margin
-                    )
+                if refined_label != base_label and (
+                    refined_confidence < min_refined_confidence
+                    or refined_confidence - base_probability < min_refined_margin
                 ):
                     continue
                 base_score = float(refined[prediction_index].scores[detection_index])

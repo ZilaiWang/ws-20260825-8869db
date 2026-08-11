@@ -21,12 +21,17 @@ except ImportError:
     class Dataset:  # type: ignore[no-redef]
         pass
 
+
 from rsdet.data.xh_dataset import XHDataset
 
-TorchTransform = Callable[
-    [torch.Tensor, dict[str, Any]],
-    tuple[torch.Tensor, dict[str, Any]],
-] if _TORCH_AVAILABLE else Callable
+TorchTransform = (
+    Callable[
+        [torch.Tensor, dict[str, Any]],
+        tuple[torch.Tensor, dict[str, Any]],
+    ]
+    if _TORCH_AVAILABLE
+    else Callable
+)
 
 
 class TorchDetectionDataset(Dataset):

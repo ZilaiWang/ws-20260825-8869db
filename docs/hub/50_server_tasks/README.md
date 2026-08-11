@@ -1,8 +1,19 @@
-# 服务器任务与资产
+# 计算任务与大文件交付
 
-更新日期：2026-07-25
+更新日期：2026-08-10
 
-服务器上的 cache、checkpoint 和回传包不能只存在聊天记录中。统一登记表：
+服务器不是团队公共资产库，其路径不具有跨成员复现效力。交付规则为：
+
+1. 代码、配置、小型报告和 SHA 登记进 Gitee；
+2. checkpoint、完整预测和大型日志走 Gitee Release/仓库附件；
+3. 使用者下载后先校验 SHA256，再按登记用途使用；
+4. 服务器仅是计算执行地，不是唯一事实源。
+
+当前权威登记表：
+
+[`reports/experiments/ARTIFACT_RELEASE_REGISTER.csv`](../../../reports/experiments/ARTIFACT_RELEASE_REGISTER.csv)
+
+历史服务器路径快照仅用于追溯：
 
 [`reports/experiments/SERVER_ARTIFACT_REGISTER.csv`](../../../reports/experiments/SERVER_ARTIFACT_REGISTER.csv)
 
@@ -11,7 +22,7 @@
 | 系列 | 当前状态 | 处理原则 |
 |---|---|---|
 | F00/D00/A00 | 已由正式 M1 完整复验 | 后续 M3/P03/P04/E 继续绑定同一锁，不得重新定义数据或资产 |
-| M1 | 正确 YOLO26-s 三折 OOF 已完成并回传 | 冻结 checkpoint/aggregate lineage；不重复训练 |
+| M1 | 正确 YOLO26-s 三折 OOF 已完成 | 正式血缘是三折 `last.pt`；现有 best.pt Release 只能做工程 smoke，三个 last.pt 待按 SHA 发布 |
 | P03 | 探索训练完成；CV3 正式复验为高优先级 | P04 后运行 tight-224 canonical；随后接 Pred-OOF crop |
 | P04 | 教师 cache、probe checkpoint 留在服务器；CV3 正式复验为高优先级 | 优先复用 cache，先核对 UID/SHA，禁止无证据重提取全量特征 |
 | P05 | M1 OOF 已显示 3,303 个 FP_BG | 先在本地完成对象 manifest 和人工语义审计，再提交 cross-fit 训练 |
@@ -45,13 +56,13 @@ M1 首次启动若出现
 [`M1_CV3_OOF_RECOVERY_R1.md`](../../server/M1_CV3_OOF_RECOVERY_R1.md)，
 保留并归档失败现场后再从三折计划起点重跑，禁止在失败目录续训。
 
-## 后续每次服务器回传必须登记
+## 后续每次计算交付必须登记
 
 - `task_id` 和科学状态；
 - 使用的 Git commit 与 split；
-- cache/checkpoint 服务器路径；
-- 回传包 SHA256；
+- 初始权重、最终 checkpoint 和预测的 Gitee Release/附件引用；
+- 所有大文件 SHA256；
 - 本地验收报告路径；
-- 在何时、满足什么条件后允许删除。
+- 服务器临时路径可选记录，但不可作交付唯一引用。
 
 不能仅写“跑完了”或只保存聊天摘要。

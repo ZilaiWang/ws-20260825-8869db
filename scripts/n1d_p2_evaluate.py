@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""V1-FULL-P2 实验评估：P2 模型 vs M1 基线的车辆 Recall 对比。
+"""V1-FULL-P2 机制诊断：P2 模型的车辆候选覆盖。
 
-对 CV3 fold 的验证集图做推理（低阈值 0.001 保持候选），统计：
+这不是官方 Recall/FDR 评估：它按 GT 独立搜索最佳车辆候选，不做
+全局分数降序一对一匹配，也不计重复框/FP/FDR。只用于判断 P2 是否产生
+原本没有的小车候选。
 - 车辆 Recall（工作点 0.051）
 - 无候选目标（fold 内车辆 GT 无任何 IoU≥0.35 候选）数量
 - 与 M1 基线（feature_response 审计）对比
@@ -63,7 +65,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
         from ultralytics import YOLO
-        from PIL import Image
 
         model = YOLO(str(args.weights))
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -112,7 +113,10 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError(f"图像缺失: {image_path}")
 
             result = model.predict(
-                str(image_path), imgsz=args.imgsz, conf=args.conf, device=device,
+                str(image_path),
+                imgsz=args.imgsz,
+                conf=args.conf,
+                device=device,
                 verbose=False,
             )[0]
             best_iou = 0.0
@@ -150,6 +154,10 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         summary = {
+            "scientific_scope": "mechanism_diagnostic_only",
+            "official_metric": False,
+            "formal_admission": False,
+            "matching_policy": "per_gt_best_same_vehicle_candidate_not_one_to_one",
             "fold": args.fold,
             "vehicle_gt": len(vehicle_gt),
             "matched": matched,
@@ -161,13 +169,18 @@ def main(argv: list[str] | None = None) -> int:
         output = Path(args.output).expanduser().resolve()
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
-            json.dumps({"summary": summary, "detail": detail}, ensure_ascii=False, indent=2)
-            + "\n",
+            json.dumps({"summary": summary, "detail": detail}, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
         logger.info("=== V1-FULL-P2 fold %d 评估 ===", args.fold)
-        logger.info("车辆 GT: %d | matched %d (Recall %.4f) | 低分 %d | 无候选 %d",
-                    len(vehicle_gt), matched, summary["vehicle_recall"], low_score, no_candidate)
+        logger.info(
+            "车辆 GT: %d | matched %d (Recall %.4f) | 低分 %d | 无候选 %d",
+            len(vehicle_gt),
+            matched,
+            summary["vehicle_recall"],
+            low_score,
+            no_candidate,
+        )
         logger.info("已保存: %s", output)
     except Exception as error:
         logger.exception("P2 评估失败: %s", error)

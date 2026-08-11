@@ -6,6 +6,8 @@ project:
 protocol_versions:
   contract_version: "contract_v1"
   eval_version: "official_eval_v1"
+  # V1.6 只改变排名聚合与二次排序，不改变细类匹配轨迹。
+  ranking_version: "official_ranking_v1_6"
 
 task:
   class_names:
@@ -65,7 +67,8 @@ official_evaluation:
   # 评估入口见 evaluate_ranking_metrics（scripts/evaluate.py 默认同时输出）。
   ranking:
     fine_macro_average: true
-    fine_average_policy: present_in_gt_only
+    fine_average_policy: configured_taxonomy
+    require_complete_taxonomy_for_formal: true
 
 runtime_scope:
   exclude_image_disk_read: true

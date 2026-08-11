@@ -35,9 +35,7 @@ def _finite_float(value: Any, field_name: str) -> float:
 def _validate_xyxy(box: Sequence[Any], *, width: int | None, height: int | None) -> list[float]:
     if len(box) != 4:
         raise ValueError(f"xyxy bbox 必须包含 4 个数值，当前为 {box!r}")
-    x1, y1, x2, y2 = [
-        _finite_float(value, f"bbox[{index}]") for index, value in enumerate(box)
-    ]
+    x1, y1, x2, y2 = [_finite_float(value, f"bbox[{index}]") for index, value in enumerate(box)]
     if x2 <= x1 or y2 <= y1:
         raise ValueError(f"xyxy bbox 必须满足 x2>x1 且 y2>y1，当前为 {[x1, y1, x2, y2]}")
     if x1 < 0.0 or y1 < 0.0:
@@ -77,8 +75,7 @@ def validate_prediction(
         raise ValueError("boxes_xyxy、scores、labels 必须是可迭代序列") from error
     if not (len(boxes) == len(scores) == len(labels)):
         raise ValueError(
-            "boxes_xyxy、scores、labels 长度必须一致: "
-            f"{len(boxes)}, {len(scores)}, {len(labels)}"
+            f"boxes_xyxy、scores、labels 长度必须一致: {len(boxes)}, {len(scores)}, {len(labels)}"
         )
 
     width = height = None
@@ -90,7 +87,9 @@ def validate_prediction(
         if width <= 0 or height <= 0:
             raise ValueError(f"图像尺寸必须为正数，当前为 {image_size}")
 
-    allowed = None if allowed_category_ids is None else {int(value) for value in allowed_category_ids}
+    allowed = (
+        None if allowed_category_ids is None else {int(value) for value in allowed_category_ids}
+    )
     for index, (box, score_value, label_value) in enumerate(zip(boxes, scores, labels)):
         _validate_xyxy(box, width=width, height=height)
         score = _finite_float(score_value, f"scores[{index}]")

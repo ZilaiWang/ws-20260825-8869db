@@ -107,8 +107,9 @@ def _evaluate(
     amp_enabled: bool,
 ) -> tuple:
     model.eval()
-    with torch.inference_mode(), torch.autocast(
-        device_type=device.type, dtype=torch.float16, enabled=amp_enabled
+    with (
+        torch.inference_mode(),
+        torch.autocast(device_type=device.type, dtype=torch.float16, enabled=amp_enabled),
     ):
         logits = model(torch.from_numpy(x).to(device)).float().cpu().numpy()
     metrics, confusion = evaluate_classification(y, logits)
@@ -235,9 +236,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         features = l2_normalize(features)
     pca: dict[str, np.ndarray] | None = None
     if args.pca_dim:
-        pca = fit_pca_train_only(
-            features[train_indices], n_components=args.pca_dim, seed=args.seed
-        )
+        pca = fit_pca_train_only(features[train_indices], n_components=args.pca_dim, seed=args.seed)
         features = transform_pca(features, pca)
         if args.normalization == "l2":
             features = l2_normalize(features)
@@ -278,9 +277,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         del compatibility_model
     model = torch.nn.Linear(features.shape[-1], len(FINE_NAMES)).to(device)
     criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.0)
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=args.lr, weight_decay=args.weight_decay
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     steps_per_epoch = math.ceil(len(train_indices) / args.batch_size)
     total_steps = max(1, steps_per_epoch * args.epochs)
     warmup_steps = min(total_steps - 1, int(steps_per_epoch * args.warmup_epochs))
@@ -327,9 +324,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             x = torch.from_numpy(epoch_x[batch]).to(device)
             y = torch.from_numpy(train_y[batch]).to(device)
             optimizer.zero_grad(set_to_none=True)
-            with torch.autocast(
-                device_type=device.type, dtype=torch.float16, enabled=amp_enabled
-            ):
+            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=amp_enabled):
                 logits = model(x)
                 loss = criterion(logits, y)
             scaler.scale(loss).backward()
@@ -375,9 +370,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "manifest_sha256": data.manifest_sha256,
                         "train_rms": train_rms,
                         "reuse_audit_sha256": (
-                            sha256_file(args.reuse_audit)
-                            if args.reuse_audit
-                            else None
+                            sha256_file(args.reuse_audit) if args.reuse_audit else None
                         ),
                         "selection_metric": "macro_recall",
                     },
@@ -415,19 +408,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "cache_fingerprint": data.cache_fingerprint,
                 "manifest_sha256": data.manifest_sha256,
                 "train_rms": train_rms,
-                "reuse_audit_sha256": (
-                    sha256_file(args.reuse_audit)
-                    if args.reuse_audit
-                    else None
-                ),
+                "reuse_audit_sha256": (sha256_file(args.reuse_audit) if args.reuse_audit else None),
                 "selection_metric": "fixed_epoch_last",
             },
             final_checkpoint_path,
         )
 
-    checkpoint = torch.load(
-        selected_checkpoint_path, map_location=device, weights_only=False
-    )
+    checkpoint = torch.load(selected_checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"], strict=True)
     metrics, confusion, logits = _evaluate(
         torch, model, val_x, val_y, device, amp_enabled=amp_enabled
@@ -460,9 +447,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "seed": args.seed,
         "normalization": args.normalization,
         "pca_dim": args.pca_dim,
-        "pca_fit_scope": "train_fold_objects_all_cached_views_only"
-        if args.pca_dim
-        else None,
+        "pca_fit_scope": "train_fold_objects_all_cached_views_only" if args.pca_dim else None,
         "train_rms": train_rms,
         "normalizer_fit_scope": (
             "train_fold_objects_all_cached_views_only"
@@ -490,9 +475,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "macro_recall": metrics["macro_recall"],
             "macro_f1": metrics["macro_f1"],
             "accuracy": metrics["accuracy"],
-            "aircraft20_macro_recall": metrics["subgroups"]["aircraft20"][
-                "macro_recall"
-            ],
+            "aircraft20_macro_recall": metrics["subgroups"]["aircraft20"]["macro_recall"],
         },
     }
     _json(output / "run_summary.json", summary)

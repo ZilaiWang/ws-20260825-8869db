@@ -11,17 +11,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import statistics
 import sys
-import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from rsdet.models.base import BaseDetector
-from rsdet.models.registry import build_model, list_models
 import rsdet.pipeline.mock_model  # noqa: F401 — 注册 "mock" 检测器
+from rsdet.models.base import BaseDetector
+from rsdet.models.registry import build_model
 from rsdet.pipeline.large_image import PipelineConfig, PipelineTiming, run_pipeline
 from rsdet.tiling.synthetic import generate_synthetic_scene
 from rsdet.utils.logging import setup_logging
@@ -102,10 +100,14 @@ def benchmark_configs(
     results: List[Dict[str, Any]] = []
 
     for idx, config in enumerate(configs):
-        label = f"({config.tile_size}, {config.overlap}, {config.batch_size})"
-        logger.info("测速 [%d/%d]: tile=%d overlap=%d batch=%d",
-                     idx + 1, len(configs),
-                     config.tile_size, config.overlap, config.batch_size)
+        logger.info(
+            "测速 [%d/%d]: tile=%d overlap=%d batch=%d",
+            idx + 1,
+            len(configs),
+            config.tile_size,
+            config.overlap,
+            config.batch_size,
+        )
 
         # 预热
         for w in range(warmup):
@@ -148,10 +150,12 @@ def benchmark_configs(
             }
         )
 
-        logger.info("  → pipeline p50=%.4fs  p95=%.4fs  tiles=%d",
-                     results[-1]["pipeline_p50"],
-                     results[-1]["pipeline_p95"],
-                     results[-1]["n_tiles"])
+        logger.info(
+            "  → pipeline p50=%.4fs  p95=%.4fs  tiles=%d",
+            results[-1]["pipeline_p50"],
+            results[-1]["pipeline_p95"],
+            results[-1]["n_tiles"],
+        )
 
     return results
 
@@ -206,8 +210,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
 
     configs = parse_configs(args.configs)
-    logger.info("测速配置: %d 组, warmup=%d, repeats=%d",
-                 len(configs), args.warmup, args.repeats)
+    logger.info("测速配置: %d 组, warmup=%d, repeats=%d", len(configs), args.warmup, args.repeats)
 
     logger.info("生成合成图 ...")
     scene = generate_synthetic_scene(
@@ -222,8 +225,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     detector.eval()
 
     results = benchmark_configs(
-        detector, scene, configs,
-        warmup=args.warmup, repeats=args.repeats,
+        detector,
+        scene,
+        configs,
+        warmup=args.warmup,
+        repeats=args.repeats,
     )
 
     output_path = Path(args.output)
@@ -236,7 +242,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # 打印汇总表
     print("\n" + "=" * 70)
-    print(f"{'tile':>6} {'ovlp':>5} {'batch':>6}  {'p50(s)':>8} {'p95(s)':>8} {'tiles':>6} {'dets':>6}")
+    print(
+        f"{'tile':>6} {'ovlp':>5} {'batch':>6}  {'p50(s)':>8} {'p95(s)':>8} {'tiles':>6} {'dets':>6}"
+    )
     print("-" * 70)
     for r in results:
         c = r["config"]

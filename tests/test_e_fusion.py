@@ -54,8 +54,11 @@ class TestFusionCoordinateRestore:
         )
         tile_rec = _make_tile_record(tile_id=0, x_offset=500, y_offset=300)
         fused = fuse_tile_predictions(
-            [tile_pred], [tile_rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [tile_pred],
+            [tile_rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert fused.boxes_xyxy[0] == [600.0, 500.0, 800.0, 700.0]
         assert fused.scores[0] == 0.9
@@ -69,8 +72,11 @@ class TestFusionCoordinateRestore:
         )
         tile_rec = _make_tile_record(tile_id=0, x_offset=0, y_offset=0, width=10000, height=10000)
         fused = fuse_tile_predictions(
-            [tile_pred], [tile_rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [tile_pred],
+            [tile_rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         box = fused.boxes_xyxy[0]
@@ -85,8 +91,11 @@ class TestFusionCoordinateRestore:
         )
         tile_rec = _make_tile_record()
         fused = fuse_tile_predictions(
-            [tile_pred], [tile_rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [tile_pred],
+            [tile_rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 0
 
@@ -95,8 +104,11 @@ class TestFusionCoordinateRestore:
         pred = _make_tile_prediction(tile_id=0)
         tile_rec = _make_tile_record()
         fused = fuse_tile_predictions(
-            [pred], [tile_rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [tile_rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert fused.image_id == 0
         assert len(fused.boxes_xyxy) == 0
@@ -105,11 +117,16 @@ class TestFusionCoordinateRestore:
 
     def test_parent_image_id_passthrough(self):
         """融合后 image_id 为指定的 parent_image_id。"""
-        pred = _make_tile_prediction(tile_id=0, boxes=[[10, 10, 100, 100]], scores=[0.9], labels=[0])
+        pred = _make_tile_prediction(
+            tile_id=0, boxes=[[10, 10, 100, 100]], scores=[0.9], labels=[0]
+        )
         rec = _make_tile_record(parent_image_id=42)
         fused = fuse_tile_predictions(
-            [pred], [rec],
-            parent_image_id=42, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=42,
+            image_width=10000,
+            image_height=10000,
         )
         assert fused.image_id == 42
 
@@ -128,8 +145,11 @@ class TestFusionNMS:
         tile1 = _make_tile_record(tile_id=1, x_offset=100, y_offset=0, width=600, height=600)
 
         fused = fuse_tile_predictions(
-            [pred0, pred1], [tile0, tile1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [tile0, tile1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         assert fused.scores[0] == 0.9  # 保留高分
@@ -142,8 +162,11 @@ class TestFusionNMS:
         rec0 = _make_tile_record(tile_id=0)
         rec1 = _make_tile_record(tile_id=1)
         fused = fuse_tile_predictions(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         assert fused.labels[0] == 5  # 高分者获胜
@@ -156,8 +179,11 @@ class TestFusionNMS:
         rec0 = _make_tile_record(tile_id=0)
         rec1 = _make_tile_record(tile_id=1)
         fused = fuse_tile_predictions(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 2
 
@@ -169,8 +195,11 @@ class TestFusionNMS:
         rec0 = _make_tile_record(tile_id=0)
         rec1 = _make_tile_record(tile_id=1)
         fused = fuse_tile_predictions(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
             coarse_nms_iou=None,
         )
         assert len(fused.boxes_xyxy) == 2
@@ -185,8 +214,11 @@ class TestFusionNMS:
         )
         rec = _make_tile_record(tile_id=0)
         fused = fuse_tile_predictions(
-            [pred0], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
             max_detections=1,
         )
         assert len(fused.boxes_xyxy) == 1
@@ -200,7 +232,9 @@ class TestFusionValidation:
             fuse_tile_predictions(
                 [_make_tile_prediction(), _make_tile_prediction()],
                 [_make_tile_record()],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_duplicate_tile_id(self):
@@ -209,7 +243,9 @@ class TestFusionValidation:
             fuse_tile_predictions(
                 [_make_tile_prediction(tile_id=0), _make_tile_prediction(tile_id=0)],
                 [_make_tile_record(tile_id=0), _make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_prediction_image_mismatch(self):
@@ -218,7 +254,9 @@ class TestFusionValidation:
             fuse_tile_predictions(
                 [_make_tile_prediction(tile_id=99)],
                 [_make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_parent_mismatch(self):
@@ -228,7 +266,9 @@ class TestFusionValidation:
             fuse_tile_predictions(
                 [_make_tile_prediction(tile_id=0)],
                 [rec],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_invalid_score(self):
@@ -238,8 +278,11 @@ class TestFusionValidation:
         )
         with pytest.raises(ValueError):
             fuse_tile_predictions(
-                [pred], [_make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                [pred],
+                [_make_tile_record(tile_id=0)],
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_invalid_label(self):
@@ -249,6 +292,9 @@ class TestFusionValidation:
         )
         with pytest.raises(ValueError):
             fuse_tile_predictions(
-                [pred], [_make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                [pred],
+                [_make_tile_record(tile_id=0)],
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )

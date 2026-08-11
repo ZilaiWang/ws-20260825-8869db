@@ -16,9 +16,7 @@ logger = setup_logging(name="create_split")
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="生成分组分层 dev_v1 划分")
-    parser.add_argument(
-        "--data-root", type=Path, required=True, help="只读数据集根目录"
-    )
+    parser.add_argument("--data-root", type=Path, required=True, help="只读数据集根目录")
     parser.add_argument(
         "--output",
         type=Path,

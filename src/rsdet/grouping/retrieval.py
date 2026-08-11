@@ -72,7 +72,10 @@ def load_rotation_route(route: dict[str, Any]) -> RouteFeatures:
             f"actual={ordered_rotations}"
         )
     matrix = np.stack(
-        [np.stack([by_node[node][rotation] for rotation in ordered_rotations]) for node in ordered_nodes]
+        [
+            np.stack([by_node[node][rotation] for rotation in ordered_rotations])
+            for node in ordered_nodes
+        ]
     ).astype(np.float32, copy=False)
     return RouteFeatures(
         name=str(route["name"]),

@@ -78,9 +78,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if torch.__version__ != "2.5.1+cu121":
             failures.append(f"torch expected=2.5.1+cu121, actual={torch.__version__}")
         if torchvision.__version__ != "0.20.1+cu121":
-            failures.append(
-                f"torchvision expected=0.20.1+cu121, actual={torchvision.__version__}"
-            )
+            failures.append(f"torchvision expected=0.20.1+cu121, actual={torchvision.__version__}")
         if torch.version.cuda != "12.1":
             failures.append(f"CUDA runtime expected=12.1, actual={torch.version.cuda}")
         if not torch.cuda.is_available():

@@ -86,6 +86,7 @@ def _tile_metadata_for_mock(scene):
 # global_object_manifest：字段契约
 # ---------------------------------------------------------------------------
 
+
 class TestManifestFields:
     def test_single_tile_object_fields(self):
         """单 tile 对象：全局框 / 细类 / score / evidence / 来源 / 投票全齐。"""
@@ -94,8 +95,11 @@ class TestManifestFields:
         )
         rec = _make_tile_record(tile_id=0, x_offset=500, y_offset=300)
         objs = global_object_manifest(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(objs) == 1
         o = objs[0]
@@ -120,8 +124,11 @@ class TestManifestFields:
         rec0 = _make_tile_record(tile_id=0, x_offset=0, y_offset=0)
         rec1 = _make_tile_record(tile_id=1, x_offset=100, y_offset=0)
         objs = global_object_manifest(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(objs) == 1
         o = objs[0]
@@ -137,8 +144,11 @@ class TestManifestFields:
         rec0 = _make_tile_record(tile_id=0)
         rec1 = _make_tile_record(tile_id=1)
         objs = global_object_manifest(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(objs) == 1
         o = objs[0]
@@ -156,16 +166,22 @@ class TestManifestFields:
         )
         rec0 = _make_tile_record(tile_id=0)
         objs = global_object_manifest(
-            [pred0], [rec0],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0],
+            [rec0],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(objs) == 2
         assert objs[0].object_id != objs[1].object_id
 
     def test_empty_returns_empty_list(self):
         objs = global_object_manifest(
-            [_make_tile_prediction(tile_id=0)], [_make_tile_record(tile_id=0)],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [_make_tile_prediction(tile_id=0)],
+            [_make_tile_record(tile_id=0)],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert objs == []
 
@@ -179,9 +195,13 @@ class TestManifestFields:
         )
         rec = _make_tile_record(tile_id=0)
         objs = global_object_manifest(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
-            score_threshold=0.3, max_detections=1,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
+            score_threshold=0.3,
+            max_detections=1,
         )
         assert len(objs) == 1
         assert objs[0].score == 0.9
@@ -190,6 +210,7 @@ class TestManifestFields:
 # ---------------------------------------------------------------------------
 # aggregate：带来源时补 source_tile_ids + category_votes
 # ---------------------------------------------------------------------------
+
 
 class TestAggregateSourceTracking:
     def test_source_info_attached_when_proposals_carry_it(self):
@@ -218,18 +239,25 @@ class TestAggregateSourceTracking:
 # run_pipeline(collect_objects=True)：pipeline 层直接产出契约
 # ---------------------------------------------------------------------------
 
+
 class TestManifestThroughPipeline:
     def test_collect_objects_returns_three_tuple(self):
         """collect_objects=True → (prediction, timing, objects) 三元组。"""
         scene = generate_synthetic_scene(
-            image_size=4096, tile_size=1024, overlap=128,
-            num_ships=8, num_aircraft=15, num_vehicles=5, seed=42,
+            image_size=4096,
+            tile_size=1024,
+            overlap=128,
+            num_ships=8,
+            num_aircraft=15,
+            num_vehicles=5,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         config = PipelineConfig(tile_size=1024, overlap=128, batch_size=8, fusion="global")
         prediction, timing, objs = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=config,
             tile_metadata_fn=_tile_metadata_for_mock(scene),
             collect_objects=True,
@@ -246,14 +274,20 @@ class TestManifestThroughPipeline:
     def test_collect_objects_rejects_tile_fusion(self):
         """collect_objects 仅限 global 路径。"""
         scene = generate_synthetic_scene(
-            image_size=2048, tile_size=1024, overlap=128,
-            num_ships=2, num_aircraft=2, num_vehicles=1, seed=42,
+            image_size=2048,
+            tile_size=1024,
+            overlap=128,
+            num_ships=2,
+            num_aircraft=2,
+            num_vehicles=1,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         with pytest.raises(ValueError, match="collect_objects"):
             run_pipeline(
-                scene.image, detector,
+                scene.image,
+                detector,
                 config=PipelineConfig(fusion="tile"),
                 tile_metadata_fn=_tile_metadata_for_mock(scene),
                 collect_objects=True,

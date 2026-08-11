@@ -23,6 +23,7 @@ from rsdet.postprocess.global_aggregation import (
 
 proposal = dict[str, Any]
 
+
 def _box(x, y, w, h, cat, score):
     return {"x": x, "y": y, "width": w, "height": h, "category_id": cat, "score": score}
 
@@ -57,7 +58,7 @@ class TestClassVote:
     def test_majority_class_wins(self):
         """多数细类获胜。"""
         props = [
-            _box(0, 0, 10, 10, 9, 0.8),   # TU-160
+            _box(0, 0, 10, 10, 9, 0.8),  # TU-160
             _box(20, 0, 10, 10, 9, 0.7),
             _box(40, 0, 10, 10, 22, 0.5),  # SU-34 少数
         ]
@@ -146,7 +147,7 @@ class TestAggregate:
         """同一目标被预测成两个型号 → 投票选出一个，只输出 1 框。"""
         props = [
             _box(0, 0, 100, 100, 22, 0.8),  # SU-34 高分
-            _box(0, 0, 100, 100, 9, 0.6),   # TU-160 低分
+            _box(0, 0, 100, 100, 9, 0.6),  # TU-160 低分
         ]
         out = aggregate(props)
         assert len(out) == 1
@@ -156,7 +157,7 @@ class TestAggregate:
     def test_adjacent_distinct_objects_not_fused(self):
         """相邻但不同的同类型目标：中心近、IoU 低 → 不被错误融合，输出 2 框。"""
         props = [
-            _box(0, 0, 20, 20, 9, 0.8),   # 目标 A
+            _box(0, 0, 20, 20, 9, 0.8),  # 目标 A
             _box(30, 0, 20, 20, 9, 0.7),  # 目标 B，中心距 20 < eps，但 IoU 低
         ]
         out = aggregate(props)

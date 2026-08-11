@@ -72,12 +72,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="排名结果 JSON",
     )
-    parser.add_argument(
-        "--percentile-fraction-scale",
-        type=float,
-        default=0.5,
-        help="二次排序百分比取法：0.5=position/n（默认），0.0=(position-1)/(n-1)",
-    )
     return parser.parse_args(argv)
 
 
@@ -153,16 +147,13 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         logger.error("输入无效: %s", error)
         return 1
-    results = compute_official_rankings(
-        items,
-        percentile_fraction_scale=args.percentile_fraction_scale,
-    )
+    results = compute_official_rankings(items)
     for line in format_ranking_table(results):
         logger.info(line)
     for result in results:
         if result.incomplete:
             logger.warning(
-                "队伍 %s 缺时延项，未参与完整 7 项排名（只计 6 项）",
+                "队伍 %s 缺失一项或多项指标，未参与七项排名与二次排序",
                 result.team_id,
             )
 
@@ -170,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         output_data = {
             "contract": "official_ranking_v1_6",
             "metric_names": list(_SEVEN_KEYS),
-            "percentile_fraction_scale": args.percentile_fraction_scale,
+            "percentile_policy": "position_divided_by_complete_team_count",
             "teams": ranking_result_to_dicts(results),
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)

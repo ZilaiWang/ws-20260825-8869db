@@ -26,9 +26,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="搜索三大类置信度阈值")
     parser.add_argument("--gt", type=Path, required=True)
     parser.add_argument("--pred", type=Path, required=True)
-    parser.add_argument(
-        "--project-config", type=Path, default=Path("configs/project.yaml")
-    )
+    parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     parser.add_argument("--min-threshold", type=float, default=0.03)
     parser.add_argument("--max-threshold", type=float, default=0.50)
     parser.add_argument("--step", type=float, default=0.005)
@@ -72,17 +70,11 @@ def _coarse_curves(
         }
         class_mapping = {category_id: coarse_name for category_id in category_ids}
         class_gt = {
-            image_id: [
-                item for item in items if int(item["category_id"]) in category_ids
-            ]
+            image_id: [item for item in items if int(item["category_id"]) in category_ids]
             for image_id, items in gt.items()
         }
         class_predictions = {
-            image_id: [
-                item
-                for item in items
-                if int(item["category_id"]) in category_ids
-            ]
+            image_id: [item for item in items if int(item["category_id"]) in category_ids]
             for image_id, items in predictions.items()
         }
         if matching_policy == "coarse":
@@ -99,11 +91,7 @@ def _coarse_curves(
         points: list[dict[str, Any]] = []
         for threshold in thresholds:
             filtered = {
-                image_id: [
-                    item
-                    for item in items
-                    if float(item["score"]) >= threshold
-                ]
+                image_id: [item for item in items if float(item["score"]) >= threshold]
                 for image_id, items in class_predictions.items()
             }
             result = evaluate_predictions(
@@ -134,9 +122,7 @@ def _combined_candidate(points: tuple[dict[str, Any], ...]) -> dict[str, Any]:
     fp = sum(int(point["fp"]) for point in points)
     fn = sum(int(point["fn"]) for point in points)
     return {
-        "thresholds": {
-            name: float(point["threshold"]) for name, point in zip(names, points)
-        },
+        "thresholds": {name: float(point["threshold"]) for name, point in zip(names, points)},
         "overall_recall": tp / (tp + fn) if tp + fn else 1.0,
         "overall_fdr": fp / (tp + fp) if tp + fp else 0.0,
         "tp": tp,
@@ -159,13 +145,10 @@ def _filter_coco_predictions(
     filtered = [
         item
         for item in document
-        if float(item["score"])
-        >= float(thresholds[category_mapping[int(item["category_id"])]])
+        if float(item["score"]) >= float(thresholds[category_mapping[int(item["category_id"])]])
     ]
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(filtered, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    target.write_text(json.dumps(filtered, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -179,12 +162,9 @@ def main(argv: list[str] | None = None) -> int:
             for category_id, coarse in task["dataset_category_mapping"].items()
         }
         iou_thresholds = {
-            str(name): float(value)
-            for name, value in official["iou_thresholds"].items()
+            str(name): float(value) for name, value in official["iou_thresholds"].items()
         }
-        threshold_grid = _threshold_grid(
-            args.min_threshold, args.max_threshold, args.step
-        )
+        threshold_grid = _threshold_grid(args.min_threshold, args.max_threshold, args.step)
         curves = _coarse_curves(
             load_coco_ground_truth(args.gt),
             load_coco_predictions(args.pred),
@@ -196,9 +176,7 @@ def main(argv: list[str] | None = None) -> int:
         fdr_max = float(official["fdr_max"])
         candidates = (
             _combined_candidate(points)
-            for points in itertools.product(
-                curves["ship"], curves["aircraft"], curves["vehicle"]
-            )
+            for points in itertools.product(curves["ship"], curves["aircraft"], curves["vehicle"])
         )
         feasible = [item for item in candidates if item["overall_fdr"] <= fdr_max]
         if not feasible:
@@ -225,9 +203,7 @@ def main(argv: list[str] | None = None) -> int:
             "top_candidates": feasible[:20],
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        args.output.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
         if args.best_pred is not None:
             if args.matching_policy != "fine":
                 raise ValueError("coarse 上限分析不能导出正式 best prediction")

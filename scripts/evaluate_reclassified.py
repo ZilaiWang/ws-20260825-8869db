@@ -18,13 +18,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from pathlib import Path
 
 from rsdet.analysis.crossfit_thresholds import (
     load_cv3_aggregate,
-    load_gt_from_formal_crop_manifest,
     run_crossfit,
 )
 from rsdet.analysis.proposal_reclassification import (
@@ -52,9 +50,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         required=True,
         choices=(MODE_RECLASSIFY, MODE_BACKGROUND, MODE_JOINT),
     )
-    parser.add_argument(
-        "--project-config", type=Path, default=Path("configs/project.yaml")
-    )
+    parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     parser.add_argument("--expected-images", type=int, default=4481)
     parser.add_argument("--expected-annotations", type=int, default=20933)
     parser.add_argument("--candidate-floor", type=float, default=0.001)
@@ -115,6 +111,9 @@ def main(argv: list[str] | None = None) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     result["mode"] = args.mode
     result["analysis"] = f"N2-2_{args.mode}"
+    result["evaluation_level"] = "exploratory_level_e"
+    result["formal_admission"] = False
+    result["formal_blocker"] = "需要重建 v2 对象证据/人工背景标签，并做 outer-fold-pure 训练重放"
     (output_dir / "crossfit_result.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

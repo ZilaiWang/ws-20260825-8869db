@@ -19,9 +19,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path(
-            "configs/experiments/m1_m3_cv3_oof_analysis_v1.yaml"
-        ),
+        default=Path("configs/experiments/m1_m3_cv3_oof_analysis_v1.yaml"),
     )
     parser.add_argument(
         "--project-config",

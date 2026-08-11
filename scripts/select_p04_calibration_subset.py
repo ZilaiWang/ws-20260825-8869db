@@ -25,9 +25,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    values = select_calibration_uids(
-        args.manifest, crop_policy=args.policy, count=args.count
-    )
+    values = select_calibration_uids(args.manifest, crop_policy=args.policy, count=args.count)
     output = Path(args.output).expanduser().resolve()
     write_uid_list(output, values)
     selected = set(values)
@@ -35,9 +33,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     major_counts: Counter[str] = Counter()
     fold_counts: Counter[str] = Counter()
     risk_counts: Counter[str] = Counter()
-    with Path(args.manifest).expanduser().resolve().open(
-        "r", encoding="utf-8-sig", newline=""
-    ) as file:
+    with (
+        Path(args.manifest)
+        .expanduser()
+        .resolve()
+        .open("r", encoding="utf-8-sig", newline="") as file
+    ):
         for row in csv.DictReader(file):
             if (
                 row["crop_policy"].strip() != args.policy

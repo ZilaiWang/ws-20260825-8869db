@@ -59,12 +59,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "image_count": payload["summary"]["image_count"],
             "label_file_count": payload["summary"]["label_file_count"],
             "object_count": payload["summary"]["object_count"],
-            "p02_formal_gt_equivalence": payload["summary"][
-                "p02_formal_gt_equivalence"
-            ],
-            "yolo_formal_gt_equivalence": payload["summary"][
-                "yolo_formal_gt_equivalence"
-            ],
+            "p02_formal_gt_equivalence": payload["summary"]["p02_formal_gt_equivalence"],
+            "yolo_formal_gt_equivalence": payload["summary"]["yolo_formal_gt_equivalence"],
         }
     else:
         summary = verify_existing_lock(

@@ -91,7 +91,9 @@ def extract_sift_features(
         descriptors = np.empty((0, 128), dtype=np.float32)
     else:
         descriptors = np.asarray(descriptors, dtype=np.float32)
-    return SiftFeatures(points=points, descriptors=descriptors, image_size=(image.shape[1], image.shape[0]))
+    return SiftFeatures(
+        points=points, descriptors=descriptors, image_size=(image.shape[1], image.shape[0])
+    )
 
 
 def _mutual_ratio_matches(
@@ -244,9 +246,7 @@ def sift_pair_evidence(
     if not len(matches):
         points_u = np.empty((0, 2), dtype=np.float32)
         points_v = np.empty((0, 2), dtype=np.float32)
-    diagonal = max(
-        math.hypot(*features_u.image_size), math.hypot(*features_v.image_size), 1.0
-    )
+    diagonal = max(math.hypot(*features_u.image_size), math.hypot(*features_v.image_size), 1.0)
     threshold = max(3.0, ransac_fraction_diagonal * diagonal)
     output: dict[str, Any] = {
         "sift_keypoints_u": len(features_u.points),
@@ -256,9 +256,7 @@ def sift_pair_evidence(
     }
     for model in ("similarity", "affine", "homography"):
         output.update(
-            _transform_metrics(
-                points_u, points_v, model=model, threshold=threshold, seed=seed
-            )
+            _transform_metrics(points_u, points_v, model=model, threshold=threshold, seed=seed)
         )
     selected = output["similarity_inlier_mask"]
     if int(selected.sum()) < 3:
@@ -287,8 +285,7 @@ def sift_pair_evidence(
             seed=seed + repeat + 1,
         )
         passes.append(
-            repeated["similarity_inliers"] >= 8
-            and repeated["similarity_inlier_ratio"] >= 0.2
+            repeated["similarity_inliers"] >= 8 and repeated["similarity_inlier_ratio"] >= 0.2
         )
     output["sift_ransac_repeat_count"] = len(passes)
     output["sift_ransac_repeat_pass_rate"] = float(np.mean(passes)) if passes else None
@@ -334,7 +331,9 @@ def patch_pair_evidence(
     scores = left[index_u] @ right[index_v].T
     forward = scores.argmax(axis=1)
     reverse = scores.argmax(axis=0)
-    pairs = [(local_u, local_v) for local_u, local_v in enumerate(forward) if reverse[local_v] == local_u]
+    pairs = [
+        (local_u, local_v) for local_u, local_v in enumerate(forward) if reverse[local_v] == local_u
+    ]
     if not pairs:
         return output
     local_u = np.asarray([pair[0] for pair in pairs], dtype=int)

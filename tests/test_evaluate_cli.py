@@ -43,6 +43,7 @@ def test_standard_coco_detection_list(tmp_path: Path) -> None:
             str(pred_path),
             "--project-config",
             "configs/project.yaml",
+            "--allow-partial-taxonomy",
             "--output",
             str(output_path),
         ],
@@ -58,6 +59,7 @@ def test_standard_coco_detection_list(tmp_path: Path) -> None:
     assert metrics["protocol_versions"] == {
         "contract_version": "contract_v1",
         "eval_version": "official_eval_v1",
+        "ranking_version": "official_ranking_v1_6",
     }
     assert metrics["details"]["matching_policy"] == "same_fine_category_id"
     assert metrics["detection_gate"]["passed"] is True
@@ -97,6 +99,7 @@ def test_wrong_fine_category_is_not_a_match(tmp_path: Path) -> None:
             str(pred_path),
             "--project-config",
             "configs/project.yaml",
+            "--allow-partial-taxonomy",
             "--output",
             str(output_path),
         ],
@@ -194,6 +197,7 @@ def test_timing_gate_and_seven_ranking_metrics(tmp_path: Path) -> None:
             "configs/project.yaml",
             "--latency-seconds",
             "8.5",
+            "--allow-partial-taxonomy",
             "--output",
             str(output_path),
         ],
@@ -256,6 +260,7 @@ def test_timing_gate_fails_over_limit(tmp_path: Path) -> None:
             "configs/project.yaml",
             "--latency-seconds",
             "25.0",
+            "--allow-partial-taxonomy",
             "--output",
             str(output_path),
         ],
@@ -306,6 +311,7 @@ def test_invalid_latency_rejected(tmp_path: Path) -> None:
             "configs/project.yaml",
             "--latency-seconds",
             "nan",
+            "--allow-partial-taxonomy",
             "--output",
             str(tmp_path / "metrics.json"),
         ],

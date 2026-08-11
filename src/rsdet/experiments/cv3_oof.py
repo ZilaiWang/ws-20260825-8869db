@@ -33,9 +33,7 @@ EXPECTED_FOLD_COUNT = 3
 EXPECTED_IMAGE_COUNT = 4481
 EXPECTED_CATEGORY_IDS = tuple(range(25))
 FORMAL_CROP_MANIFEST_VERSION = "formal_crop_manifest_v2"
-FORMAL_CROP_MANIFEST_SHA256 = (
-    "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128"
-)
+FORMAL_CROP_MANIFEST_SHA256 = "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128"
 FORMAL_DETECTION_DATA_LOCK_SHA256 = (
     "03a8d8b5c56062ea0be46434bbcb6de333ba97eb9648f487d86a4ad162e0e77a"
 )
@@ -204,9 +202,9 @@ def _atomic_write(path: Path, content: bytes) -> None:
 def atomic_write_json(path: str | Path, payload: Any) -> None:
     """Write deterministic UTF-8 JSON atomically."""
 
-    content = (
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n"
-    ).encode("utf-8")
+    content = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n").encode(
+        "utf-8"
+    )
     _atomic_write(Path(path), content)
 
 
@@ -305,9 +303,7 @@ def load_cv3_manifest(
         seen_ids.add(image_id)
 
     if expected_image_count is not None and len(samples) != expected_image_count:
-        raise ValueError(
-            f"CV3 应覆盖 {expected_image_count} 张图，实际 {len(samples)} 张"
-        )
+        raise ValueError(f"CV3 应覆盖 {expected_image_count} 张图，实际 {len(samples)} 张")
     if {sample.fold for sample in samples} != set(range(EXPECTED_FOLD_COUNT)):
         raise ValueError("CV3 三个 fold 必须均非空")
     return document, tuple(samples)
@@ -379,12 +375,7 @@ def prepare_oof_run_plan(
         raise ValueError("model_key 必须是 M1 或 M3")
     if not model_family.strip() or not model_name.strip():
         raise ValueError("model_family/model_name 不能为空")
-    if (
-        seed < 0
-        or input_size <= 0
-        or foundation_epochs <= 0
-        or max_detections <= 0
-    ):
+    if seed < 0 or input_size <= 0 or foundation_epochs <= 0 or max_detections <= 0:
         raise ValueError("seed/input_size/foundation_epochs/max_detections 参数非法")
     if not 0.0 < low_score_threshold <= 0.01:
         raise ValueError("低阈值必须位于 (0, 0.01]")
@@ -401,17 +392,14 @@ def prepare_oof_run_plan(
             f"{model_key} 正式实验参数必须与预注册规格完全一致: "
             f"{FORMAL_EXPERIMENT_SPECS[model_key]}"
         )
-    pretrained_sha = _sha256(
-        pretrained_weight_sha256, "pretrained_weight_sha256"
-    )
+    pretrained_sha = _sha256(pretrained_weight_sha256, "pretrained_weight_sha256")
     pretrained_path = Path(pretrained_weight).expanduser().resolve()
     if not pretrained_path.is_file():
         raise FileNotFoundError(f"原预训练权重不存在: {pretrained_path}")
     actual_pretrained_sha = sha256_file(pretrained_path)
     if actual_pretrained_sha != pretrained_sha:
         raise ValueError(
-            "原预训练权重 SHA 不匹配: "
-            f"expected={pretrained_sha}, actual={actual_pretrained_sha}"
+            f"原预训练权重 SHA 不匹配: expected={pretrained_sha}, actual={actual_pretrained_sha}"
         )
     data_lock_path = Path(detection_data_lock).expanduser().resolve()
     if not data_lock_path.is_file():
@@ -434,9 +422,7 @@ def prepare_oof_run_plan(
         raise ValueError("正式检测数据锁 schema_version 非法")
     data_lock_summary = data_lock_payload.get("summary")
     data_lock_contract = data_lock_payload.get("contract")
-    if not isinstance(data_lock_summary, Mapping) or not isinstance(
-        data_lock_contract, Mapping
-    ):
+    if not isinstance(data_lock_summary, Mapping) or not isinstance(data_lock_contract, Mapping):
         raise ValueError("正式检测数据锁缺少 summary/contract")
     lock_fingerprint = _sha256(
         data_lock_payload.get("lock_fingerprint"),
@@ -633,13 +619,9 @@ def _validate_training_config(
     configured_weight = str(model.get("weights", "")).strip()
     if not configured_weight:
         raise ValueError("每折训练必须直接从计划中的原预训练权重开始")
-    configured_weight_path = _resolve_config_path(
-        configured_weight, path, "训练配置 model.weights"
-    )
+    configured_weight_path = _resolve_config_path(configured_weight, path, "训练配置 model.weights")
     if not configured_weight_path.is_file():
-        raise FileNotFoundError(
-            f"训练配置原预训练权重不存在: {configured_weight_path}"
-        )
+        raise FileNotFoundError(f"训练配置原预训练权重不存在: {configured_weight_path}")
     if configured_weight_path != Path(expected_pretrained_weight).resolve():
         raise ValueError("训练配置未指向 OOF 计划冻结的原预训练权重路径")
     if sha256_file(configured_weight_path) != expected_pretrained_sha256:
@@ -663,9 +645,7 @@ def _validate_training_config(
         raise ValueError("训练配置缺少 train.args")
     if int(train_args.get("imgsz", -1)) != expected_input_size:
         raise ValueError("训练 input size 与冻结 OOF 计划不一致")
-    if str(train.get("device", "")).strip() != str(
-        expected_training_contract["device"]
-    ):
+    if str(train.get("device", "")).strip() != str(expected_training_contract["device"]):
         raise ValueError("训练 device 与冻结 OOF 计划不一致")
     if str(train.get("checkpoint_selection", "")).strip() != str(
         expected_training_contract["checkpoint_selection"]
@@ -673,23 +653,17 @@ def _validate_training_config(
         raise ValueError("正式 OOF 必须使用固定 epoch 的 last checkpoint")
     expected_args = expected_training_contract.get("train_args")
     expected_stage_args = expected_training_contract.get("stage_args")
-    if not isinstance(expected_args, Mapping) or dict(train_args) != dict(
-        expected_args
-    ):
+    if not isinstance(expected_args, Mapping) or dict(train_args) != dict(expected_args):
         raise ValueError("训练 train.args 与冻结完整配置合同不一致")
     stage_args = stage.get("args", {})
-    if not isinstance(stage_args, Mapping) or not isinstance(
-        expected_stage_args, Mapping
-    ):
+    if not isinstance(stage_args, Mapping) or not isinstance(expected_stage_args, Mapping):
         raise ValueError("训练 stage args 合同非法")
     if dict(stage_args) != dict(expected_stage_args):
         raise ValueError("训练 foundation stage.args 与冻结配置合同不一致")
     manifest_value = str(data.get("manifest", "")).strip()
     if not manifest_value:
         raise ValueError("训练配置 data.manifest 不能为空")
-    manifest_path = _resolve_config_path(
-        manifest_value, path, "训练配置 data.manifest"
-    )
+    manifest_path = _resolve_config_path(manifest_value, path, "训练配置 data.manifest")
     if not manifest_path.is_file():
         raise FileNotFoundError(f"训练配置指向的 manifest 不存在: {manifest_path}")
     if sha256_file(manifest_path) != expected_manifest_sha256:
@@ -738,9 +712,7 @@ def _validate_inference_config(
     manifest_value = str(input_config.get("manifest", "")).strip()
     if not manifest_value:
         raise ValueError("推理配置 input.manifest 不能为空")
-    manifest_path = _resolve_config_path(
-        manifest_value, path, "推理配置 input.manifest"
-    )
+    manifest_path = _resolve_config_path(manifest_value, path, "推理配置 input.manifest")
     if not manifest_path.is_file():
         raise FileNotFoundError(f"推理配置指向的 manifest 不存在: {manifest_path}")
     if sha256_file(manifest_path) != expected_manifest_sha256:
@@ -760,9 +732,7 @@ def _validate_inference_config(
 
     expected_model = expected_inference_contract.get("model")
     expected_input = expected_inference_contract.get("input")
-    if not isinstance(expected_model, Mapping) or not isinstance(
-        expected_input, Mapping
-    ):
+    if not isinstance(expected_model, Mapping) or not isinstance(expected_input, Mapping):
         raise ValueError("冻结推理配置合同非法")
     actual_model = dict(model)
     actual_model.pop("checkpoint", None)
@@ -827,9 +797,7 @@ def _validate_train_summary(
     if initial_weights != expected_pretrained:
         raise ValueError("train_summary initial_weights 不是冻结原预训练权重")
     if not initial_weights.is_file():
-        raise FileNotFoundError(
-            f"train_summary 原预训练权重不存在: {initial_weights}"
-        )
+        raise FileNotFoundError(f"train_summary 原预训练权重不存在: {initial_weights}")
     if sha256_file(initial_weights) != expected_pretrained_sha256:
         raise ValueError("train_summary 原预训练权重 SHA 不一致")
     stages = payload.get("stages")
@@ -871,17 +839,13 @@ def _validate_train_summary(
     }
     for key, expected_value in expected_scientific_arguments.items():
         if arguments.get(key) != expected_value:
-            raise ValueError(
-                f"train_summary foundation.arguments.{key} 与冻结合同不一致"
-            )
+            raise ValueError(f"train_summary foundation.arguments.{key} 与冻结合同不一致")
     allowed_dynamic = {"data", "project", "name", "exist_ok"}
     if set(arguments) - set(expected_scientific_arguments) - allowed_dynamic:
         raise ValueError("train_summary foundation.arguments 含未冻结的额外参数")
     if stage.get("checkpoint_selection") != "last":
         raise ValueError("train_summary foundation 未声明 last checkpoint")
-    last_path = _resolve_config_path(
-        stage.get("last"), path, "train_summary foundation.last"
-    )
+    last_path = _resolve_config_path(stage.get("last"), path, "train_summary foundation.last")
     selected_path = _resolve_config_path(
         stage.get("selected_checkpoint"),
         path,
@@ -903,10 +867,7 @@ def _validate_runtime_provenance(
     expected_predictions_path: Path,
 ) -> None:
     if payload.get("schema_version") != INFERENCE_RUNTIME_SCHEMA_VERSION:
-        raise ValueError(
-            "runtime schema_version 必须是 "
-            f"{INFERENCE_RUNTIME_SCHEMA_VERSION}"
-        )
+        raise ValueError(f"runtime schema_version 必须是 {INFERENCE_RUNTIME_SCHEMA_VERSION}")
     artifacts = payload.get("artifacts")
     if not isinstance(artifacts, Mapping):
         raise ValueError("runtime artifacts 必须是对象")
@@ -925,9 +886,7 @@ def _validate_runtime_provenance(
             f"runtime artifacts.{name}.path",
         )
         if artifact_path != expected_path.resolve():
-            raise ValueError(
-                f"runtime {name} path 与交付文件不是同一实体"
-            )
+            raise ValueError(f"runtime {name} path 与交付文件不是同一实体")
         recorded_sha = _sha256(
             artifact.get("sha256"),
             f"runtime artifacts.{name}.sha256",
@@ -1022,9 +981,7 @@ def finalize_fold_delivery(
     if int(view.get("held_out_fold", -1)) != held_out_fold:
         raise ValueError("fold split view 的 held_out_fold 不一致")
     val_ids = {
-        int(record["image_id"])
-        for record in view["samples"]
-        if record.get("split") == "val"
+        int(record["image_id"]) for record in view["samples"] if record.get("split") == "val"
     }
 
     train_config = Path(train_config_path)
@@ -1059,9 +1016,7 @@ def finalize_fold_delivery(
         train_config,
         expected_family=str(plan["model_family"]),
         expected_pretrained_weight=str(plan["initial_pretrained_weight"]),
-        expected_pretrained_sha256=str(
-            plan["initial_pretrained_weight_sha256"]
-        ),
+        expected_pretrained_sha256=str(plan["initial_pretrained_weight_sha256"]),
         expected_manifest_sha256=str(fold_plan["split_view_sha256"]),
         expected_seed=int(plan["seed"]),
         expected_input_size=int(plan["input_size"]),
@@ -1083,9 +1038,7 @@ def finalize_fold_delivery(
         train_summary,
         expected_family=str(plan["model_family"]),
         expected_pretrained_weight=str(plan["initial_pretrained_weight"]),
-        expected_pretrained_sha256=str(
-            plan["initial_pretrained_weight_sha256"]
-        ),
+        expected_pretrained_sha256=str(plan["initial_pretrained_weight_sha256"]),
         expected_seed=int(plan["seed"]),
         expected_foundation_epochs=int(plan["foundation_epochs"]),
         expected_checkpoint_path=checkpoint,
@@ -1099,9 +1052,7 @@ def finalize_fold_delivery(
     predicted_ids = {int(record["image_id"]) for record in records}
     unexpected = predicted_ids - val_ids
     if unexpected:
-        raise ValueError(
-            f"fold {held_out_fold} 预测包含非本折验证图像: {sorted(unexpected)[:10]}"
-        )
+        raise ValueError(f"fold {held_out_fold} 预测包含非本折验证图像: {sorted(unexpected)[:10]}")
     for index, record in enumerate(records):
         score = float(record["score"])
         if score + 1e-12 < float(plan["low_score_threshold"]):
@@ -1117,8 +1068,7 @@ def finalize_fold_delivery(
     }
     if over_limit:
         raise ValueError(
-            "单图 proposal_count 超出冻结 max_detections: "
-            f"{sorted(over_limit.items())[:10]}"
+            f"单图 proposal_count 超出冻结 max_detections: {sorted(over_limit.items())[:10]}"
         )
 
     runtime_payload = json.loads(runtime.read_text(encoding="utf-8"))
@@ -1150,9 +1100,7 @@ def finalize_fold_delivery(
         "val_images": int(view["val_images"]),
         "initialization": {
             "pretrained_weight": plan["initial_pretrained_weight"],
-            "pretrained_weight_sha256": plan[
-                "initial_pretrained_weight_sha256"
-            ],
+            "pretrained_weight_sha256": plan["initial_pretrained_weight_sha256"],
             "resume": False,
         },
         "inference": {
@@ -1182,9 +1130,7 @@ def finalize_fold_delivery(
             "runtime": str(runtime),
             "runtime_sha256": sha256_file(runtime),
             "data_lock_verification": str(data_lock_verification),
-            "data_lock_verification_sha256": sha256_file(
-                data_lock_verification
-            ),
+            "data_lock_verification_sha256": sha256_file(data_lock_verification),
         },
     }
     atomic_write_json(output_path, metadata)
@@ -1222,9 +1168,7 @@ def _load_formal_crop_image_sizes(path: Path) -> dict[int, tuple[int, int]]:
             raise ValueError("formal crop manifest 缺少版本或 image-size 字段")
         for line_number, row in enumerate(reader, 2):
             if row["manifest_version"] != FORMAL_CROP_MANIFEST_VERSION:
-                raise ValueError(
-                    f"formal crop manifest 第 {line_number} 行版本不一致"
-                )
+                raise ValueError(f"formal crop manifest 第 {line_number} 行版本不一致")
             image_id = int(row["formal_image_id"])
             size = (int(row["source_width"]), int(row["source_height"]))
             if image_id <= 0 or size[0] <= 0 or size[1] <= 0:
@@ -1283,9 +1227,7 @@ def audit_and_aggregate_oof(
         crop_manifest: dict[str, Any] | None = None
     else:
         if diagnostic_without_formal_crop:
-            raise ValueError(
-                "formal crop 与 diagnostic_without_formal_crop 不得同时启用"
-            )
+            raise ValueError("formal crop 与 diagnostic_without_formal_crop 不得同时启用")
         crop_path = Path(formal_crop_manifest_path)
         image_sizes = _load_formal_crop_image_sizes(crop_path)
         crop_manifest = {
@@ -1334,9 +1276,7 @@ def audit_and_aggregate_oof(
         if metadata.get("checkpoint_selection") != "fixed_epoch_last":
             raise ValueError(f"fold {fold} 未使用固定 epoch last checkpoint")
         fold_plan = plan["folds"][fold]
-        if metadata.get("fold_view_manifest_sha256") != fold_plan[
-            "split_view_sha256"
-        ]:
+        if metadata.get("fold_view_manifest_sha256") != fold_plan["split_view_sha256"]:
             raise ValueError(f"fold {fold} split view SHA 不一致")
         if int(metadata.get("train_images", -1)) != int(fold_plan["train_images"]):
             raise ValueError(f"fold {fold} train image count 不一致")
@@ -1352,9 +1292,10 @@ def audit_and_aggregate_oof(
             != plan["initial_pretrained_weight_sha256"]
         ):
             raise ValueError(f"fold {fold} 不是从冻结原预训练权重独立开始")
-        if Path(str(initialization.get("pretrained_weight", ""))).resolve() != Path(
-            str(plan["initial_pretrained_weight"])
-        ).resolve():
+        if (
+            Path(str(initialization.get("pretrained_weight", ""))).resolve()
+            != Path(str(plan["initial_pretrained_weight"])).resolve()
+        ):
             raise ValueError(f"fold {fold} 原预训练权重路径与计划不一致")
         inference = metadata.get("inference")
         if not isinstance(inference, Mapping):
@@ -1384,12 +1325,8 @@ def audit_and_aggregate_oof(
         ):
             artifact_path = Path(str(artifacts.get(artifact_name, "")))
             if not artifact_path.is_file():
-                raise FileNotFoundError(
-                    f"fold {fold} {artifact_name} 文件不存在: {artifact_path}"
-                )
-            if sha256_file(artifact_path) != artifacts.get(
-                f"{artifact_name}_sha256"
-            ):
+                raise FileNotFoundError(f"fold {fold} {artifact_name} 文件不存在: {artifact_path}")
+            if sha256_file(artifact_path) != artifacts.get(f"{artifact_name}_sha256"):
                 raise ValueError(f"fold {fold} {artifact_name} SHA 不一致")
             if artifact_name == "checkpoint" and artifact_path.stat().st_size != int(
                 artifacts.get("checkpoint_size_bytes", -1)
@@ -1407,9 +1344,7 @@ def audit_and_aggregate_oof(
             Path(str(artifacts["train_config"])),
             expected_family=str(plan["model_family"]),
             expected_pretrained_weight=str(plan["initial_pretrained_weight"]),
-            expected_pretrained_sha256=str(
-                plan["initial_pretrained_weight_sha256"]
-            ),
+            expected_pretrained_sha256=str(plan["initial_pretrained_weight_sha256"]),
             expected_manifest_sha256=str(fold_plan["split_view_sha256"]),
             expected_seed=int(plan["seed"]),
             expected_input_size=int(plan["input_size"]),
@@ -1431,17 +1366,13 @@ def audit_and_aggregate_oof(
             Path(str(artifacts["train_summary"])),
             expected_family=str(plan["model_family"]),
             expected_pretrained_weight=str(plan["initial_pretrained_weight"]),
-            expected_pretrained_sha256=str(
-                plan["initial_pretrained_weight_sha256"]
-            ),
+            expected_pretrained_sha256=str(plan["initial_pretrained_weight_sha256"]),
             expected_seed=int(plan["seed"]),
             expected_foundation_epochs=int(plan["foundation_epochs"]),
             expected_checkpoint_path=checkpoint_path,
             expected_training_contract=plan["training_config_contract"],
         )
-        runtime_payload = json.loads(
-            Path(str(artifacts["runtime"])).read_text(encoding="utf-8")
-        )
+        runtime_payload = json.loads(Path(str(artifacts["runtime"])).read_text(encoding="utf-8"))
         if not isinstance(runtime_payload, Mapping) or int(
             runtime_payload.get("images", -1)
         ) != int(fold_plan["val_images"]):
@@ -1453,16 +1384,12 @@ def audit_and_aggregate_oof(
             expected_checkpoint_path=checkpoint_path,
             expected_predictions_path=prediction_path,
         )
-        records = [
-            dict(record) for record in load_coco_prediction_records(prediction_path)
-        ]
+        records = [dict(record) for record in load_coco_prediction_records(prediction_path)]
         validate_coco_prediction_records(
             records,
             allowed_category_ids=EXPECTED_CATEGORY_IDS,
         )
-        expected_ids = {
-            sample.image_id for sample in samples if sample.fold == fold
-        }
+        expected_ids = {sample.image_id for sample in samples if sample.fold == fold}
         predicted_ids = {int(record["image_id"]) for record in records}
         if not predicted_ids <= expected_ids:
             raise ValueError(f"fold {fold} prediction 含非本折图像")
@@ -1477,13 +1404,8 @@ def audit_and_aggregate_oof(
         for source_index, record in enumerate(records):
             image_id = int(record["image_id"])
             counts[image_id] += 1
-            if (
-                float(record["score"]) + 1e-12
-                < float(plan["low_score_threshold"])
-            ):
-                raise ValueError(
-                    f"fold {fold} prediction score 低于冻结候选阈值"
-                )
+            if float(record["score"]) + 1e-12 < float(plan["low_score_threshold"]):
+                raise ValueError(f"fold {fold} prediction score 低于冻结候选阈值")
             if counts[image_id] > int(plan["max_detections"]):
                 raise ValueError(
                     f"fold {fold} image_id={image_id} proposal_count 超出 "
@@ -1491,20 +1413,13 @@ def audit_and_aggregate_oof(
                 )
             if image_sizes is not None:
                 if image_id not in image_sizes:
-                    raise ValueError(
-                        f"formal crop 缺少 prediction image_id={image_id} 的尺寸"
-                    )
+                    raise ValueError(f"formal crop 缺少 prediction image_id={image_id} 的尺寸")
                 _validate_coco_bbox_within_image(
                     record,
                     image_size=image_sizes[image_id],
-                    context=(
-                        f"fold {fold} predictions[{source_index}] "
-                        f"image_id={image_id}"
-                    ),
+                    context=(f"fold {fold} predictions[{source_index}] image_id={image_id}"),
                 )
-            proposal_uid = (
-                f"{plan['model_key'].lower()}-f{fold}-i{image_id}-p{source_index:06d}"
-            )
+            proposal_uid = f"{plan['model_key'].lower()}-f{fold}-i{image_id}-p{source_index:06d}"
             x, y, width, height = [float(value) for value in record["bbox"]]
             proposal_rows.append(
                 {
@@ -1553,9 +1468,10 @@ def audit_and_aggregate_oof(
         raise ValueError(f"OOF 图像覆盖不完整，缺少 {missing[:10]}")
     if len(image_rows) != len(samples):
         raise ValueError("每张图必须恰好出现一次 OOF image row")
-    if len(checkpoint_shas) != EXPECTED_FOLD_COUNT or len(
-        set(checkpoint_shas)
-    ) != EXPECTED_FOLD_COUNT:
+    if (
+        len(checkpoint_shas) != EXPECTED_FOLD_COUNT
+        or len(set(checkpoint_shas)) != EXPECTED_FOLD_COUNT
+    ):
         raise ValueError("三折必须产生三个不同的独立 last checkpoint")
     if image_sizes is not None and set(image_sizes) != all_image_ids:
         missing = sorted(all_image_ids - set(image_sizes))
@@ -1629,9 +1545,7 @@ def audit_and_aggregate_oof(
         "proposal_count": len(proposal_rows),
         "low_score_threshold": float(plan["low_score_threshold"]),
         "checkpoint_selection": "fixed_epoch_last",
-        "initial_pretrained_weight_sha256": plan[
-            "initial_pretrained_weight_sha256"
-        ],
+        "initial_pretrained_weight_sha256": plan["initial_pretrained_weight_sha256"],
         "fold_checkpoint_sha256": checkpoint_shas,
         "folds": fold_summaries,
         "formal_crop_manifest": crop_manifest,

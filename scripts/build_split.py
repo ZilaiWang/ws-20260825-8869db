@@ -82,7 +82,9 @@ def load_official_sides(imagesets: Path) -> tuple[set[int], dict[int, int]]:
     return train_ids, segment_of
 
 
-def derive_group(stem: str, train_side: set[int], segment_of: dict[int, int]) -> tuple[str, str, bool]:
+def derive_group(
+    stem: str, train_side: set[int], segment_of: dict[int, int]
+) -> tuple[str, str, bool]:
     """返回 (group_id, 依据, 是否强制进训练集)。"""
     scene = SCENE_RE.search(stem)
     if scene:
@@ -107,9 +109,7 @@ def assign_splits(groups: list[dict], val_fraction: float, seed: int) -> dict[st
     target_val = round(total_images * val_fraction)
     cap = target_val * 1.15
 
-    assignment: dict[str, str] = {
-        g["gid"]: "train" for g in groups if g["force_train"]
-    }
+    assignment: dict[str, str] = {g["gid"]: "train" for g in groups if g["force_train"]}
     free = [g for g in groups if g["gid"] not in assignment]
     rng.shuffle(free)
 
@@ -206,8 +206,12 @@ def main() -> int:
         bucket = groups_by_coarse[record["coarse"]]
         group = bucket.setdefault(
             record["group_id"],
-            {"gid": record["group_id"], "images": [], "classes": Counter(),
-             "force_train": record["group_id"] in forced_groups},
+            {
+                "gid": record["group_id"],
+                "images": [],
+                "classes": Counter(),
+                "force_train": record["group_id"] in forced_groups,
+            },
         )
         group["images"].append(record["image_id"])
         group["classes"].update(record["classes"])
@@ -235,14 +239,14 @@ def main() -> int:
         "samples": samples,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    args.output.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # ---- 统计 ----
     by_split = Counter(s["split"] for s in samples)
-    print(f"\n总计 {len(samples)} 张：train {by_split['train']}，val {by_split['val']} "
-          f"({by_split['val'] / len(samples):.1%})\n")
+    print(
+        f"\n总计 {len(samples)} 张：train {by_split['train']}，val {by_split['val']} "
+        f"({by_split['val'] / len(samples):.1%})\n"
+    )
 
     split_of = {s["image_id"]: s["split"] for s in samples}
     coarse_images: defaultdict[tuple[str, str], int] = defaultdict(int)
@@ -268,13 +272,20 @@ def main() -> int:
     for class_id in range(len(FINE_NAMES)):
         v_boxes = fine_boxes[(class_id, "val")]
         v_groups = len(fine_groups[(class_id, "val")])
-        note = "!! 验证集无样本" if v_boxes == 0 else ("!  证据量低，以 cv3 为准" if v_groups <= 2 else "")
-        print(f"{class_id:>3} {FINE_NAMES[class_id]:<12} {v_boxes:>6} "
-              f"{len(fine_images[(class_id, 'val')]):>6} {v_groups:>6}  {note}")
+        note = (
+            "!! 验证集无样本"
+            if v_boxes == 0
+            else ("!  证据量低，以 cv3 为准" if v_groups <= 2 else "")
+        )
+        print(
+            f"{class_id:>3} {FINE_NAMES[class_id]:<12} {v_boxes:>6} "
+            f"{len(fine_images[(class_id, 'val')]):>6} {v_groups:>6}  {note}"
+        )
 
     # 泄漏自检
     spans = {
-        gid for gid in {r["group_id"] for r in records}
+        gid
+        for gid in {r["group_id"] for r in records}
         if len({split_of[r["image_id"]] for r in records if r["group_id"] == gid}) > 1
     }
     print(f"\n跨 train/val 的分组数: {len(spans)}（应为 0）")

@@ -32,8 +32,7 @@ def dominant_class(label_path: Path | None) -> int | None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, required=True)
-    parser.add_argument("--max-gap", type=int, default=20,
-                        help="编号间隔超过该值则强制断段")
+    parser.add_argument("--max-gap", type=int, default=20, help="编号间隔超过该值则强制断段")
     args = parser.parse_args()
 
     dataset = XHDataset(args.data_root, "train", load_images=False)

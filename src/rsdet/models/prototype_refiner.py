@@ -61,9 +61,7 @@ if _TORCH_AVAILABLE:
             super().__init__(*layers)
 
     class DepthwiseSeparableConv(nn.Sequential):
-        def __init__(
-            self, in_channels: int, out_channels: int, *, stride: int = 1
-        ) -> None:
+        def __init__(self, in_channels: int, out_channels: int, *, stride: int = 1) -> None:
             super().__init__(
                 ConvNormAct(
                     in_channels,
@@ -106,9 +104,7 @@ if _TORCH_AVAILABLE:
     class CosineClassifier(nn.Module):
         """消除类别权重范数偏置的归一化分类器。"""
 
-        def __init__(
-            self, embedding_dim: int, num_classes: int, scale: float = 20.0
-        ) -> None:
+        def __init__(self, embedding_dim: int, num_classes: int, scale: float = 20.0) -> None:
             super().__init__()
             self.weight = nn.Parameter(torch.empty(num_classes, embedding_dim))
             self.log_scale = nn.Parameter(torch.tensor(float(scale)).log())
@@ -116,9 +112,7 @@ if _TORCH_AVAILABLE:
 
         def forward(self, embeddings):
             scale = self.log_scale.exp().clamp(1.0, 100.0)
-            return scale * F.linear(
-                F.normalize(embeddings, dim=1), F.normalize(self.weight, dim=1)
-            )
+            return scale * F.linear(F.normalize(embeddings, dim=1), F.normalize(self.weight, dim=1))
 
     class HierarchicalPrototypeRefiner(nn.Module):
         """轻量多尺度纹理编码器 + 25 类余弦头 + 三大类辅助头 + EMA 原型。"""
@@ -161,9 +155,7 @@ if _TORCH_AVAILABLE:
             self.fine_classifier = CosineClassifier(embedding_dim, num_classes)
             self.coarse_classifier = nn.Linear(embedding_dim, 3)
             self.register_buffer("prototypes", torch.zeros(num_classes, embedding_dim))
-            self.register_buffer(
-                "prototype_counts", torch.zeros(num_classes, dtype=torch.long)
-            )
+            self.register_buffer("prototype_counts", torch.zeros(num_classes, dtype=torch.long))
             self.register_buffer(
                 "fine_to_coarse",
                 torch.tensor([0] * 4 + [1] * 20 + [2], dtype=torch.long),
@@ -173,13 +165,9 @@ if _TORCH_AVAILABLE:
             embeddings = F.normalize(self.embedding_head(self.encoder(images)), dim=1)
             fine_logits = self.fine_classifier(embeddings)
             scale = self.fine_classifier.log_scale.exp().clamp(1.0, 100.0)
-            prototype_logits = (
-                scale * embeddings @ F.normalize(self.prototypes, dim=1).T
-            )
+            prototype_logits = scale * embeddings @ F.normalize(self.prototypes, dim=1).T
             available = self.prototype_counts > 0
-            prototype_logits = prototype_logits.masked_fill(
-                ~available.unsqueeze(0), -1e4
-            )
+            prototype_logits = prototype_logits.masked_fill(~available.unsqueeze(0), -1e4)
             return {
                 "embeddings": embeddings,
                 "fine_logits": fine_logits,
@@ -188,17 +176,13 @@ if _TORCH_AVAILABLE:
                 "prototype_available": available,
             }
 
-        def fused_logits(
-            self, outputs: Mapping[str, Any], *, prototype_weight: float = 0.35
-        ):
+        def fused_logits(self, outputs: Mapping[str, Any], *, prototype_weight: float = 0.35):
             if not 0.0 <= prototype_weight <= 1.0:
                 raise ValueError("prototype_weight 必须在 [0, 1]")
             fine_logits = outputs["fine_logits"]
             prototype_logits = outputs["prototype_logits"]
             available = outputs["prototype_available"].unsqueeze(0)
-            fused = (
-                1.0 - prototype_weight
-            ) * fine_logits + prototype_weight * prototype_logits
+            fused = (1.0 - prototype_weight) * fine_logits + prototype_weight * prototype_logits
             return torch.where(available, fused, fine_logits)
 
         @torch.no_grad()
@@ -206,9 +190,7 @@ if _TORCH_AVAILABLE:
             embeddings = F.normalize(embeddings.detach(), dim=1)
             for class_id in labels.unique():
                 class_index = int(class_id.item())
-                class_mean = F.normalize(
-                    embeddings[labels == class_id].mean(dim=0), dim=0
-                )
+                class_mean = F.normalize(embeddings[labels == class_id].mean(dim=0), dim=0)
                 batch_count = int((labels == class_id).sum().item())
                 if self.prototype_counts[class_index] == 0:
                     updated = class_mean
@@ -281,9 +263,7 @@ if _TORCH_AVAILABLE:
                 reduction="none",
             )
             target_probabilities = fine_logits.softmax(dim=1)[row_indices, labels]
-            fine_loss = (
-                (1.0 - target_probabilities) ** self.focal_gamma * per_sample
-            ).mean()
+            fine_loss = ((1.0 - target_probabilities) ** self.focal_gamma * per_sample).mean()
             coarse_labels = self.fine_to_coarse[labels]
             coarse_loss = F.cross_entropy(outputs["coarse_logits"], coarse_labels)
             compact_loss = self._compactness(outputs["embeddings"], labels)
@@ -326,9 +306,7 @@ def load_refiner_checkpoint(path: str | Path, *, map_location: str = "cpu"):
     checkpoint_path = Path(path).expanduser()
     if not checkpoint_path.is_file():
         raise FileNotFoundError(f"HPR checkpoint 不存在: {checkpoint_path}")
-    checkpoint = torch.load(
-        checkpoint_path, map_location=map_location, weights_only=False
-    )
+    checkpoint = torch.load(checkpoint_path, map_location=map_location, weights_only=False)
     if not isinstance(checkpoint, Mapping) or "model_state" not in checkpoint:
         raise ValueError("HPR checkpoint 必须包含 model_state")
     model_config = dict(checkpoint.get("model_config", {}))

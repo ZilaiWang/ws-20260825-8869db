@@ -3,9 +3,7 @@
 import json
 
 import numpy as np
-import pytest
 
-from rsdet.tiling.coordinates import xyxy_to_xywh
 from rsdet.tiling.synthetic import (
     SyntheticObject,
     SyntheticScene,
@@ -67,8 +65,7 @@ class TestSyntheticScene:
                         area2 = (px2 - px1) * (py2 - py1)
                         iou = inter / (area1 + area2 - inter)
                         assert iou < 0.3, (
-                            f"同细类 {cid} 目标重叠: "
-                            f"{boxes[i]} vs {boxes[j]}, IoU={iou:.3f}"
+                            f"同细类 {cid} 目标重叠: {boxes[i]} vs {boxes[j]}, IoU={iou:.3f}"
                         )
 
     def test_deterministic(self):
@@ -98,9 +95,7 @@ class TestSyntheticScene:
 
     def test_objects_tile_tracking(self):
         """每个目标至少追踪到一个 tile ID。"""
-        scene = generate_synthetic_scene(
-            image_size=5000, tile_size=1024, overlap=128, seed=42
-        )
+        scene = generate_synthetic_scene(image_size=5000, tile_size=1024, overlap=128, seed=42)
         for obj in scene.objects:
             assert len(obj.tile_ids) > 0, f"目标 {obj.bbox} 未落入任何 tile"
 

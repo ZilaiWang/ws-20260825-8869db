@@ -43,4 +43,3 @@ def test_frequency_tiers_use_training_counts_without_changing_predictions() -> N
     assert metrics["frequency_tiers"]["middle"]["class_ids"] == [1]
     assert metrics["frequency_tiers"]["head"]["class_ids"] == [2]
     assert metrics["macro_recall"] == 1.0
-

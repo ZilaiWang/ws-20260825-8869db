@@ -127,9 +127,7 @@ def main() -> int:
         raise FileNotFoundError(args.assignment)
 
     dataset = XHDataset(args.data_root, "train", load_images=False)
-    mar20_stems = {
-        ref.stem for ref in dataset.refs if MAR20_RE.fullmatch(ref.stem)
-    }
+    mar20_stems = {ref.stem for ref in dataset.refs if MAR20_RE.fullmatch(ref.stem)}
     airport_groups = load_airport_groups(
         args.airport_groups,
         expected_stems=mar20_stems,
@@ -144,17 +142,11 @@ def main() -> int:
         expected_group_ids={group.group_id for group in groups},
         expected_group_statistics_sha256=statistics_sha256,
     )
-    near_duplicate_audit = audit_near_duplicates(
-        args.near_duplicates, airport_groups
-    )
-    scientific_audit = build_scientific_audit(
-        records, groups, assignment, airport_groups
-    )
+    near_duplicate_audit = audit_near_duplicates(args.near_duplicates, airport_groups)
+    scientific_audit = build_scientific_audit(records, groups, assignment, airport_groups)
     if not scientific_audit["formal_cv3_admission"]:
         print(json.dumps(scientific_audit, ensure_ascii=False, indent=2))
-        raise RuntimeError(
-            "formal CV3 scientific gates failed; no output files were written"
-        )
+        raise RuntimeError("formal CV3 scientific gates failed; no output files were written")
 
     group_map_sha256 = sha256_file(args.airport_groups)
     assignment_sha256 = sha256_file(args.assignment)
@@ -164,9 +156,7 @@ def main() -> int:
         "protocol": PROTOCOL,
         "seed": assignment_metadata["seed"],
         "fold_count": FOLD_COUNT,
-        "group_semantics": (
-            "MAR20 K60 airport-proxy visual domains, not ground-truth airport IDs"
-        ),
+        "group_semantics": ("MAR20 K60 airport-proxy visual domains, not ground-truth airport IDs"),
         "airport_group_map": args.airport_groups.name,
         "airport_group_map_sha256": group_map_sha256,
         "frozen_assignment": args.assignment.name,
@@ -202,9 +192,7 @@ def main() -> int:
         "group_statistics_sha256": statistics_sha256,
         "label_set_sha256": manifest["label_set_sha256"],
         "assignment_metadata": {
-            key: value
-            for key, value in assignment_metadata.items()
-            if key != "groups"
+            key: value for key, value in assignment_metadata.items() if key != "groups"
         },
         "legacy_near_duplicate_audit": near_duplicate_audit,
         "scientific_audit": scientific_audit,

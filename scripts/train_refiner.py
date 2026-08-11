@@ -30,9 +30,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="训练 HPR 少样本细粒度原型分支")
     parser.add_argument("--config", type=Path, required=True, help="HPR 训练配置")
     parser.add_argument("--device", type=str, default=None, help="覆盖训练设备")
-    parser.add_argument(
-        "--resume", type=Path, default=None, help="从 HPR checkpoint 恢复"
-    )
+    parser.add_argument("--resume", type=Path, default=None, help="从 HPR checkpoint 恢复")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -95,9 +93,7 @@ def _run_epoch(
         labels_cpu = labels.detach().cpu().numpy()
         predictions_cpu = predictions.detach().cpu().numpy()
         class_total += np.bincount(labels_cpu, minlength=25)
-        class_correct += np.bincount(
-            labels_cpu[labels_cpu == predictions_cpu], minlength=25
-        )
+        class_correct += np.bincount(labels_cpu[labels_cpu == predictions_cpu], minlength=25)
 
     present = class_total > 0
     per_class_recall = np.divide(
@@ -109,9 +105,7 @@ def _run_epoch(
     return {
         "loss": total_loss / max(total_samples, 1),
         "accuracy": total_correct / max(total_samples, 1),
-        "macro_recall": (
-            float(per_class_recall[present].mean()) if np.any(present) else 0.0
-        ),
+        "macro_recall": (float(per_class_recall[present].mean()) if np.any(present) else 0.0),
     }
 
 
@@ -156,9 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         generator = torch.Generator().manual_seed(seed)
         sampler = WeightedRandomSampler(
-            train_dataset.sampling_weights(
-                power=float(train_config.get("sampler_power", 0.5))
-            ),
+            train_dataset.sampling_weights(power=float(train_config.get("sampler_power", 0.5))),
             num_samples=len(train_dataset),
             replacement=True,
             generator=generator,
@@ -196,9 +188,7 @@ def main(argv: list[str] | None = None) -> int:
         start_epoch = 0
         best_macro_recall = -1.0
         if args.resume is not None:
-            checkpoint = torch.load(
-                args.resume, map_location=device, weights_only=False
-            )
+            checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
             model.load_state_dict(checkpoint["model_state"])
             optimizer.load_state_dict(checkpoint["optimizer_state"])
             scheduler.load_state_dict(checkpoint["scheduler_state"])
@@ -206,9 +196,7 @@ def main(argv: list[str] | None = None) -> int:
             best_macro_recall = float(checkpoint.get("best_macro_recall", -1.0))
 
         if args.dry_run:
-            train_image_count = len(
-                {record.image_id for record in train_dataset.records}
-            )
+            train_image_count = len({record.image_id for record in train_dataset.records})
             val_image_count = len({record.image_id for record in val_dataset.records})
             train_metrics = _run_epoch(
                 model,
@@ -296,9 +284,7 @@ def main(argv: list[str] | None = None) -> int:
                 "model_state": model.state_dict(),
                 "optimizer_state": optimizer.state_dict(),
                 "scheduler_state": scheduler.state_dict(),
-                "best_macro_recall": max(
-                    best_macro_recall, val_metrics["macro_recall"]
-                ),
+                "best_macro_recall": max(best_macro_recall, val_metrics["macro_recall"]),
                 "model_config": model_config,
                 "input_size": input_size,
                 "context_ratio": context_ratio,
@@ -327,9 +313,7 @@ def main(argv: list[str] | None = None) -> int:
     ) as error:
         logger.error("HPR 训练失败: %s", error)
         return 1
-    logger.info(
-        "HPR 训练完成，最佳 val macro recall=%.4f: %s", best_macro_recall, output_dir
-    )
+    logger.info("HPR 训练完成，最佳 val macro recall=%.4f: %s", best_macro_recall, output_dir)
     return 0
 
 

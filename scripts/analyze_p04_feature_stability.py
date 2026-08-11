@@ -32,9 +32,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "clean_d4": analyze_clean_d4(args.clean_cache),
     }
     if args.clean_repeat_cache:
-        report["clean_repeat"] = compare_repeat_caches(
-            args.clean_cache, args.clean_repeat_cache
-        )
+        report["clean_repeat"] = compare_repeat_caches(args.clean_cache, args.clean_repeat_cache)
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(

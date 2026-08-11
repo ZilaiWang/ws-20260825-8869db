@@ -42,19 +42,30 @@ LOWER_IS_BETTER: frozenset[str] = frozenset(
 class RankingItem:
     """一支队伍在 7 项指标上的原始得分。
 
-    时延项（``latency_seconds``）允许缺失：缺失时该项不参与该队伍的排名
-    与求和，其余 6 项照常计算；排名表会标记该队伍 ``incomplete=True``，
-    防止把缺项队伍与完整队伍直接比排名和。
+    任一项允许用 ``None`` 表示尚未测定，但缺项队伍不参与任何
+    正式七项排名、排名和或二次排序，只作待补全记录。
     """
 
     team_id: str
-    ship_recall: float
-    ship_fdr: float
-    aircraft_recall: float
-    aircraft_fdr: float
-    vehicle_recall: float
-    vehicle_fdr: float
+    ship_recall: float | None
+    ship_fdr: float | None
+    aircraft_recall: float | None
+    aircraft_fdr: float | None
+    vehicle_recall: float | None
+    vehicle_fdr: float | None
     latency_seconds: float | None = None
+
+    def __post_init__(self) -> None:
+        if not self.team_id.strip():
+            raise ValueError("team_id 必须是非空字符串")
+        for metric, value in self.metric_values().items():
+            if not math.isfinite(value):
+                raise ValueError(f"{metric} 必须是有限数")
+            if metric == "latency_seconds":
+                if value < 0.0:
+                    raise ValueError("latency_seconds 不能为负数")
+            elif not 0.0 <= value <= 1.0:
+                raise ValueError(f"{metric} 必须在 [0, 1] 内")
 
     def metric_values(self) -> dict[str, float]:
         """返回 {指标名: 原始值}；值为 ``None`` 的指标不包含。
@@ -78,8 +89,8 @@ class RankingItem:
 
     @property
     def incomplete(self) -> bool:
-        """是否缺失时延项（当前唯一允许缺失的指标）。"""
-        return self.latency_seconds is None
+        """是否缺失任一官方排名指标。"""
+        return len(self.metric_values()) != len(SEVEN_RANKING_METRICS)
 
 
 @dataclass(frozen=True)
@@ -93,8 +104,8 @@ class TeamRankingResult:
     rank_count: int = 0
     second_order_position: int | None = None
     second_order_percentile: float | None = None
-    score_min: float = 0.0
-    score_max: float = 10.0
+    score_min: float | None = None
+    score_max: float | None = None
     incomplete: bool = False
 
     def to_dict(self) -> dict[str, Any]:
@@ -113,9 +124,7 @@ class TeamRankingResult:
         }
 
 
-def _rank_metric(
-    values: dict[str, float | None], metric: str
-) -> dict[str, int]:
+def _rank_metric(values: dict[str, float | None], metric: str) -> dict[str, int]:
     """对单个指标给所有队伍排名（竞赛排名：并列同分、名次 1,2,2,4）。
 
     ``None`` 表示该项缺失，直接排除不参与该指标排名。
@@ -148,20 +157,11 @@ def _rank_metric(
 
 def compute_official_rankings(
     items: list[RankingItem],
-    *,
-    percentile_fraction_scale: float = 0.5,
 ) -> list[TeamRankingResult]:
     """计算所有队伍的 7 项排名与二次排序结果。
 
     Args:
         items: 各队伍原始指标。
-        percentile_fraction_scale: 二次排序"从前往后百分比"的取法。
-            官方只给出示例（第 30% -> 区间 5-9 分），未明确是
-            ``position / n`` 还是 ``(position - 1) / (n - 1)``。默认
-            使用 ``position / n``（队伍越靠前百分比越小、打分区间越高，
-            与官方示例一致）；如需保守取法可传 ``0.0`` 变为
-            ``(position - 1) / (n - 1)``。
-
     Returns:
         按二次排序名次升序排列的逐队结果。
     """
@@ -170,11 +170,13 @@ def compute_official_rankings(
     if len({item.team_id for item in items}) != len(items):
         raise ValueError("team_id 必须唯一")
 
-    # 构建 {metric: {team_id: value_or_None}}。
+    complete_items = [item for item in items if not item.incomplete]
+
+    # 缺项队伍不能改变完整队伍的七项名次。
     metric_values: dict[str, dict[str, float | None]] = {
         metric: {} for metric in SEVEN_RANKING_METRICS
     }
-    for item in items:
+    for item in complete_items:
         present = item.metric_values()
         for metric in SEVEN_RANKING_METRICS:
             metric_values[metric][item.team_id] = present.get(metric)
@@ -183,9 +185,9 @@ def compute_official_rankings(
     for metric in SEVEN_RANKING_METRICS:
         metric_ranks[metric] = _rank_metric(metric_values[metric], metric)
 
-    n_teams = len(items)
+    n_teams = len(complete_items)
     rank_sums: dict[str, tuple[int, int]] = {}
-    for item in items:
+    for item in complete_items:
         total = 0
         count = 0
         present = item.metric_values()
@@ -196,18 +198,40 @@ def compute_official_rankings(
             count += 1
         rank_sums[item.team_id] = (total, count)
 
-    ordered = sorted(items, key=lambda item: (rank_sums[item.team_id][0], item.team_id))
-    position_map = {item.team_id: position for position, item in enumerate(ordered, start=1)}
+    ordered_complete = sorted(
+        complete_items, key=lambda item: (rank_sums[item.team_id][0], item.team_id)
+    )
+    position_map: dict[str, int] = {}
+    for index, item in enumerate(ordered_complete, start=1):
+        if index == 1:
+            position_map[item.team_id] = 1
+        else:
+            previous = ordered_complete[index - 2]
+            position_map[item.team_id] = (
+                position_map[previous.team_id]
+                if rank_sums[item.team_id][0] == rank_sums[previous.team_id][0]
+                else index
+            )
+
+    ordered = ordered_complete + sorted(
+        (item for item in items if item.incomplete), key=lambda item: item.team_id
+    )
 
     results: list[TeamRankingResult] = []
     for item in ordered:
+        if item.incomplete:
+            results.append(
+                TeamRankingResult(
+                    team_id=item.team_id,
+                    metric_values=item.metric_values(),
+                    incomplete=True,
+                )
+            )
+            continue
         total, count = rank_sums[item.team_id]
         position = position_map[item.team_id]
         if n_teams > 1:
-            if percentile_fraction_scale == 0.0:
-                percentile = (position - 1) / (n_teams - 1)
-            else:
-                percentile = position / n_teams
+            percentile = position / n_teams
         else:
             percentile = 0.5
         # 官方公式：(100% - p) ± 20%，每项下限 0、上限 10。
@@ -241,20 +265,20 @@ def ranking_result_to_dicts(results: list[TeamRankingResult]) -> list[dict[str, 
 
 def format_ranking_table(results: list[TeamRankingResult]) -> list[str]:
     """生成适合打印的排名表文本行。"""
-    header = (
-        f"{'team':<12} {'2nd':>4} {'pct':>6} {'rank_sum':>8} "
-        f"{'score_range':>14}"
-    )
+    header = f"{'team':<12} {'2nd':>4} {'pct':>6} {'rank_sum':>8} {'score_range':>14}"
     lines = [header, "-" * len(header)]
     for result in results:
         range_text = (
             f"[{result.score_min:.1f}, {result.score_max:.1f}]"
             if not result.incomplete
+            and result.score_min is not None
+            and result.score_max is not None
             else "[incomplete]"
         )
         lines.append(
             f"{result.team_id:<12} {str(result.second_order_position):>4} "
-            f"{result.second_order_percentile:>6.3f} {result.rank_sum:>8} "
+            f"{(f'{result.second_order_percentile:.3f}' if result.second_order_percentile is not None else '-'):>6} "
+            f"{result.rank_sum:>8} "
             f"{range_text:>14}"
         )
     return lines

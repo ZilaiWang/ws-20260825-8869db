@@ -45,6 +45,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="单幅 10000×10000 推理时延（秒），用于官方 V1.6 时效门槛判定",
     )
     parser.add_argument("--output", type=Path, default=None, help="评估结果 JSON")
+    parser.add_argument(
+        "--allow-partial-taxonomy",
+        action="store_true",
+        help="仅用于折内/子集诊断；允许 GT 未覆盖全部配置细类",
+    )
     return parser.parse_args(argv)
 
 
@@ -104,13 +109,9 @@ def _build_seven_ranking_metrics(
     return {
         "ship_recall": macros["ship"].macro_recall if "ship" in macros else None,
         "ship_fdr": macros["ship"].macro_fdr if "ship" in macros else None,
-        "aircraft_recall": (
-            macros["aircraft"].macro_recall if "aircraft" in macros else None
-        ),
+        "aircraft_recall": (macros["aircraft"].macro_recall if "aircraft" in macros else None),
         "aircraft_fdr": macros["aircraft"].macro_fdr if "aircraft" in macros else None,
-        "vehicle_recall": (
-            macros["vehicle"].macro_recall if "vehicle" in macros else None
-        ),
+        "vehicle_recall": (macros["vehicle"].macro_recall if "vehicle" in macros else None),
         "vehicle_fdr": macros["vehicle"].macro_fdr if "vehicle" in macros else None,
         "latency_seconds": latency_seconds,
     }
@@ -127,9 +128,7 @@ def _build_timing_gate(
     return {
         "latency_seconds": latency_seconds,
         "latency_max_seconds": latency_max,
-        "passed": (
-            latency_max is not None and latency_seconds <= latency_max
-        ),
+        "passed": (latency_max is not None and latency_seconds <= latency_max),
     }
 
 
@@ -162,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             class_names=protocol.class_names,
             category_mapping=protocol.category_mapping,
             iou_thresholds=protocol.iou_thresholds,
+            require_complete_taxonomy=not args.allow_partial_taxonomy,
         )
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         logger.error("评估输入无效: %s", error)
@@ -186,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
             "protocol_versions": {
                 "contract_version": protocol.contract_version,
                 "eval_version": protocol.eval_version,
+                "ranking_version": protocol.ranking_version,
             },
             "overall_recall": result.recall,
             "overall_fdr": result.fdr,
@@ -193,10 +194,7 @@ def main(argv: list[str] | None = None) -> int:
             "detection_gate": {
                 "recall_min": protocol.recall_min,
                 "fdr_max": protocol.fdr_max,
-                "passed": (
-                    result.recall >= protocol.recall_min
-                    and result.fdr <= protocol.fdr_max
-                ),
+                "passed": (result.recall >= protocol.recall_min and result.fdr <= protocol.fdr_max),
             },
             "timing_gate": _build_timing_gate(protocol, args.latency_seconds),
             "details": result.details,

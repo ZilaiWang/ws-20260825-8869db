@@ -46,14 +46,12 @@ class UnionFind:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, required=True)
-    parser.add_argument("--threshold", type=int, default=6,
-                        help="汉明距离阈值，越小越严格")
-    parser.add_argument("--prefix", default="MAR20",
-                        help="只处理文件名以此开头的图像")
-    parser.add_argument("--min-std", type=float, default=0.0,
-                        help="缩略图灰度标准差下限，低于此值视为无纹理并排除")
-    parser.add_argument("--output", type=Path, default=None,
-                        help="把多图分组结果保存为 JSON")
+    parser.add_argument("--threshold", type=int, default=6, help="汉明距离阈值，越小越严格")
+    parser.add_argument("--prefix", default="MAR20", help="只处理文件名以此开头的图像")
+    parser.add_argument(
+        "--min-std", type=float, default=0.0, help="缩略图灰度标准差下限，低于此值视为无纹理并排除"
+    )
+    parser.add_argument("--output", type=Path, default=None, help="把多图分组结果保存为 JSON")
     args = parser.parse_args()
 
     dataset = XHDataset(args.data_root, "train", load_images=False)
@@ -118,9 +116,7 @@ def main() -> int:
             ],
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"\n已保存: {args.output}")
     return 0
 

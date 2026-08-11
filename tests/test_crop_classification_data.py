@@ -107,9 +107,7 @@ def _write_manifest(path: Path) -> None:
 def test_manifest_selects_one_policy_and_leakage_safe_fold(tmp_path: Path) -> None:
     manifest = tmp_path / "manifest.csv"
     _write_manifest(manifest)
-    train = load_crop_records(
-        manifest, crop_policy="tight", held_out_fold=1, split="train"
-    )
+    train = load_crop_records(manifest, crop_policy="tight", held_out_fold=1, split="train")
     val = load_crop_records(manifest, crop_policy="tight", held_out_fold=1, split="val")
 
     assert [item.annotation_uid for item in train] == ["a", "c"]
@@ -157,4 +155,3 @@ def test_smoke_subset_round_robins_classes_deterministically() -> None:
     selected = select_deterministic_subset(records, 3)
     assert {item.class_id for item in selected} == {0, 1}
     assert [item.annotation_uid for item in selected] == ["a0", "a1", "b0"]
-

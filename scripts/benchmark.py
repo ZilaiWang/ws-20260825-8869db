@@ -80,9 +80,7 @@ def main(argv: list[str] | None = None) -> int:
         # ``override or pop(...)`` expression would short-circuit and leak the
         # YAML checkpoint into BHCDetrDetector.__init__.
         configured_checkpoint = model_config.pop("checkpoint", None)
-        checkpoint = args.checkpoint or configured_checkpoint or config.get(
-            "checkpoint"
-        )
+        checkpoint = args.checkpoint or configured_checkpoint or config.get("checkpoint")
         if not checkpoint:
             raise ValueError("缺少 checkpoint")
         detector = build_model(adapter, {"init_args": model_config})
@@ -174,8 +172,7 @@ def main(argv: list[str] | None = None) -> int:
                 "p95_passed": _percentile(totals, 0.95) <= 20.0,
                 "official_hardware_claim": bool(args.official_hardware_claim),
                 "official_gate_passed": (
-                    _percentile(totals, 0.95) <= 20.0
-                    and bool(args.official_hardware_claim)
+                    _percentile(totals, 0.95) <= 20.0 and bool(args.official_hardware_claim)
                 ),
             },
         }
@@ -187,7 +184,12 @@ def main(argv: list[str] | None = None) -> int:
     except (ImportError, OSError, KeyError, TypeError, ValueError, RuntimeError) as error:
         logger.error("测速失败: %s", error)
         return 1
-    logger.info("BHC-DETR p50=%.3fs p95=%.3fs -> %s", summary["total_seconds"]["p50"], summary["total_seconds"]["p95"], output)
+    logger.info(
+        "BHC-DETR p50=%.3fs p95=%.3fs -> %s",
+        summary["total_seconds"]["p50"],
+        summary["total_seconds"]["p95"],
+        output,
+    )
     return 0
 
 

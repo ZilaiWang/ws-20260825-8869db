@@ -298,9 +298,7 @@ class FeatureCache:
             raise ValueError("cache 唯一对象数与 metadata.object_count 不一致")
         expected_views = set(metadata.get("view_ids", ()))
         if expected_views:
-            invalid = [
-                uid for uid, views in views_by_annotation.items() if views != expected_views
-            ]
+            invalid = [uid for uid, views in views_by_annotation.items() if views != expected_views]
             if invalid:
                 raise ValueError(f"cache 有 {len(invalid)} 个对象视图集合不完整")
         view_counts: dict[str, int] = {}

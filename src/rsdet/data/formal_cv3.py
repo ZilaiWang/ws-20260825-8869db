@@ -73,8 +73,7 @@ class FormalCV3Manifest:
 
         if type(held_out_fold) is not int or not 0 <= held_out_fold < self.fold_count:
             raise ValueError(
-                f"held_out_fold must be in 0..{self.fold_count - 1}, "
-                f"found {held_out_fold!r}"
+                f"held_out_fold must be in 0..{self.fold_count - 1}, found {held_out_fold!r}"
             )
         train = tuple(item for item in self.samples if item.fold != held_out_fold)
         val = tuple(item for item in self.samples if item.fold == held_out_fold)
@@ -94,9 +93,7 @@ class FormalCV3Manifest:
         }
         leaking = {name: values for name, values in overlaps.items() if values}
         if leaking:
-            examples = {
-                name: sorted(values, key=str)[:3] for name, values in leaking.items()
-            }
+            examples = {name: sorted(values, key=str)[:3] for name, values in leaking.items()}
             raise ValueError(f"formal CV3 train/val leakage: {examples}")
         if len(val) != self.fold_image_counts[held_out_fold]:
             raise ValueError(
@@ -206,8 +203,7 @@ def load_formal_cv3_manifest(
         raise TypeError("formal CV3 manifest root must be an object")
     if payload.get("version") != expected_version:
         raise ValueError(
-            f"formal CV3 version mismatch: {payload.get('version')!r} "
-            f"!= {expected_version!r}"
+            f"formal CV3 version mismatch: {payload.get('version')!r} != {expected_version!r}"
         )
     if payload.get("data_version") != expected_data_version:
         raise ValueError(
@@ -216,8 +212,7 @@ def load_formal_cv3_manifest(
         )
     if payload.get("fold_count") != fold_count:
         raise ValueError(
-            f"formal CV3 fold_count mismatch: {payload.get('fold_count')!r} "
-            f"!= {fold_count}"
+            f"formal CV3 fold_count mismatch: {payload.get('fold_count')!r} != {fold_count}"
         )
     scientific_contract = payload.get("scientific_contract")
     if not isinstance(scientific_contract, Mapping):
@@ -287,9 +282,7 @@ def load_formal_cv3_manifest(
             f"extra={sorted(seen_ids - expected_ids)[:5]}"
         )
     crossing = {
-        group_id: sorted(folds)
-        for group_id, folds in folds_by_group.items()
-        if len(folds) != 1
+        group_id: sorted(folds) for group_id, folds in folds_by_group.items() if len(folds) != 1
     }
     if crossing:
         raise ValueError(
@@ -298,8 +291,7 @@ def load_formal_cv3_manifest(
         )
     if len(folds_by_group) != group_count:
         raise ValueError(
-            f"formal CV3 source-group count mismatch: "
-            f"{len(folds_by_group)} != {group_count}"
+            f"formal CV3 source-group count mismatch: {len(folds_by_group)} != {group_count}"
         )
 
     fold_images = Counter(item.fold for item in samples)
@@ -308,13 +300,11 @@ def load_formal_cv3_manifest(
     actual_fold_groups = tuple(fold_groups[fold] for fold in range(fold_count))
     if actual_fold_images != image_count_contract:
         raise ValueError(
-            f"formal CV3 fold image counts changed: "
-            f"{actual_fold_images} != {image_count_contract}"
+            f"formal CV3 fold image counts changed: {actual_fold_images} != {image_count_contract}"
         )
     if actual_fold_groups != group_count_contract:
         raise ValueError(
-            f"formal CV3 fold group counts changed: "
-            f"{actual_fold_groups} != {group_count_contract}"
+            f"formal CV3 fold group counts changed: {actual_fold_groups} != {group_count_contract}"
         )
 
     result = FormalCV3Manifest(

@@ -33,7 +33,9 @@ def _read_pairs(path: Path) -> list[dict[str, str]]:
         rows = list(csv.DictReader(file))
     required = {"pair_uid", "node_u", "node_v", "binary_role", "split"}
     if not rows or not required.issubset(rows[0]):
-        raise ValueError(f"calibration pairs 缺少列: {sorted(required - set(rows[0] if rows else {}))}")
+        raise ValueError(
+            f"calibration pairs 缺少列: {sorted(required - set(rows[0] if rows else {}))}"
+        )
     return rows
 
 
@@ -86,9 +88,11 @@ def _wilson(successes: int, total: int, z: float = 1.96) -> tuple[float | None, 
     proportion = successes / total
     denominator = 1.0 + z * z / total
     center = (proportion + z * z / (2.0 * total)) / denominator
-    margin = z * math.sqrt(
-        proportion * (1.0 - proportion) / total + z * z / (4.0 * total * total)
-    ) / denominator
+    margin = (
+        z
+        * math.sqrt(proportion * (1.0 - proportion) / total + z * z / (4.0 * total * total))
+        / denominator
+    )
     return max(0.0, center - margin), min(1.0, center + margin)
 
 
@@ -106,7 +110,10 @@ def _is_hard_negative(row: dict[str, str]) -> bool:
 
 
 def _ranking_metrics(
-    node_order: list[str], descriptors: dict[str, np.ndarray], pairs: list[dict[str, str]], k_values: tuple[int, ...]
+    node_order: list[str],
+    descriptors: dict[str, np.ndarray],
+    pairs: list[dict[str, str]],
+    k_values: tuple[int, ...],
 ) -> dict[str, Any]:
     node_to_index = {node: index for index, node in enumerate(node_order)}
     n = len(node_order)
@@ -179,8 +186,7 @@ def _ranking_metrics(
                 else None
             )
             metrics[f"hard_negative_top_at_{k}_rate"] = (
-                sum(rank <= effective_k for rank in hard_negative_ranks)
-                / len(hard_negative_ranks)
+                sum(rank <= effective_k for rank in hard_negative_ranks) / len(hard_negative_ranks)
                 if hard_negative_ranks
                 else None
             )
@@ -195,7 +201,11 @@ def _ranking_metrics(
 
 
 def _neighbor_jaccard(
-    left_order: list[str], left: dict[str, np.ndarray], right_order: list[str], right: dict[str, np.ndarray], k: int
+    left_order: list[str],
+    left: dict[str, np.ndarray],
+    right_order: list[str],
+    right: dict[str, np.ndarray],
+    k: int,
 ) -> float | None:
     common = sorted(set(left_order) & set(right_order), key=lambda value: int(value.split(":")[1]))
     if len(common) <= 1:
@@ -281,7 +291,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             metrics_rows.append(row)
     for row in metrics_rows:
         feature = row["feature_name"]
-        if (feature, "original") in descriptor_maps and (feature, "masked_inpaint") in descriptor_maps:
+        if (feature, "original") in descriptor_maps and (
+            feature,
+            "masked_inpaint",
+        ) in descriptor_maps:
             left = descriptor_maps[(feature, "original")]
             right = descriptor_maps[(feature, "masked_inpaint")]
             row["original_masked_neighbor_jaccard_at_20"] = _neighbor_jaccard(*left, *right, 20)
@@ -309,9 +322,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             row["feature_name"],
         )
 
-    metrics_rows.sort(
-        key=selection_key
-    )
+    metrics_rows.sort(key=selection_key)
     output_dir = Path(args.output_dir).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     csv_path = output_dir / "descriptor_bakeoff.csv"

@@ -84,9 +84,7 @@ def test_runtime_summary_reports_phases_and_passes() -> None:
     assert summary["measured_runs"] == 10
     assert summary["time_gate"]["passed"] is True
     assert set(summary["phase_summary"]) == set(PHASES)
-    assert summary["wall_with_read"]["p95_seconds"] > summary["total_after_read"][
-        "p95_seconds"
-    ]
+    assert summary["wall_with_read"]["p95_seconds"] > summary["total_after_read"]["p95_seconds"]
 
 
 def test_runtime_gate_uses_each_image_max_not_only_p95() -> None:
@@ -282,10 +280,7 @@ def test_runtime_audit_binds_hardware_sha256(tmp_path: Path) -> None:
     contract_path.write_text(json.dumps(contract), encoding="utf-8")
     runtime = tmp_path / "runtime.jsonl"
     runtime.write_text(
-        "".join(
-            json.dumps(record) + "\n"
-            for record in _bind_contract_fields(_records())
-        ),
+        "".join(json.dumps(record) + "\n" for record in _bind_contract_fields(_records())),
         encoding="utf-8",
     )
     output = tmp_path / "summary.json"
@@ -364,9 +359,7 @@ def test_checkpoint_provenance_binds_formal_oof_lineage(tmp_path: Path) -> None:
                 "fold_metadata": str(fold_metadata),
                 "fold_metadata_sha256": fold_sha,
                 "oof_metadata": str(oof_metadata),
-                "oof_metadata_sha256": hashlib.sha256(
-                    oof_metadata.read_bytes()
-                ).hexdigest(),
+                "oof_metadata_sha256": hashlib.sha256(oof_metadata.read_bytes()).hexdigest(),
             }
         ),
         encoding="utf-8",
@@ -377,9 +370,7 @@ def test_checkpoint_provenance_binds_formal_oof_lineage(tmp_path: Path) -> None:
     validator = module["_validate_checkpoint_provenance"]
     contract = _contract()
     contract["checkpoint_sha256"] = digest
-    contract["checkpoint_provenance_sha256"] = hashlib.sha256(
-        provenance.read_bytes()
-    ).hexdigest()
+    contract["checkpoint_provenance_sha256"] = hashlib.sha256(provenance.read_bytes()).hexdigest()
 
     assert validator(provenance, contract=contract) == checkpoint.resolve()
 
@@ -401,8 +392,6 @@ def test_checkpoint_provenance_binds_formal_oof_lineage(tmp_path: Path) -> None:
         oof_metadata.read_bytes()
     ).hexdigest()
     provenance.write_text(json.dumps(provenance_payload), encoding="utf-8")
-    contract["checkpoint_provenance_sha256"] = hashlib.sha256(
-        provenance.read_bytes()
-    ).hexdigest()
+    contract["checkpoint_provenance_sha256"] = hashlib.sha256(provenance.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match="fold metadata 未闭环"):
         validator(provenance, contract=contract)

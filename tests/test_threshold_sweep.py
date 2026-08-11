@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from rsdet.evaluation.official_metric import OverallMetrics
+from rsdet.evaluation.official_metric import OverallMetrics, RankingMetrics
 from rsdet.postprocess.calibration import (
     ThresholdSweepPoint,
     build_threshold_grid,
@@ -19,6 +19,7 @@ def _point(threshold: float, recall: float, fdr: float) -> ThresholdSweepPoint:
         threshold=threshold,
         detections_kept=0,
         metrics=OverallMetrics(recall=recall, fdr=fdr),
+        ranking_metrics=RankingMetrics(overall_recall=recall, overall_fdr=fdr),
     )
 
 
@@ -38,9 +39,7 @@ def test_decimal_grid_and_inclusive_filter() -> None:
 
 
 def test_invalid_prediction_score_is_rejected() -> None:
-    predictions = {
-        1: [{"bbox_xyxy": [0, 0, 1, 1], "category_id": 0, "score": 1.1}]
-    }
+    predictions = {1: [{"bbox_xyxy": [0, 0, 1, 1], "category_id": 0, "score": 1.1}]}
     with pytest.raises(ValueError, match="score"):
         filter_predictions_by_score(predictions, 0.5)
 

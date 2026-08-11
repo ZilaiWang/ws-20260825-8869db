@@ -8,25 +8,29 @@
 当前版本以 [`configs/project.yaml`](../configs/project.yaml) 为唯一配置源：
 
 - `contract_version: contract_v1`：预测、模型 adapter 和跨模块接口；
-- `eval_version: official_eval_v1`：细类匹配、三大类汇总、IoU、Recall/FDR 计算规则。
+- `eval_version: official_eval_v1`：细类匹配、IoU、pooled Recall/FDR 计算规则；
+- `ranking_version: official_ranking_v1_6`：完整 25 细类上的 4/20/1 macro 聚合、
+  7 项排名与二次排名模拟口径。
 
 接口语义变化时升级 `contract_version`，评估规则变化时升级 `eval_version`。包版本
 `rsdet.__version__` 与两者独立。历史实验不改写；不同协议版本的结果不得直接横向比较。
-`evaluate.py`、阈值扫描产物和正式实验总表都必须记录这两个版本。
+`evaluate.py`、阈值扫描产物和正式实验总表都必须记录这三个版本。
 
 **评分方案 V1.6 排名口径（2026-08-04）**：官方明确三大类各自的 Recall/FDR =
 大类内细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即
 FSC），7 项排名二次排序；刚性门槛仍按三类合并 pooled。这是 `official_eval_v1`
 之上的补充聚合视图（`evaluate_ranking_metrics` / `evaluate.py` 的
 `official_ranking` 块），不改变 v1 的匹配与 pooled 规则，故 `eval_version`
-不升级；新实验一律同时报告两种口径，旧实验的 pooled 数字无需改写。
+不升级；单独记为 `ranking_version=official_ranking_v1_6`。新实验一律同时
+报告两种口径，旧实验的 pooled 数字无需改写。正式 macro 必须在完整
+25 细类税表上计算；缺类子集只能标记为 partial-taxonomy diagnostic。
 
 ## 2. 实验总表
 
 总表为 [`reports/experiments/leaderboard.csv`](../reports/experiments/leaderboard.csv)，每个
 正式工作点占一行。字段按以下五组填写：
 
-- 身份：`experiment_id,date,status,git_commit,contract_version,eval_version`；
+- 身份：`experiment_id,date,status,git_commit,contract_version,eval_version,ranking_version`；
 - 数据与模型：`dataset_version,split_version,seed,model_name,config_path,pretrained_weight,checkpoint_checksum`；
 - 推理设置：`evaluation_scope,input_size,tile_size,tile_overlap,operating_point,score_threshold,threshold_stage`；
 - 结果：`overall_recall,overall_fdr` 及 ship、aircraft、vehicle 的 Recall/FDR（均为 pooled），

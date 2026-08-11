@@ -254,7 +254,9 @@ def _run_script(script: str, *arguments: str) -> subprocess.CompletedProcess[str
     root = Path(__file__).resolve().parents[1]
     environment = dict(os.environ)
     existing = environment.get("PYTHONPATH")
-    environment["PYTHONPATH"] = f"{root / 'src'}{os.pathsep}{existing}" if existing else str(root / "src")
+    environment["PYTHONPATH"] = (
+        f"{root / 'src'}{os.pathsep}{existing}" if existing else str(root / "src")
+    )
     return subprocess.run(
         [sys.executable, str(root / "scripts" / script), *arguments],
         cwd=root,

@@ -47,9 +47,7 @@ HUMAN_LABELS: tuple[str, ...] = (
 )
 
 # 背景训练集准入：必须人工标为 clear_background（且由下游进一步筛选）。
-ADMISSIBLE_BACKGROUND_LABELS: frozenset[str] = frozenset(
-    {LABEL_CLEAR_BACKGROUND}
-)
+ADMISSIBLE_BACKGROUND_LABELS: frozenset[str] = frozenset({LABEL_CLEAR_BACKGROUND})
 
 
 @dataclass(frozen=True)
@@ -118,7 +116,6 @@ def build_fp_bg_sample_pool(
 
 def _group_key(record: dict[str, Any]) -> tuple[str, int, str]:
     """分层键：大类（由细类映射）+ fold + 分数分位。"""
-    category_id = int(record["category_id"])
     return (str(record.get("class_name", "")), int(record["fold"]), score_bin_of(record["score"]))
 
 
@@ -167,9 +164,7 @@ def sample_fp_bg_audit(
 
     for stratum_key, records in sorted(strata.items()):
         # 每层内按分数降序取前 max_per_stratum。
-        sorted_records = sorted(
-            records, key=lambda r: -float(r["score"])
-        )
+        sorted_records = sorted(records, key=lambda r: -float(r["score"]))
         selected = sorted_records[:max_per_stratum]
         stratum_counts[stratum_key] += len(selected)
         for index, record in enumerate(selected):
@@ -222,7 +217,9 @@ def sample_fp_bg_audit(
     samples: list[AuditSample] = []
     for batch_index, sample in enumerate(mixed):
         batch_no = batch_index // 30
-        audit_uid = f"batch{batch_no:03d}-{sample.is_repeat_control and 'R' or 'P'}-{batch_index:05d}"
+        audit_uid = (
+            f"batch{batch_no:03d}-{sample.is_repeat_control and 'R' or 'P'}-{batch_index:05d}"
+        )
         samples.append(
             AuditSample(
                 audit_uid=audit_uid,
@@ -249,8 +246,7 @@ def sample_fp_bg_audit(
         "repeat_control_fraction": repeat_control_fraction,
         "strata_sampled": len(strata),
         "stratum_counts": {
-            f"{key[0]}|f{key[1]}|{key[2]}": count
-            for key, count in sorted(stratum_counts.items())
+            f"{key[0]}|f{key[1]}|{key[2]}": count for key, count in sorted(stratum_counts.items())
         },
         "seed": seed,
         "batch_size": 30,
@@ -326,9 +322,7 @@ def load_audit_labels(path: Path) -> list[dict[str, Any]]:
         for row in reader:
             label = row.get("label", "").strip()
             if label and label not in HUMAN_LABELS:
-                raise ValueError(
-                    f"未知人工标签 {label!r}（合法: {HUMAN_LABELS}）"
-                )
+                raise ValueError(f"未知人工标签 {label!r}（合法: {HUMAN_LABELS}）")
             rows.append(row)
     return rows
 
@@ -341,9 +335,7 @@ def compute_audit_summary(
     重复卡一致性：``repeat_of`` 相同的两条样本标签一致的比例（只统计
     双方都标注的）。用于 N0-4 的人工程序质检。
     """
-    label_counts: Counter[str] = Counter(
-        row["label"] for row in labeled_rows if row.get("label")
-    )
+    label_counts: Counter[str] = Counter(row["label"] for row in labeled_rows if row.get("label"))
     unlabeled = sum(1 for row in labeled_rows if not row.get("label"))
 
     repeat_pairs: dict[str, list[str]] = defaultdict(list)
@@ -365,7 +357,5 @@ def compute_audit_summary(
         "label_counts": dict(label_counts),
         "repeat_pairs_total": total_pairs,
         "repeat_pairs_consistent": consistent,
-        "repeat_consistency_rate": (
-            consistent / total_pairs if total_pairs else None
-        ),
+        "repeat_consistency_rate": (consistent / total_pairs if total_pairs else None),
     }

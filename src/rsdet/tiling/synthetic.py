@@ -20,7 +20,7 @@ class SyntheticObject:
     """合成大图中的单个目标。"""
 
     bbox: List[float]  # [x1, y1, x2, y2] 全局像素坐标
-    category_id: int   # 0-24 细类
+    category_id: int  # 0-24 细类
     tile_ids: List[int] = field(default_factory=list)  # 出现在哪些 tile 中
 
 
@@ -66,8 +66,7 @@ class SyntheticScene:
                 }
             )
         categories = [
-            {"id": cid, "name": str(cid), "supercategory": _supercategory(cid)}
-            for cid in range(25)
+            {"id": cid, "name": str(cid), "supercategory": _supercategory(cid)} for cid in range(25)
         ]
         return {"images": images, "annotations": annotations, "categories": categories}
 
@@ -147,12 +146,8 @@ def generate_synthetic_scene(
     # 背景：暗灰底 + 轻微噪声
     image: np.ndarray = (
         np.clip(
-            rng.randint(30, 60, (image_size, image_size, 3), dtype=np.uint8).astype(
-                np.int32
-            )
-            + rng.randint(0, 15, (image_size, image_size, 3), dtype=np.uint8).astype(
-                np.int32
-            ),
+            rng.randint(30, 60, (image_size, image_size, 3), dtype=np.uint8).astype(np.int32)
+            + rng.randint(0, 15, (image_size, image_size, 3), dtype=np.uint8).astype(np.int32),
             0,
             255,
         )
@@ -188,7 +183,15 @@ def generate_synthetic_scene(
     tid = 0
     for ys in y_starts:
         for xs in x_starts:
-            tiles_info.append({"tid": tid, "x": xs, "y": ys, "w": min(tile_size, image_size - xs), "h": min(tile_size, image_size - ys)})
+            tiles_info.append(
+                {
+                    "tid": tid,
+                    "x": xs,
+                    "y": ys,
+                    "w": min(tile_size, image_size - xs),
+                    "h": min(tile_size, image_size - ys),
+                }
+            )
             tid += 1
 
     # ------ 分配细类 ------
@@ -213,9 +216,7 @@ def generate_synthetic_scene(
     # ------ 放置策略 ------
     # 三类位置：interior（完全在 1 个 tile 内）、overlap（横跨重叠区）、edge（沿但不过 tile 边）
     # 每种策略的比例
-    placement_modes = (
-        ["interior"] * 6 + ["overlap_x"] * 1 + ["overlap_y"] * 1 + ["edge"] * 2
-    )
+    placement_modes = ["interior"] * 6 + ["overlap_x"] * 1 + ["overlap_y"] * 1 + ["edge"] * 2
 
     placed: List[Tuple[float, float, float, float, int]] = []
     objects: List[SyntheticObject] = []
@@ -244,10 +245,7 @@ def generate_synthetic_scene(
                 candidates_x = [
                     t
                     for t in tiles_info
-                    if any(
-                        t2["x"] == t["x"] + stride and t2["y"] == t["y"]
-                        for t2 in tiles_info
-                    )
+                    if any(t2["x"] == t["x"] + stride and t2["y"] == t["y"] for t2 in tiles_info)
                 ]
                 if not candidates_x:
                     candidates_x = tiles_info
@@ -255,9 +253,7 @@ def generate_synthetic_scene(
                 # 框中心放在重叠区
                 overlap_center = tile["x"] + tile["w"] - overlap / 2.0
                 x1 = overlap_center - bw / 2.0
-                y1 = rng.uniform(
-                    tile["y"] + 16, tile["y"] + tile["h"] - bh - 16
-                )
+                y1 = rng.uniform(tile["y"] + 16, tile["y"] + tile["h"] - bh - 16)
                 bbox = (x1, y1, x1 + bw, y1 + bh)
 
             elif mode == "overlap_y":
@@ -265,18 +261,13 @@ def generate_synthetic_scene(
                 candidates_y = [
                     t
                     for t in tiles_info
-                    if any(
-                        t2["y"] == t["y"] + stride and t2["x"] == t["x"]
-                        for t2 in tiles_info
-                    )
+                    if any(t2["y"] == t["y"] + stride and t2["x"] == t["x"] for t2 in tiles_info)
                 ]
                 if not candidates_y:
                     candidates_y = tiles_info
                 tile = candidates_y[rng.randint(0, len(candidates_y))]
                 overlap_center = tile["y"] + tile["h"] - overlap / 2.0
-                x1 = rng.uniform(
-                    tile["x"] + 16, tile["x"] + tile["w"] - bw - 16
-                )
+                x1 = rng.uniform(tile["x"] + 16, tile["x"] + tile["w"] - bw - 16)
                 y1 = overlap_center - bh / 2.0
                 bbox = (x1, y1, x1 + bw, y1 + bh)
 

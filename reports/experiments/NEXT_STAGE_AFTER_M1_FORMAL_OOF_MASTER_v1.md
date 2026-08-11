@@ -504,7 +504,9 @@ P06、扩散生成和完整 DiffusionDet 不进入当前队列。
   [`M1_M3_CV3_OOF_POSTPROCESS_ANALYSIS_PLAN_v1.md`](M1_M3_CV3_OOF_POSTPROCESS_ANALYSIS_PLAN_v1.md)
 - 延期待办：
   [`DEFERRED_WORK_REGISTER.md`](DEFERRED_WORK_REGISTER.md)
-- 服务器资产：
+- 跨成员大文件交付：
+  [`ARTIFACT_RELEASE_REGISTER.csv`](ARTIFACT_RELEASE_REGISTER.csv)
+- 历史服务器路径快照（非交付依据）：
   [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)
 - P03 服务器任务：
   `docs/server/P03_FORMAL_CV3_V2_REPLAY.md`
@@ -514,4 +516,3 @@ P06、扩散生成和完整 DiffusionDet 不进入当前队列。
   `docs/server/M3_CV3_OOF_TASK.md`
 - 10K 任务：
   `docs/server/E_10K_PIPELINE_TASK.md`
-

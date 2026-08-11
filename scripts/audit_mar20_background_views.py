@@ -48,9 +48,7 @@ def _round_robin_sample(rows: list[dict[str, str]], count: int) -> list[dict[str
     buckets: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
     for row in rows:
         hist = json.loads(row["fine_class_hist_json"])
-        dominant = min(
-            (key for key, value in hist.items() if value == max(hist.values())), key=int
-        )
+        dominant = min((key for key, value in hist.items() if value == max(hist.values())), key=int)
         key = (row["is_target"], row["official_side"], dominant)
         buckets[key].append(row)
     for values in buckets.values():
@@ -102,7 +100,9 @@ def _write_sheets(
                 draw.text((x + 4, y + 4), f"{node_uid} | {label}", fill="black")
         path = sheets_dir / f"sheet-{sheet_index:03d}.jpg"
         canvas.save(path, quality=92, optimize=False, progressive=False)
-        artifacts.append({"path": path.relative_to(output_dir).as_posix(), "sha256": sha256_file(path)})
+        artifacts.append(
+            {"path": path.relative_to(output_dir).as_posix(), "sha256": sha256_file(path)}
+        )
     return artifacts
 
 

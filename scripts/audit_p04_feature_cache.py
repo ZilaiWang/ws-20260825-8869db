@@ -56,9 +56,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     report = cache.audit()
     failures: list[str] = []
     if args.expected_rows is not None and report["row_count"] != args.expected_rows:
-        failures.append(
-            f"row_count expected={args.expected_rows}, actual={report['row_count']}"
-        )
+        failures.append(f"row_count expected={args.expected_rows}, actual={report['row_count']}")
     if args.expected_objects is not None and report["object_count"] != args.expected_objects:
         failures.append(
             f"object_count expected={args.expected_objects}, actual={report['object_count']}"
@@ -79,9 +77,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"{expected_features}, actual={report['feature_dimensions']}"
         )
     if args.compare_cache:
-        report["repeat_comparison"] = compare_repeat_caches(
-            args.cache_dir, args.compare_cache
-        )
+        report["repeat_comparison"] = compare_repeat_caches(args.cache_dir, args.compare_cache)
         if report["repeat_comparison"]["status"] != "pass":
             report["status"] = "fail"
     if args.compare_overlap_cache:
@@ -95,13 +91,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if comparison is None:
             raise ValueError("--expected-common-rows 必须与 compare 参数一起使用")
         observed = {
-            name: values["common_row_count"]
-            for name, values in comparison["features"].items()
+            name: values["common_row_count"] for name, values in comparison["features"].items()
         }
         wrong = {
-            name: count
-            for name, count in observed.items()
-            if count != args.expected_common_rows
+            name: count for name, count in observed.items() if count != args.expected_common_rows
         }
         if wrong:
             failures.append(

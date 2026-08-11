@@ -66,9 +66,7 @@ def solve_grouped_validation_partition(
     for index, group in enumerate(ordered):
         # Constant old_val_images is omitted. This coefficient is the extra
         # number of changed images if the group is assigned to validation.
-        objective[index] = preservation_weight * (
-            group.old_train_images - group.old_val_images
-        )
+        objective[index] = preservation_weight * (group.old_train_images - group.old_val_images)
         # Stable, negligible tie-breaker independent of solver traversal order.
         objective[index] += (index + 1) * 1e-10
     for offset, class_id in enumerate(class_ids):
@@ -87,9 +85,7 @@ def solve_grouped_validation_partition(
 
     class_contract: dict[str, dict[str, int | float]] = {}
     for offset, class_id in enumerate(class_ids):
-        presence = np.asarray(
-            [float(group.class_box_counts[class_id] > 0) for group in ordered]
-        )
+        presence = np.asarray([float(group.class_box_counts[class_id] > 0) for group in ordered])
         source_group_count = int(presence.sum())
         if source_group_count < 2:
             raise ValueError(
@@ -104,9 +100,7 @@ def solve_grouped_validation_partition(
         lower.append(float(minimum_val_groups))
         upper.append(float(source_group_count - 1))
 
-        box_counts = np.asarray(
-            [float(group.class_box_counts[class_id]) for group in ordered]
-        )
+        box_counts = np.asarray([float(group.class_box_counts[class_id]) for group in ordered])
         target_boxes = class_totals[class_id] * val_fraction
 
         positive_deviation = np.zeros(variable_count, dtype=np.float64)
@@ -161,12 +155,8 @@ def solve_grouped_validation_partition(
         raise RuntimeError(f"grouped split optimization failed: {result.message}")
 
     selected = np.rint(result.x[:group_count]).astype(np.int32)
-    val_groups = {
-        group.group_id for group, is_val in zip(ordered, selected, strict=True) if is_val
-    }
-    actual_val_images = sum(
-        group.image_count for group in ordered if group.group_id in val_groups
-    )
+    val_groups = {group.group_id for group, is_val in zip(ordered, selected, strict=True) if is_val}
+    actual_val_images = sum(group.image_count for group in ordered if group.group_id in val_groups)
     if actual_val_images != target_val_images:
         raise RuntimeError(
             f"solver returned {actual_val_images} val images, expected {target_val_images}"

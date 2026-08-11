@@ -491,9 +491,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "sampler": "natural",
             "seed": 42,
         }
-        formal_actual = {
-            key: getattr(args, key) for key in formal_expected
-        }
+        formal_actual = {key: getattr(args, key) for key in formal_expected}
         mismatches = {
             key: {"expected": expected, "actual": formal_actual[key]}
             for key, expected in formal_expected.items()
@@ -561,13 +559,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     training_counts = class_counts(train_records)
 
     regime_config = config["training"][args.regime]
-    checkpoint_selection = str(
-        config["training"].get("checkpoint_selection", "best_macro_recall")
-    )
+    checkpoint_selection = str(config["training"].get("checkpoint_selection", "best_macro_recall"))
     if checkpoint_selection not in {"best_macro_recall", "fixed_epoch_last"}:
         raise ValueError(
-            "training.checkpoint_selection 只允许 best_macro_recall "
-            "或 fixed_epoch_last"
+            "training.checkpoint_selection 只允许 best_macro_recall 或 fixed_epoch_last"
         )
     epochs = int(args.epochs or regime_config["epochs"])
     batch_size = int(args.batch_size or config["runtime"][f"batch_size_{args.resolution}"])
@@ -714,9 +709,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "val_accuracy": val_metrics["accuracy"],
                         "val_macro_recall": val_metrics["macro_recall"],
                         "val_macro_f1": val_metrics["macro_f1"],
-                        "val_samples_per_second": val_metrics[
-                            "samples_per_second"
-                        ],
+                        "val_samples_per_second": val_metrics["samples_per_second"],
                     }
                 )
             else:
@@ -733,9 +726,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(row, ensure_ascii=False), flush=True)
             if checkpoint_selection == "best_macro_recall":
                 score = float(val_metrics["macro_recall"])
-                if score > best_macro_recall + float(
-                    regime_config["early_stopping_min_delta"]
-                ):
+                if score > best_macro_recall + float(regime_config["early_stopping_min_delta"]):
                     best_macro_recall = score
                     best_epoch = epoch
                     stale_epochs = 0
@@ -751,10 +742,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     )
                 else:
                     stale_epochs += 1
-                if (
-                    epoch >= int(regime_config["minimum_epochs"])
-                    and stale_epochs >= patience
-                ):
+                if epoch >= int(regime_config["minimum_epochs"]) and stale_epochs >= patience:
                     break
         if checkpoint_selection == "fixed_epoch_last":
             best_epoch = epochs
@@ -769,9 +757,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 final_checkpoint_path,
             )
         _write_history(output / "history.csv", history)
-        checkpoint = torch.load(
-            selected_checkpoint_path, map_location="cpu", weights_only=False
-        )
+        checkpoint = torch.load(selected_checkpoint_path, map_location="cpu", weights_only=False)
         model.load_state_dict(checkpoint["model_state_dict"], strict=True)
     else:
         best_epoch = int(checkpoint.get("epoch", 0))
@@ -817,9 +803,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "early_stopped": len(history) < epochs if not args.eval_only else None,
         "checkpoint_selection": checkpoint_selection,
         "selection_metric": (
-            "fixed_epoch_last"
-            if checkpoint_selection == "fixed_epoch_last"
-            else "macro_recall"
+            "fixed_epoch_last" if checkpoint_selection == "fixed_epoch_last" else "macro_recall"
         ),
         "best_during_training": best_macro_recall if math.isfinite(best_macro_recall) else None,
         "final_metrics": {
@@ -857,13 +841,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         checkpoint_name = selected_checkpoint_path.name
         summary["artifact_contract"].extend(["history.csv", checkpoint_name])
         summary["selected_checkpoint"] = checkpoint_name
-        summary["selected_checkpoint_sha256"] = sha256_file(
-            selected_checkpoint_path
-        )
+        summary["selected_checkpoint_sha256"] = sha256_file(selected_checkpoint_path)
         if checkpoint_selection == "best_macro_recall":
-            summary["best_checkpoint_sha256"] = sha256_file(
-                best_checkpoint_path
-            )
+            summary["best_checkpoint_sha256"] = sha256_file(best_checkpoint_path)
     _json_dump(output / "run_summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False, indent=2), flush=True)
     return 0

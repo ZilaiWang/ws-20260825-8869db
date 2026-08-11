@@ -151,8 +151,9 @@ class ConvNeXtTinyAdapter(TeacherAdapter):
         x = _pil_batch_to_tensor(images, torch, self.device)
         x = (x - self.mean) / self.std
         amp = self.device.type == "cuda" and self.dtype != torch.float32
-        with torch.inference_mode(), torch.autocast(
-            device_type=self.device.type, dtype=self.dtype, enabled=amp
+        with (
+            torch.inference_mode(),
+            torch.autocast(device_type=self.device.type, dtype=self.dtype, enabled=amp),
         ):
             x = self.model.features(x)
             x = self.model.avgpool(x)
@@ -232,8 +233,9 @@ class DinoV2Adapter(TeacherAdapter):
         x = _pil_batch_to_tensor(images, torch, self.device)
         x = (x - self.mean) / self.std
         amp = self.device.type == "cuda" and self.dtype != torch.float32
-        with torch.inference_mode(), torch.autocast(
-            device_type=self.device.type, dtype=self.dtype, enabled=amp
+        with (
+            torch.inference_mode(),
+            torch.autocast(device_type=self.device.type, dtype=self.dtype, enabled=amp),
         ):
             output = self.model.forward_features(x)
             cls = output["x_norm_clstoken"]
@@ -332,15 +334,23 @@ class StableDiffusionFeatureAdapter(TeacherAdapter):
             self.clean_weight_sha256 = None
         self.unet = unet.eval().requires_grad_(False).to(device=self.device, dtype=self.dtype)
 
-        self.vae = AutoencoderKL.from_pretrained(
-            self.base_model, subfolder="vae", local_files_only=True
-        ).eval().requires_grad_(False).to(self.device)
+        self.vae = (
+            AutoencoderKL.from_pretrained(self.base_model, subfolder="vae", local_files_only=True)
+            .eval()
+            .requires_grad_(False)
+            .to(self.device)
+        )
         tokenizer = CLIPTokenizer.from_pretrained(
             self.base_model, subfolder="tokenizer", local_files_only=True
         )
-        text_encoder = CLIPTextModel.from_pretrained(
-            self.base_model, subfolder="text_encoder", local_files_only=True
-        ).eval().requires_grad_(False).to(self.device)
+        text_encoder = (
+            CLIPTextModel.from_pretrained(
+                self.base_model, subfolder="text_encoder", local_files_only=True
+            )
+            .eval()
+            .requires_grad_(False)
+            .to(self.device)
+        )
         tokens = tokenizer(
             [""],
             padding="max_length",
@@ -401,9 +411,7 @@ class StableDiffusionFeatureAdapter(TeacherAdapter):
 
     def _forward_maps(self, latent: Any, timestep: int, prompt: Any) -> Mapping[str, Any]:
         torch = self.torch
-        timesteps = torch.full(
-            (latent.shape[0],), timestep, device=self.device, dtype=torch.long
-        )
+        timesteps = torch.full((latent.shape[0],), timestep, device=self.device, dtype=torch.long)
         with torch.inference_mode():
             return self.unet(
                 latent,
@@ -452,9 +460,7 @@ class StableDiffusionFeatureAdapter(TeacherAdapter):
         noise = torch.cat(noises, dim=0)
         output: dict[str, np.ndarray] = {}
         for timestep, map_key, location in ((100, "mid", "map0_t100"), (261, "us6", "map6_t261")):
-            timesteps = torch.full(
-                (max_ensemble,), timestep, device=self.device, dtype=torch.long
-            )
+            timesteps = torch.full((max_ensemble,), timestep, device=self.device, dtype=torch.long)
             noisy = self.scheduler.add_noise(repeated_latent, noise, timesteps)
             maps = self._forward_maps(noisy, timestep, repeated_prompt)[map_key]
             pooled = maps.float().mean(dim=(2, 3))
@@ -477,9 +483,7 @@ class StableDiffusionFeatureAdapter(TeacherAdapter):
             "empty_prompt": True,
             "prompt_utf8_sha256": hashlib.sha256(b"").hexdigest(),
             "clean_timestep": 261 if self.mode == "cleandift" else None,
-            "raw_branches": {"map0": 100, "map6": 261}
-            if self.mode == "raw_dift"
-            else None,
+            "raw_branches": {"map0": 100, "map6": 261} if self.mode == "raw_dift" else None,
             "raw_ensemble_sizes": list(self.raw_ensemble_sizes)
             if self.mode == "raw_dift"
             else None,
@@ -534,9 +538,7 @@ def build_teacher(
             cleandift_repo=options["repo"],
             base_model=options["base_model"],
             clean_weights=options.get("weights"),
-            clean_weight_sha256=options.get(
-                "weight_sha256", CLEANDIFT_SD15_SHA256
-            ),
+            clean_weight_sha256=options.get("weight_sha256", CLEANDIFT_SD15_SHA256),
             device=device,
             compute_dtype=compute_dtype,
             latent_policy=options.get("latent_policy", "mode"),

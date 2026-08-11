@@ -66,6 +66,7 @@ class TestLoadConfig:
         assert config["protocol_versions"] == {
             "contract_version": "contract_v1",
             "eval_version": "official_eval_v1",
+            "ranking_version": "official_ranking_v1_6",
         }
         assert len(config["task"]["class_names"]) == 3
         assert "ship" in config["task"]["class_names"]

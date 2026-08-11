@@ -102,17 +102,12 @@ def _validate_benchmark_contract(value: Any) -> dict[str, Any]:
         "config_sha256",
         "hardware_sha256",
     ):
-        contract[field] = _sha256_field(
-            contract.get(field), f"benchmark contract {field}"
-        )
+        contract[field] = _sha256_field(contract.get(field), f"benchmark contract {field}")
     if not isinstance(contract.get("engineering_checkpoint_only"), bool):
         raise ValueError("benchmark contract engineering_checkpoint_only 必须是布尔值")
     if contract.get("cuda_synchronized") is not True:
         raise ValueError("benchmark contract 必须声明 cuda_synchronized=true")
-    if (
-        contract.get("timing_method")
-        != "perf_counter_with_torch_cuda_synchronize"
-    ):
+    if contract.get("timing_method") != "perf_counter_with_torch_cuda_synchronize":
         raise ValueError("benchmark contract timing_method 与采集器实现不一致")
     for field in (
         "tile_size",
@@ -120,9 +115,7 @@ def _validate_benchmark_contract(value: Any) -> dict[str, Any]:
         "warmup_runs",
         "minimum_measured_runs",
     ):
-        contract[field] = _positive_integer(
-            contract.get(field), f"benchmark contract {field}"
-        )
+        contract[field] = _positive_integer(contract.get(field), f"benchmark contract {field}")
     overlap = contract.get("overlap")
     if (
         isinstance(overlap, bool)
@@ -163,10 +156,7 @@ def _load_images(
     source_type: str,
 ) -> list[dict[str, Any]]:
     document = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if (
-        not isinstance(document, Mapping)
-        or document.get("version") != "e_10k_image_manifest_v1"
-    ):
+    if not isinstance(document, Mapping) or document.get("version") != "e_10k_image_manifest_v1":
         raise ValueError("未知 image manifest version")
     samples = document.get("samples") if isinstance(document, Mapping) else None
     if not isinstance(samples, list):
@@ -201,9 +191,7 @@ def _load_images(
         seen_ids.add(image_id)
         seen_shas.add(actual_sha)
     if len(result) < required_count:
-        raise ValueError(
-            f"需要至少 {required_count} 张不同内容的 10K 图，实际 {len(result)} 张"
-        )
+        raise ValueError(f"需要至少 {required_count} 张不同内容的 10K 图，实际 {len(result)} 张")
     return result
 
 
@@ -212,9 +200,7 @@ def _validate_checkpoint_provenance(
     *,
     contract: Mapping[str, Any],
 ) -> Path:
-    if _sha256(provenance_path) != str(
-        contract.get("checkpoint_provenance_sha256", "")
-    ):
+    if _sha256(provenance_path) != str(contract.get("checkpoint_provenance_sha256", "")):
         raise ValueError("checkpoint provenance SHA 与 benchmark contract 不一致")
     payload = _mapping(
         json.loads(provenance_path.read_text(encoding="utf-8")),
@@ -228,9 +214,10 @@ def _validate_checkpoint_provenance(
         "engineering_checkpoint_only"
     ):
         raise ValueError("checkpoint 科学用途声明与 benchmark contract 不一致")
-    if str(payload.get("model_key", "")).strip().upper() != str(
-        contract.get("model_key", "")
-    ).strip().upper():
+    if (
+        str(payload.get("model_key", "")).strip().upper()
+        != str(contract.get("model_key", "")).strip().upper()
+    ):
         raise ValueError("checkpoint provenance model_key 不一致")
 
     checkpoint = _resolve_config_path(
@@ -285,8 +272,7 @@ def _validate_checkpoint_provenance(
     artifacts = _mapping(fold_metadata.get("artifacts"), "fold metadata.artifacts")
     if (
         fold_metadata.get("status") != "fold_delivery_complete"
-        or str(fold_metadata.get("model_key", "")).upper()
-        != str(contract["model_key"]).upper()
+        or str(fold_metadata.get("model_key", "")).upper() != str(contract["model_key"]).upper()
         or held_out_fold != source_fold
         or _resolve_config_path(
             artifacts.get("checkpoint"),
@@ -306,8 +292,7 @@ def _validate_checkpoint_provenance(
     if (
         oof_metadata.get("status") != "complete_downstream_ready"
         or oof_metadata.get("downstream_admission") is not True
-        or str(oof_metadata.get("model_key", "")).upper()
-        != str(contract["model_key"]).upper()
+        or str(oof_metadata.get("model_key", "")).upper() != str(contract["model_key"]).upper()
         or not isinstance(folds, list)
     ):
         raise ValueError("OOF metadata 尚未完成正式 aggregate")
@@ -324,8 +309,7 @@ def _validate_checkpoint_provenance(
     if (
         len(matching) != 1
         or str(matching[0].get("checkpoint_sha256", "")).lower() != checkpoint_sha
-        or str(matching[0].get("metadata_sha256", "")).lower()
-        != _sha256(fold_metadata_path)
+        or str(matching[0].get("metadata_sha256", "")).lower() != _sha256(fold_metadata_path)
     ):
         raise ValueError("OOF metadata 未闭环到所选 fold/checkpoint")
     return checkpoint
@@ -541,31 +525,22 @@ def _run_capture(
     expected_families = {"M1": "yolo", "M3": "rtdetr"}
     if model_key not in expected_families:
         raise ValueError("benchmark contract model_key 只允许 M1/M3")
-    if (
-        str(model_config.get("family", "")).strip().lower()
-        != expected_families[model_key]
-    ):
+    if str(model_config.get("family", "")).strip().lower() != expected_families[model_key]:
         raise ValueError("config model.family 与 benchmark contract model_key 不一致")
     checkpoint = Path(str(model_config.pop("checkpoint", ""))).expanduser().resolve()
     if checkpoint != provenance_checkpoint:
         raise ValueError("config checkpoint 与已验收 checkpoint provenance 不一致")
-    if not checkpoint.is_file() or _sha256(checkpoint) != str(
-        contract["checkpoint_sha256"]
-    ):
+    if not checkpoint.is_file() or _sha256(checkpoint) != str(contract["checkpoint_sha256"]):
         raise ValueError("checkpoint 路径/SHA 与 benchmark contract 不一致")
     input_config = _mapping(config.get("input"), "input")
     data_root = args.data_root.resolve()
     if (
-        _resolve_config_path(
-            input_config.get("data_root"), args.config, "input.data_root"
-        )
+        _resolve_config_path(input_config.get("data_root"), args.config, "input.data_root")
         != data_root
     ):
         raise ValueError("config input.data_root 与命令行 data root 不一致")
     if (
-        _resolve_config_path(
-            input_config.get("manifest"), args.config, "input.manifest"
-        )
+        _resolve_config_path(input_config.get("manifest"), args.config, "input.manifest")
         != args.image_manifest.resolve()
     ):
         raise ValueError("config input.manifest 与命令行 image manifest 不一致")
@@ -619,9 +594,9 @@ def _run_capture(
         required_count=measured_runs,
         source_type=str(contract["image_source_type"]),
     )
-    scheduled_images = [
-        images[index % len(images)] for index in range(warmup_runs)
-    ] + images[:measured_runs]
+    scheduled_images = [images[index % len(images)] for index in range(warmup_runs)] + images[
+        :measured_runs
+    ]
     runtime_path = args.output_dir / "runtime_samples.jsonl"
     all_measured_predictions: list[dict[str, Any]] = []
     measured_fused_count = 0
@@ -642,14 +617,9 @@ def _run_capture(
                 overlap,
             )
         )
-        tiles = [
-            replace(tile, parent_image_id=int(image_record["image_id"]))
-            for tile in raw_tiles
-        ]
+        tiles = [replace(tile, parent_image_id=int(image_record["image_id"])) for tile in raw_tiles]
         if len(tiles) != computed_tile_count:
-            raise ValueError(
-                f"实际 tile_count={len(tiles)}，冻结值={computed_tile_count}"
-            )
+            raise ValueError(f"实际 tile_count={len(tiles)}，冻结值={computed_tile_count}")
 
         def make_samples() -> list[InferenceSample]:
             return [
@@ -695,9 +665,7 @@ def _run_capture(
                 allowed_category_ids=range(25),
                 image_size=(sample.width, sample.height),
             )
-        raw_proposal_count = sum(
-            len(prediction.scores) for prediction in tile_predictions
-        )
+        raw_proposal_count = sum(len(prediction.scores) for prediction in tile_predictions)
         phases["tile_postprocess"] = time.perf_counter() - started
 
         started = time.perf_counter()
@@ -717,9 +685,7 @@ def _run_capture(
             labels,
             fine_iou=float(tiling.get("fine_nms_iou", 0.55)),
             coarse_iou=(
-                None
-                if tiling.get("coarse_nms_iou") is None
-                else float(tiling["coarse_nms_iou"])
+                None if tiling.get("coarse_nms_iou") is None else float(tiling["coarse_nms_iou"])
             ),
             maximum=int(tiling.get("max_detections", 2000)),
         )
@@ -727,9 +693,7 @@ def _run_capture(
         fused_count = len(fused.scores)
 
         started = time.perf_counter()
-        output_records = predictions_to_coco_records(
-            [fused], allowed_category_ids=range(25)
-        )
+        output_records = predictions_to_coco_records([fused], allowed_category_ids=range(25))
         output_path = args.output_dir / f"run_{run_index:03d}_predictions.json"
         output_path.write_text(
             json.dumps(output_records, ensure_ascii=False, separators=(",", ":")),
@@ -768,9 +732,7 @@ def _run_capture(
 
     aggregate_path = args.output_dir / "predictions_10k_low.json"
     if len(all_measured_predictions) != measured_fused_count:
-        raise RuntimeError(
-            "measured prediction 聚合数量与逐次 fused proposal 数不一致"
-        )
+        raise RuntimeError("measured prediction 聚合数量与逐次 fused proposal 数不一致")
     aggregate_path.write_text(
         json.dumps(
             all_measured_predictions,
@@ -794,9 +756,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if final_output_dir.exists() and (
         not final_output_dir.is_dir() or any(final_output_dir.iterdir())
     ):
-        raise FileExistsError(
-            f"输出目录非空或不是目录，禁止混入旧测速: {final_output_dir}"
-        )
+        raise FileExistsError(f"输出目录非空或不是目录，禁止混入旧测速: {final_output_dir}")
     final_output_dir.parent.mkdir(parents=True, exist_ok=True)
     staging_dir = Path(
         tempfile.mkdtemp(

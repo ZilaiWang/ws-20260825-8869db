@@ -168,9 +168,7 @@ def test_geometry_sanitizer_converts_degenerate_fit_to_missing_evidence(
         capture_output=True,
         text=True,
     )
-    with (output / "pair_evidence_sanitized.csv").open(
-        "r", encoding="utf-8", newline=""
-    ) as file:
+    with (output / "pair_evidence_sanitized.csv").open("r", encoding="utf-8", newline="") as file:
         sanitized = list(csv.DictReader(file))
     assert sanitized[0]["affine_median_error"] == ""
     assert sanitized[0]["affine_p95_error"] == ""

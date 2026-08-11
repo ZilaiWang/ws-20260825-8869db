@@ -121,7 +121,9 @@ def build_gain_map_targets(
     _positive_int(width, "gain target width")
     _positive_int(bin_limit, "bin_limit")
     patch_height, patch_width = (float(value) for value in patch_fraction)
-    if not all(math.isfinite(value) and 0.0 < value <= 1.0 for value in (patch_height, patch_width)):
+    if not all(
+        math.isfinite(value) and 0.0 < value <= 1.0 for value in (patch_height, patch_width)
+    ):
         raise ValueError("patch fractions must be finite and in (0, 1]")
 
     if device is None:
@@ -152,18 +154,16 @@ def build_gain_map_targets(
             output.append(torch.zeros((height, width), device=device, dtype=dtype))
             continue
         xyxy = _cxcywh_to_xyxy(boxes).clamp(0.0, 1.0)
-        box_area = (
-            (xyxy[:, 2] - xyxy[:, 0]).clamp(min=1e-8)
-            * (xyxy[:, 3] - xyxy[:, 1]).clamp(min=1e-8)
+        box_area = (xyxy[:, 2] - xyxy[:, 0]).clamp(min=1e-8) * (xyxy[:, 3] - xyxy[:, 1]).clamp(
+            min=1e-8
         )
         intersection_x1 = torch.maximum(patch_x1[..., None], xyxy[:, 0])
         intersection_y1 = torch.maximum(patch_y1[..., None], xyxy[:, 1])
         intersection_x2 = torch.minimum(patch_x2[..., None], xyxy[:, 2])
         intersection_y2 = torch.minimum(patch_y2[..., None], xyxy[:, 3])
-        intersection = (
-            (intersection_x2 - intersection_x1).clamp(min=0.0)
-            * (intersection_y2 - intersection_y1).clamp(min=0.0)
-        )
+        intersection = (intersection_x2 - intersection_x1).clamp(min=0.0) * (
+            intersection_y2 - intersection_y1
+        ).clamp(min=0.0)
         gain = (intersection / box_area).sum(dim=-1).clamp(max=maximum)
         output.append(gain)
     if not output:
@@ -229,11 +229,15 @@ def ground_truth_peak_mask(targets: Tensor, valid_mask: Tensor | None = None) ->
             raise ValueError("valid_mask must be bool with the gain target shape")
         valid = valid_mask
     height, width = targets.shape[-2:]
-    rank = torch.arange(
-        height * width,
-        dtype=torch.long,
-        device=targets.device,
-    ).reshape(1, height, width).expand_as(targets)
+    rank = (
+        torch.arange(
+            height * width,
+            dtype=torch.long,
+            device=targets.device,
+        )
+        .reshape(1, height, width)
+        .expand_as(targets)
+    )
     values = targets.masked_fill(~valid, -torch.inf)
     negative = torch.full((), -torch.inf, dtype=targets.dtype, device=targets.device)
     last_rank = torch.full(
@@ -281,11 +285,7 @@ def local_peak_margin_loss(
         raise ValueError("predicted and target gain maps must share [B,H,W]")
     if not math.isfinite(float(margin)) or margin < 0.0:
         raise ValueError("LPM margin must be finite and non-negative")
-    valid = (
-        torch.ones_like(target_gain, dtype=torch.bool)
-        if valid_mask is None
-        else valid_mask
-    )
+    valid = torch.ones_like(target_gain, dtype=torch.bool) if valid_mask is None else valid_mask
     if valid.shape != target_gain.shape or valid.dtype is not torch.bool:
         raise ValueError("valid_mask must be bool with the gain target shape")
     peaks = ground_truth_peak_mask(target_gain, valid)
@@ -300,11 +300,7 @@ def local_peak_margin_loss(
     )
     for peak_slice, neighbour_slice in pairs:
         mask = peaks[peak_slice] & valid[neighbour_slice]
-        value = F.relu(
-            predicted_gain[neighbour_slice]
-            + float(margin)
-            - predicted_gain[peak_slice]
-        )
+        value = F.relu(predicted_gain[neighbour_slice] + float(margin) - predicted_gain[peak_slice])
         losses.append(value)
         pair_masks.append(mask)
     total = predicted_gain.sum() * 0.0
@@ -432,8 +428,7 @@ def select_sparse_local_tokens(
     _positive_int(max_tokens, "max_tokens")
     patch_height_fraction, patch_width_fraction = patch_fraction
     if not all(
-        math.isfinite(float(value)) and 0.0 < float(value) <= 1.0
-        for value in patch_fraction
+        math.isfinite(float(value)) and 0.0 < float(value) <= 1.0 for value in patch_fraction
     ):
         raise ValueError("patch fractions must be in (0,1]")
 
@@ -491,9 +486,7 @@ def select_sparse_local_tokens(
     flat_scores = dense_scores.flatten(1)
     flat_indices = torch.arange(token_count, device=local_features.device)[None]
 
-    def fixed_mask_selection(
-        mask: Tensor, capacity: int
-    ) -> tuple[Tensor, Tensor, Tensor, Tensor]:
+    def fixed_mask_selection(mask: Tensor, capacity: int) -> tuple[Tensor, Tensor, Tensor, Tensor]:
         """Select a fixed-width equivalent of the former dynamic index list.
 
         When a mask fits in ``capacity``, indices remain in row-major order.
@@ -504,23 +497,17 @@ def select_sparse_local_tokens(
         take = min(capacity, token_count)
         counts = mask.sum(dim=1)
         if take == 0:
-            empty_indices = torch.empty(
-                (batch, 0), dtype=torch.long, device=local_features.device
-            )
-            empty_valid = torch.empty(
-                (batch, 0), dtype=torch.bool, device=local_features.device
-            )
+            empty_indices = torch.empty((batch, 0), dtype=torch.long, device=local_features.device)
+            empty_valid = torch.empty((batch, 0), dtype=torch.bool, device=local_features.device)
             return empty_indices, empty_valid, counts, empty_indices
 
         # Unique integer keys stably pack valid row-major indices ahead of all
         # masked locations without ``nonzero`` or a data-dependent allocation.
         row_keys = torch.where(mask, flat_indices, flat_indices + token_count)
-        row_indices = row_keys.topk(
-            take, dim=1, largest=False, sorted=True
-        ).indices
-        score_indices = flat_scores.masked_fill(~mask, -torch.inf).topk(
-            take, dim=1, sorted=True
-        ).indices
+        row_indices = row_keys.topk(take, dim=1, largest=False, sorted=True).indices
+        score_indices = (
+            flat_scores.masked_fill(~mask, -torch.inf).topk(take, dim=1, sorted=True).indices
+        )
         use_scores = counts > capacity
         selected = torch.where(use_scores[:, None], score_indices, row_indices)
         selected_valid = (
@@ -568,9 +555,7 @@ def select_sparse_local_tokens(
         score_selected = counts > quota
         score_mask = torch.zeros_like(chosen_mask)
         score_mask.scatter_(1, indices, True)
-        chosen_mask |= torch.where(
-            score_selected[:, None], score_mask, available_mask
-        )
+        chosen_mask |= torch.where(score_selected[:, None], score_mask, available_mask)
 
     if route_indices:
         selected_indices, selected_valid = compact_selection(
@@ -578,12 +563,8 @@ def select_sparse_local_tokens(
             torch.cat(route_validity, dim=1),
         )
     else:  # ``max_tokens`` is positive, kept for type/shape robustness.
-        selected_indices = torch.empty(
-            (batch, 0), dtype=torch.long, device=local_features.device
-        )
-        selected_valid = torch.empty(
-            (batch, 0), dtype=torch.bool, device=local_features.device
-        )
+        selected_indices = torch.empty((batch, 0), dtype=torch.long, device=local_features.device)
+        selected_valid = torch.empty((batch, 0), dtype=torch.bool, device=local_features.device)
 
     selected_count = selected_valid.sum(dim=1)
     remaining_capacity = max_tokens - selected_count
@@ -596,8 +577,7 @@ def select_sparse_local_tokens(
     use_score_fill = remaining_count > remaining_capacity
     fill_indices = torch.where(use_score_fill[:, None], score_fill, row_fill)
     fill_valid = row_fill_valid & (
-        torch.arange(max_tokens, device=local_features.device)[None]
-        < remaining_capacity[:, None]
+        torch.arange(max_tokens, device=local_features.device)[None] < remaining_capacity[:, None]
     )
 
     selected_indices, selected_valid = compact_selection(
@@ -623,9 +603,14 @@ def select_sparse_local_tokens(
     # Safe zero sentinel for an all-padding local feature map.
     has_valid_token = valid_tokens.any(dim=1)
     selected_padding[:, 0] &= has_valid_token
-    return selected_features, selected_position, selected_padding, torch.cat(
-        (coordinates.to(scores.dtype), scores[..., None]),
-        dim=-1,
+    return (
+        selected_features,
+        selected_position,
+        selected_padding,
+        torch.cat(
+            (coordinates.to(scores.dtype), scores[..., None]),
+            dim=-1,
+        ),
     )
 
 

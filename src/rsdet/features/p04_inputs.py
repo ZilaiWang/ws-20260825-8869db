@@ -184,9 +184,12 @@ def select_calibration_uids(
     if count <= 0:
         raise ValueError("count 必须大于 0")
     rows: list[dict[str, str]] = []
-    with Path(manifest_path).expanduser().resolve().open(
-        "r", encoding="utf-8-sig", newline=""
-    ) as file:
+    with (
+        Path(manifest_path)
+        .expanduser()
+        .resolve()
+        .open("r", encoding="utf-8-sig", newline="") as file
+    ):
         reader = csv.DictReader(file)
         required = {
             "annotation_uid",

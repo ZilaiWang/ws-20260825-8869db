@@ -3,13 +3,17 @@
 状态：可执行工程任务；正式比赛时延结论取决于图像来源  
 模板：`configs/experiments/e_10k_pipeline_cv3.template.yaml`
 
-## 0. 权重获取（gitee Release 附件）
+## 0. 权重血缘门禁（gitee Release 附件）
 
-M1（YOLO26s）正式 CV3 三折权重与初始预训练权重已发布为 gitee Release
-附件（tag `v0.1-m1-weights`），无需申请权限、直接下载即可使用：
+> **重要：** tag `v0.1-m1-weights` 中的三折包是 `best.pt`，不是正式
+> OOF 所使用的固定 160 epoch `last.pt`。该包只允许工程联调，不能产生
+> 正式精度、对比或赛题时延结论。正式任务必须先取得并校验下列
+> `last.pt` SHA，详见 `reports/experiments/ARTIFACT_RELEASE_REGISTER.csv`。
+
+M1（YOLO26s）当前可下载的工程联调权重与初始预训练权重：
 
 ```bash
-# M1 三折 best.pt（62MB）：fold_0/1/2/runs/foundation/weights/best.pt
+# 仅工程联调：M1 三折 best.pt（62MB）
 curl -L -o M1-CV3-OOF-fold012-best.tar.gz \
   https://gitee.com/zilai-wang/xh-202625/releases/download/v0.1-m1-weights/M1-CV3-OOF-fold012-best.tar.gz
 
@@ -18,7 +22,8 @@ curl -L -o yolo26s.pt \
   https://gitee.com/zilai-wang/xh-202625/releases/download/v0.1-m1-weights/yolo26s.pt
 ```
 
-下载后建议用 SHA-256 校验（登记于 `reports/experiments/SERVER_ARTIFACT_REGISTER.csv`）：
+下载后用 SHA-256 校验（登记于
+`reports/experiments/ARTIFACT_RELEASE_REGISTER.csv`）：
 
 ```bash
 sha256sum -c <<'EOF'

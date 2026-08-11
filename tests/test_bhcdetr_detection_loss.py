@@ -79,9 +79,7 @@ def test_batched_layer_matching_equals_independent_scipy_assignments(
                 layer_expected.append((empty, empty.clone()))
                 continue
             cost = matcher._cost_matrix(layer_output, target, batch_index)
-            source, target_indices = scipy_optimize.linear_sum_assignment(
-                cost.cpu().numpy()
-            )
+            source, target_indices = scipy_optimize.linear_sum_assignment(cost.cpu().numpy())
             layer_expected.append(
                 (
                     torch.from_numpy(source).to(device),

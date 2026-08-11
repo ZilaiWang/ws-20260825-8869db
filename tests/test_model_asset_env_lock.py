@@ -220,10 +220,7 @@ def test_lock_requires_explicit_nonempty_gpu_identity(tmp_path: Path) -> None:
 
 def test_project_spec_is_the_reviewed_m1_m3_contract() -> None:
     spec = load_and_validate_spec(
-        Path(__file__).parents[1]
-        / "configs"
-        / "experiments"
-        / "cv3_model_asset_env.json"
+        Path(__file__).parents[1] / "configs" / "experiments" / "cv3_model_asset_env.json"
     )
     assert spec["python_version"] == "3.10.12"
     assert spec["packages"] == {
@@ -239,23 +236,17 @@ def test_project_spec_is_the_reviewed_m1_m3_contract() -> None:
         "m1_yolo26s": {
             "filename": "yolo26s.pt",
             "official_url": (
-                "https://github.com/ultralytics/assets/releases/download/"
-                "v8.4.0/yolo26s.pt"
+                "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s.pt"
             ),
             "size_bytes": 20422725,
-            "sha256": (
-                "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b"
-            ),
+            "sha256": ("646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b"),
         },
         "m3_rtdetr_l": {
             "filename": "rtdetr-l.pt",
             "official_url": (
-                "https://github.com/ultralytics/assets/releases/download/"
-                "v8.3.0/rtdetr-l.pt"
+                "https://github.com/ultralytics/assets/releases/download/v8.3.0/rtdetr-l.pt"
             ),
             "size_bytes": 66511432,
-            "sha256": (
-                "6de60b10d4bc566f00cda0f5b4d64afe4b66d48dc9695d2171effb7859d8e73f"
-            ),
+            "sha256": ("6de60b10d4bc566f00cda0f5b4d64afe4b66d48dc9695d2171effb7859d8e73f"),
         },
     }

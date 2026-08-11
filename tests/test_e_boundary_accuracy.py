@@ -5,12 +5,10 @@
 """
 
 import numpy as np
-import pytest
 
 from rsdet.contracts import TileRecord
 from rsdet.models.registry import build_model
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
-from rsdet.pipeline.mock_model import MockDetector
 from rsdet.tiling.slicer import generate_tiles
 from rsdet.tiling.synthetic import generate_synthetic_scene
 
@@ -87,7 +85,9 @@ class TestBoundaryAccuracy:
         detector = build_model("mock", {"init_args": {"noise_std": 0.0}})
         detector.eval()
         config = PipelineConfig(
-            tile_size=tile_size, overlap=overlap, batch_size=16,
+            tile_size=tile_size,
+            overlap=overlap,
+            batch_size=16,
             score_threshold=0.0,
         )
         pred, timing = run_pipeline(
@@ -106,7 +106,9 @@ class TestBoundaryAccuracy:
             image_size=5000,
             tile_size=2048,
             overlap=512,
-            num_ships=10, num_aircraft=30, num_vehicles=5,
+            num_ships=10,
+            num_aircraft=30,
+            num_vehicles=5,
             seed=1,
         )
         pred = self._run_pipeline(scene, tile_size=2048, overlap=512)
@@ -114,9 +116,7 @@ class TestBoundaryAccuracy:
         n_targets = len(scene.objects)
         # 至少检出 85% （NMS 可能合并极少数边界重叠的同类别目标）
         recall = len(pred.boxes_xyxy) / max(1, n_targets)
-        assert recall >= 0.85, (
-            f"Recall too low: {len(pred.boxes_xyxy)}/{n_targets} = {recall:.2f}"
-        )
+        assert recall >= 0.85, f"Recall too low: {len(pred.boxes_xyxy)}/{n_targets} = {recall:.2f}"
 
     def test_interior_coordinate_precision(self):
         """mock 无噪声时，检出框与 GT 的 IoU 应很高。"""
@@ -124,7 +124,9 @@ class TestBoundaryAccuracy:
             image_size=4000,
             tile_size=1024,
             overlap=128,
-            num_ships=5, num_aircraft=10, num_vehicles=2,
+            num_ships=5,
+            num_aircraft=10,
+            num_vehicles=2,
             seed=42,
         )
         pred = self._run_pipeline(scene, tile_size=1024, overlap=128)
@@ -140,9 +142,7 @@ class TestBoundaryAccuracy:
             ious.append(best_iou)
 
         mean_iou = np.mean(ious)
-        assert mean_iou > 0.80, (
-            f"Mean best-match IoU too low: {mean_iou:.4f}"
-        )
+        assert mean_iou > 0.80, f"Mean best-match IoU too low: {mean_iou:.4f}"
 
     # ---- 测试 2: 重叠区目标不重复 ----
     def test_overlap_targets_no_duplicate(self):
@@ -151,7 +151,9 @@ class TestBoundaryAccuracy:
             image_size=4000,
             tile_size=1024,
             overlap=256,  # 大 overlap → 更多目标跨越 tile
-            num_ships=10, num_aircraft=30, num_vehicles=5,
+            num_ships=10,
+            num_aircraft=30,
+            num_vehicles=5,
             seed=2,
         )
         pred = self._run_pipeline(scene, tile_size=1024, overlap=256)
@@ -171,7 +173,9 @@ class TestBoundaryAccuracy:
             image_size=3000,
             tile_size=800,
             overlap=100,
-            num_ships=5, num_aircraft=15, num_vehicles=3,
+            num_ships=5,
+            num_aircraft=15,
+            num_vehicles=3,
             seed=3,
         )
         pred = self._run_pipeline(scene, tile_size=800, overlap=100)
@@ -179,9 +183,7 @@ class TestBoundaryAccuracy:
         n_targets = len(scene.objects)
         n_preds = len(pred.boxes_xyxy)
         recall = n_preds / max(1, n_targets)
-        assert recall >= 0.75, (
-            f"Boundary recall {recall:.2f} too low ({n_preds}/{n_targets})"
-        )
+        assert recall >= 0.75, f"Boundary recall {recall:.2f} too low ({n_preds}/{n_targets})"
 
     # ---- 测试 4: 坐标范围 ----
     def test_all_targets_coordinate_range(self):
@@ -190,7 +192,9 @@ class TestBoundaryAccuracy:
             image_size=10000,
             tile_size=1024,
             overlap=128,
-            num_ships=5, num_aircraft=10, num_vehicles=5,
+            num_ships=5,
+            num_aircraft=10,
+            num_vehicles=5,
             seed=4,
         )
         pred = self._run_pipeline(scene, tile_size=1024, overlap=128)
@@ -213,7 +217,9 @@ class TestBoundaryAccuracy:
             image_size=5000,
             tile_size=800,
             overlap=200,  # stride=600 → 很多目标跨 tile
-            num_ships=0, num_aircraft=0, num_vehicles=20,  # 只用车辆（最小最易丢）
+            num_ships=0,
+            num_aircraft=0,
+            num_vehicles=20,  # 只用车辆（最小最易丢）
             seed=99,
         )
         pred = self._run_pipeline(scene, tile_size=800, overlap=200)
@@ -221,9 +227,7 @@ class TestBoundaryAccuracy:
         # 所有车辆 GT 都应该被某个预测匹配到（IoU ≥ 0.5）
         vehicle_gts = [obj for obj in scene.objects if obj.category_id == 24]
         vehicle_preds = [
-            (box, label)
-            for box, label in zip(pred.boxes_xyxy, pred.labels)
-            if label == 24
+            (box, label) for box, label in zip(pred.boxes_xyxy, pred.labels) if label == 24
         ]
 
         matched = 0

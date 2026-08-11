@@ -70,9 +70,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-images", type=int, default=4481)
     parser.add_argument("--expected-annotations", type=int, default=20933)
     parser.add_argument("--candidate-floor", type=float, default=0.001)
-    parser.add_argument(
-        "--bootstrap-iterations", type=int, default=2000
-    )
+    parser.add_argument("--bootstrap-iterations", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser.parse_args(argv)
@@ -110,14 +108,9 @@ def main(argv: list[str] | None = None) -> int:
             if isinstance(groups_data, dict) and "groups" in groups_data:
                 # cv3_airport_proxy_k60_v2_groups.json: {group_id: fold}
                 if args.image_group_map_file is not None:
-                    map_data = json.loads(
-                        args.image_group_map_file.read_text(encoding="utf-8")
-                    )
+                    map_data = json.loads(args.image_group_map_file.read_text(encoding="utf-8"))
                     if isinstance(map_data, dict):
-                        raw_map = {
-                            int(key): str(value)
-                            for key, value in map_data.items()
-                        }
+                        raw_map = {int(key): str(value) for key, value in map_data.items()}
                     elif isinstance(map_data, list):
                         raw_map = {
                             int(item["image_id"]): str(item["group_id"])
@@ -125,9 +118,7 @@ def main(argv: list[str] | None = None) -> int:
                             if "image_id" in item and "group_id" in item
                         }
                     else:
-                        raise ValueError(
-                            "image-group-map 文件必须是对象或列表"
-                        )
+                        raise ValueError("image-group-map 文件必须是对象或列表")
                     group_of_image = raw_map
                 else:
                     raise ValueError(
@@ -135,9 +126,7 @@ def main(argv: list[str] | None = None) -> int:
                         "--image-group-map-file 提供 image->group 映射"
                     )
             elif isinstance(groups_data, dict):
-                raw_map = {
-                    int(key): str(value) for key, value in groups_data.items()
-                }
+                raw_map = {int(key): str(value) for key, value in groups_data.items()}
                 group_of_image = raw_map
             elif isinstance(groups_data, list):
                 group_of_image = {
@@ -175,7 +164,9 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.info("=== N0-2 定位/分类解耦 ===")
     logger.info("oracle 定位召回 (R_loc@oracle-class): %.4f", result["oracle_localization_recall"])
-    logger.info("已定位对象细类准确率 (Acc_fine@localized): %.4f", result["localized_fine_accuracy"])
+    logger.info(
+        "已定位对象细类准确率 (Acc_fine@localized): %.4f", result["localized_fine_accuracy"]
+    )
     if result["source_group_bootstrap"] is not None:
         boot = result["source_group_bootstrap"]
         logger.info(

@@ -80,9 +80,9 @@ def main() -> int:
     print(f"\n分组总数: {len(group_images)}")
 
     print("\n=== 最大的 10 个分组 ===")
-    for group_id, stems in sorted(
-        group_images.items(), key=lambda kv: len(kv[1]), reverse=True
-    )[:10]:
+    for group_id, stems in sorted(group_images.items(), key=lambda kv: len(kv[1]), reverse=True)[
+        :10
+    ]:
         print(f"{group_id:32s} {len(stems):4d} 张")
 
     print("\n=== 每个细类的证据量 ===")

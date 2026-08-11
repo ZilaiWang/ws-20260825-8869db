@@ -96,9 +96,9 @@ ANNOTATION_INVARIANT_COLUMNS = (
 
 def _atomic_write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = (
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n"
-    ).encode("utf-8")
+    data = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n").encode(
+        "utf-8"
+    )
     descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent,
         prefix=f".{path.name}.",
@@ -120,9 +120,7 @@ def _safe_relative_path(value: str, *, line_number: int) -> str:
     normalized = value.strip().replace("\\", "/")
     path = Path(normalized)
     if not normalized or path.is_absolute() or ".." in path.parts:
-        raise ValueError(
-            f"exploratory crop row {line_number} has unsafe source path={value!r}"
-        )
+        raise ValueError(f"exploratory crop row {line_number} has unsafe source path={value!r}")
     return normalized
 
 
@@ -134,9 +132,7 @@ def _canonical_rows_fingerprint(
     digest.update("\x1f".join(columns).encode("utf-8"))
     digest.update(b"\n")
     for row in rows:
-        digest.update(
-            "\x1f".join(str(row[column]) for column in columns).encode("utf-8")
-        )
+        digest.update("\x1f".join(str(row[column]) for column in columns).encode("utf-8"))
         digest.update(b"\n")
     return digest.hexdigest()
 
@@ -149,9 +145,7 @@ def _load_exploratory_rows(
         fieldnames = list(reader.fieldnames or ())
         missing = sorted(REQUIRED_EXPLORATORY_COLUMNS - set(fieldnames))
         if missing:
-            raise ValueError(
-                f"exploratory crop manifest is missing columns: {missing}"
-            )
+            raise ValueError(f"exploratory crop manifest is missing columns: {missing}")
         if len(fieldnames) != len(set(fieldnames)):
             raise ValueError("exploratory crop manifest has duplicate columns")
         rows = [dict(row) for row in reader]
@@ -193,9 +187,7 @@ def _validate_config(config: Mapping[str, Any]) -> dict[str, Any]:
         if type(result[key]) is not int or result[key] <= 0:
             raise ValueError(f"formal_crop.{key} must be a positive integer")
     policies = tuple(str(value).strip() for value in result["expected_policies"])
-    if not policies or any(not value for value in policies) or len(policies) != len(
-        set(policies)
-    ):
+    if not policies or any(not value for value in policies) or len(policies) != len(set(policies)):
         raise ValueError("formal_crop.expected_policies must be unique and non-empty")
     fold_counts = tuple(int(value) for value in result["expected_fold_object_counts"])
     if len(fold_counts) != 3 or any(value <= 0 for value in fold_counts):
@@ -203,13 +195,9 @@ def _validate_config(config: Mapping[str, Any]) -> dict[str, Any]:
             "formal_crop.expected_fold_object_counts must contain three positive values"
         )
     if sum(fold_counts) != result["expected_annotations"]:
-        raise ValueError(
-            "formal_crop fold object counts do not sum to expected_annotations"
-        )
+        raise ValueError("formal_crop fold object counts do not sum to expected_annotations")
     if result["expected_rows"] != result["expected_annotations"] * len(policies):
-        raise ValueError(
-            "formal_crop expected_rows must equal annotations times policy count"
-        )
+        raise ValueError("formal_crop expected_rows must equal annotations times policy count")
     if result["preserve_crop_id"] is not True:
         raise ValueError("formal crop rehang must preserve crop_id")
     if result["preserve_non_assignment_fields"] is not True:
@@ -305,8 +293,7 @@ def build_formal_crop_manifest(
     input_fields, input_rows = _load_exploratory_rows(source_path)
     if len(input_rows) != contract["expected_rows"]:
         raise ValueError(
-            f"exploratory crop row count changed: "
-            f"{len(input_rows)} != {contract['expected_rows']}"
+            f"exploratory crop row count changed: {len(input_rows)} != {contract['expected_rows']}"
         )
 
     input_versions = {row["manifest_version"].strip() for row in input_rows}
@@ -333,9 +320,7 @@ def build_formal_crop_manifest(
         )
         policy = row["crop_policy"].strip()
         if not source_id or not annotation_uid or not crop_id or not policy:
-            raise ValueError(
-                f"exploratory crop row {line_number} has an empty stable ID"
-            )
+            raise ValueError(f"exploratory crop row {line_number} has an empty stable ID")
         if crop_id in crop_ids:
             raise ValueError(f"exploratory crop_id is duplicated: {crop_id}")
         crop_ids.add(crop_id)
@@ -348,9 +333,7 @@ def build_formal_crop_manifest(
                 f"source path {source_relative_path} maps to multiple source_image_id values"
             )
         if source_relative_path not in cv_by_path:
-            raise ValueError(
-                f"P0-2 source path is absent from formal CV3: {source_relative_path}"
-            )
+            raise ValueError(f"P0-2 source path is absent from formal CV3: {source_relative_path}")
         annotations[annotation_uid].append(row)
 
     if len(annotations) != contract["expected_annotations"]:
@@ -376,27 +359,21 @@ def build_formal_crop_manifest(
         policies = {row["crop_policy"].strip() for row in rows}
         if len(rows) != len(expected_policies) or policies != expected_policies:
             raise ValueError(
-                f"annotation {annotation_uid} does not have exactly "
-                f"{sorted(expected_policies)}"
+                f"annotation {annotation_uid} does not have exactly {sorted(expected_policies)}"
             )
         for field in ANNOTATION_INVARIANT_COLUMNS:
             values = {row[field] for row in rows}
             if len(values) != 1:
-                raise ValueError(
-                    f"annotation {annotation_uid} changes {field} across policies"
-                )
+                raise ValueError(f"annotation {annotation_uid} changes {field} across policies")
         annotation_source[annotation_uid] = rows[0]["source_image_id"].strip()
 
-    formal_group_images: Counter[str] = Counter(
-        sample.group_id for sample in formal_cv3.samples
-    )
+    formal_group_images: Counter[str] = Counter(sample.group_id for sample in formal_cv3.samples)
     output_fields = _output_fieldnames(input_fields)
     output_rows: list[dict[str, str]] = []
     preserved_fields = [
         field
         for field in input_fields
-        if field
-        not in HISTORICAL_ASSIGNMENT_COLUMNS | {"manifest_version", "schema_version"}
+        if field not in HISTORICAL_ASSIGNMENT_COLUMNS | {"manifest_version", "schema_version"}
     ]
     input_preserved_fingerprint = _canonical_rows_fingerprint(
         input_rows,
@@ -405,9 +382,7 @@ def build_formal_crop_manifest(
     policy_fold_objects: defaultdict[tuple[str, int], int] = defaultdict(int)
     policy_fold_sources: defaultdict[tuple[str, int], set[str]] = defaultdict(set)
     policy_fold_groups: defaultdict[tuple[str, int], set[str]] = defaultdict(set)
-    policy_fold_classes: defaultdict[tuple[str, int], Counter[int]] = defaultdict(
-        Counter
-    )
+    policy_fold_classes: defaultdict[tuple[str, int], Counter[int]] = defaultdict(Counter)
 
     for row in input_rows:
         source_relative_path = row["source_relative_path"].strip().replace("\\", "/")
@@ -450,15 +425,12 @@ def build_formal_crop_manifest(
         actual = tuple(policy_fold_objects[(policy, fold)] for fold in range(3))
         if actual != expected_fold_objects:
             raise ValueError(
-                f"{policy} formal fold object counts changed: "
-                f"{actual} != {expected_fold_objects}"
+                f"{policy} formal fold object counts changed: {actual} != {expected_fold_objects}"
             )
         for fold in range(3):
             if set(policy_fold_classes[(policy, fold)]) != set(range(25)):
                 missing = set(range(25)) - set(policy_fold_classes[(policy, fold)])
-                raise ValueError(
-                    f"{policy}/fold{fold} lacks fine classes: {sorted(missing)}"
-                )
+                raise ValueError(f"{policy}/fold{fold} lacks fine classes: {sorted(missing)}")
 
     output_preserved_fingerprint = _canonical_rows_fingerprint(
         output_rows,
@@ -466,9 +438,7 @@ def build_formal_crop_manifest(
     )
     if output_preserved_fingerprint != input_preserved_fingerprint:
         raise RuntimeError("non-assignment P0-2 fields changed during formal rehang")
-    if [row["crop_id"] for row in input_rows] != [
-        row["crop_id"] for row in output_rows
-    ]:
+    if [row["crop_id"] for row in input_rows] != [row["crop_id"] for row in output_rows]:
         raise RuntimeError("crop_id changed during formal rehang")
 
     for held_out_fold in range(3):
@@ -480,19 +450,15 @@ def build_formal_crop_manifest(
         val_annotation_ids = set(annotation_source) - train_annotation_ids
         if train_annotation_ids & val_annotation_ids:
             raise RuntimeError("formal crop train/val annotation overlap")
-        train_source_ids = {
-            annotation_source[uid] for uid in train_annotation_ids
-        }
+        train_source_ids = {annotation_source[uid] for uid in train_annotation_ids}
         val_source_ids = {annotation_source[uid] for uid in val_annotation_ids}
         if train_source_ids & val_source_ids:
             raise RuntimeError("formal crop train/val source-image overlap")
         train_groups = {
-            cv_by_path[source_path_by_id[source_id]].group_id
-            for source_id in train_source_ids
+            cv_by_path[source_path_by_id[source_id]].group_id for source_id in train_source_ids
         }
         val_groups = {
-            cv_by_path[source_path_by_id[source_id]].group_id
-            for source_id in val_source_ids
+            cv_by_path[source_path_by_id[source_id]].group_id for source_id in val_source_ids
         }
         if train_groups & val_groups:
             raise RuntimeError("formal crop train/val source-group overlap")
@@ -511,18 +477,19 @@ def build_formal_crop_manifest(
     written_fields, written_rows = _load_exploratory_rows(manifest_path)
     if written_fields != output_fields or len(written_rows) != len(output_rows):
         raise RuntimeError("written formal crop schema/row count changed")
-    if _canonical_rows_fingerprint(
-        written_rows,
-        preserved_fields,
-    ) != input_preserved_fingerprint:
+    if (
+        _canonical_rows_fingerprint(
+            written_rows,
+            preserved_fields,
+        )
+        != input_preserved_fingerprint
+    ):
         raise RuntimeError("written formal crop changed preserved P0-2 fields")
     for source, expected, written in zip(input_rows, output_rows, written_rows):
         for field in HISTORICAL_ASSIGNMENT_COLUMNS:
             historical_field = f"historical_p02_{field}"
             if written[historical_field] != _historical_value(source, field):
-                raise RuntimeError(
-                    f"written formal crop changed {historical_field}"
-                )
+                raise RuntimeError(f"written formal crop changed {historical_field}")
         for field in (
             "crop_id",
             "annotation_uid",

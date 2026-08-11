@@ -70,11 +70,7 @@ class BHCDetrConfig:
             raise ValueError("image_size must be positive")
         if self.backbone != "resnet50":
             raise ValueError("the paper configuration currently supports backbone=resnet50")
-        if (
-            isinstance(self.nheads, bool)
-            or not isinstance(self.nheads, int)
-            or self.nheads <= 0
-        ):
+        if isinstance(self.nheads, bool) or not isinstance(self.nheads, int) or self.nheads <= 0:
             raise ValueError("nheads must be a positive integer")
         if (
             isinstance(self.hidden_dim, bool)
@@ -135,8 +131,7 @@ class MLP(nn.Module):
             raise ValueError("num_layers must be >= 1")
         dimensions = [input_dim] + [hidden_dim] * (num_layers - 1) + [output_dim]
         self.layers = nn.ModuleList(
-            nn.Linear(dimensions[index], dimensions[index + 1])
-            for index in range(num_layers)
+            nn.Linear(dimensions[index], dimensions[index + 1]) for index in range(num_layers)
         )
 
     def forward(self, inputs: Tensor) -> Tensor:
@@ -214,7 +209,11 @@ class ResNet50Backbone(nn.Module):
                 map_location="cpu",
                 weights_only=False,
             )
-            state = checkpoint.get("state_dict", checkpoint) if isinstance(checkpoint, dict) else checkpoint
+            state = (
+                checkpoint.get("state_dict", checkpoint)
+                if isinstance(checkpoint, dict)
+                else checkpoint
+            )
             if not isinstance(state, Mapping):
                 raise TypeError("backbone checkpoint must contain a state_dict mapping")
             normalized = {

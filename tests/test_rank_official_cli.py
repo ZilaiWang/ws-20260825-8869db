@@ -104,6 +104,7 @@ def test_rank_from_evaluate_outputs(tmp_path: Path) -> None:
             "configs/project.yaml",
             "--latency-seconds",
             "5.0",
+            "--allow-partial-taxonomy",
             "--output",
             str(result_path),
         ],
@@ -139,9 +140,11 @@ def test_rank_from_evaluate_outputs(tmp_path: Path) -> None:
     assert team["team_id"] == "M1"
     assert team["metric_values"]["vehicle_recall"] == 1.0
     assert team["metric_values"]["latency_seconds"] == 5.0
-    # 单大类（vehicle）评估：只有 vehicle 两项 + 时延共 3 项参与排名；
-    # ship/aircraft 为 None 被排除。
-    assert team["rank_count"] == 3
+    # 单大类 fixture 只是 partial-taxonomy diagnostic；缺 ship/aircraft
+    # 时不得参与任一官方排名或排名和。
+    assert team["incomplete"] is True
+    assert team["rank_count"] == 0
+    assert team["second_order_position"] is None
     assert "ship_recall" not in team["metric_values"]
 
 

@@ -30,9 +30,7 @@ def _group_annotations(
     for annotation in annotations:
         image_id = int(annotation["image_id"])
         record: dict[str, Any] = {
-            "bbox_xyxy": _xywh_to_xyxy(
-                [float(value) for value in annotation["bbox"]]
-            ),
+            "bbox_xyxy": _xywh_to_xyxy([float(value) for value in annotation["bbox"]]),
             "category_id": int(annotation["category_id"]),
         }
         if require_score:

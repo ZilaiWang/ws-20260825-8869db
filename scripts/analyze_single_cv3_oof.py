@@ -38,9 +38,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path(
-            "configs/experiments/m1_m3_cv3_oof_analysis_v1.yaml"
-        ),
+        default=Path("configs/experiments/m1_m3_cv3_oof_analysis_v1.yaml"),
     )
     parser.add_argument(
         "--project-config",
@@ -119,16 +117,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         for item in formal_gt.objects.values():
             if protocol.category_mapping.get(item.category_id) != item.class_name:
                 raise ValueError(
-                    "formal GT major_class 与官方协议映射不一致: "
-                    f"{item.annotation_uid}"
+                    f"formal GT major_class 与官方协议映射不一致: {item.annotation_uid}"
                 )
         aggregate, predictions = load_oof_aggregate(
             args.aggregate,
             expected_model_key=args.model_key,
             expected_manifest_sha256=str(config["cv3_manifest_sha256"]),
-            expected_formal_crop_sha256=str(
-                config["formal_crop_manifest_sha256"]
-            ),
+            expected_formal_crop_sha256=str(config["formal_crop_manifest_sha256"]),
             expected_images=int(config["expected_images"]),
             candidate_floor=float(config["candidate_floor"]),
         )
@@ -169,9 +164,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             include_cases=True,
         )
         image_folds: dict[int, int] = {}
-        with (args.aggregate / "oof_images.csv").open(
-            encoding="utf-8", newline=""
-        ) as handle:
+        with (args.aggregate / "oof_images.csv").open(encoding="utf-8", newline="") as handle:
             for row in csv.DictReader(handle):
                 image_id = int(row["image_id"])
                 if image_id in image_folds:
@@ -182,17 +175,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         per_fold_metrics: dict[str, Any] = {}
         for fold in range(3):
             fold_images = {
-                image_id
-                for image_id, source_fold in image_folds.items()
-                if source_fold == fold
+                image_id for image_id, source_fold in image_folds.items() if source_fold == fold
             }
             fold_gt = {
-                image_id: list(formal_gt.boxes.get(image_id, ()))
-                for image_id in fold_images
+                image_id: list(formal_gt.boxes.get(image_id, ())) for image_id in fold_images
             }
             fold_predictions = {
-                image_id: list(predictions.get(image_id, ()))
-                for image_id in fold_images
+                image_id: list(predictions.get(image_id, ())) for image_id in fold_images
             }
             fold_payload: dict[str, Any] = {
                 "images": len(fold_images),
@@ -275,25 +264,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "aggregate": str(args.aggregate.expanduser().resolve()),
                 "aggregate_metadata_sha256": aggregate["metadata_sha256"],
                 "predictions_sha256": aggregate["predictions_sha256"],
-                "formal_crop_manifest": str(
-                    args.formal_crop_manifest.expanduser().resolve()
-                ),
+                "formal_crop_manifest": str(args.formal_crop_manifest.expanduser().resolve()),
                 "formal_crop_manifest_sha256": _sha256(
                     args.formal_crop_manifest.expanduser().resolve()
                 ),
             },
-            "aggregate_cross_file_audit": aggregate[
-                "aggregate_cross_file_audit"
-            ],
+            "aggregate_cross_file_audit": aggregate["aggregate_cross_file_audit"],
             "relocated_artifacts": aggregate["relocated_artifacts"],
             "curve_parity": parity,
             "candidate_floor": floor_summary,
             "exploratory_workpoint": workpoint,
             "exploratory_workpoint_error_decomposition": selected_summary,
             "per_fold_metrics": per_fold_metrics,
-            "upstream_recovery_amendment": aggregate.get(
-                "recovery_amendment"
-            ),
+            "upstream_recovery_amendment": aggregate.get("recovery_amendment"),
             "scientific_claim_scope": {
                 "official_matching_metrics": True,
                 "error_decomposition_is_diagnostic": True,

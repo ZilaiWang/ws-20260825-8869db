@@ -140,9 +140,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if len(selected_controls) < 2 * per_role:
         raise ValueError("insufficient balanced hidden controls")
 
-    base_cards = [
-        {**row, "is_control": 0, "expected_role": ""} for row in selected_new
-    ] + [
+    base_cards = [{**row, "is_control": 0, "expected_role": ""} for row in selected_new] + [
         {**row, "is_control": 1, "expected_role": row["known_binary_role"]}
         for row in selected_controls
     ]
@@ -243,7 +241,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         for local, (card_id, left, right) in enumerate(subset):
             y = local * row_height
             values = (left[0], right[0], left[1], right[1], left[2], right[2])
-            labels = ("A original", "B original", "A background", "B background", "A edge", "B edge")
+            labels = (
+                "A original",
+                "B original",
+                "A background",
+                "B background",
+                "A edge",
+                "B edge",
+            )
             for column, (label, image) in enumerate(zip(labels, values, strict=True)):
                 x = column * panel
                 canvas.paste(_thumb(image, panel, panel), (x, y + header))

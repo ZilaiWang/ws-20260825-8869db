@@ -79,9 +79,9 @@ def sha256_file(path: Path) -> str:
 def sha256_json(payload: Any) -> str:
     """Hash a canonical JSON representation."""
 
-    encoded = json.dumps(
-        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -89,9 +89,9 @@ def atomic_write_json(path: Path, payload: Any) -> None:
     """Write deterministic JSON only after the caller has passed all gates."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = (
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n"
-    ).encode("utf-8")
+    data = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n").encode(
+        "utf-8"
+    )
     descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent, prefix=f".{path.name}.", suffix=".tmp"
     )
@@ -119,9 +119,7 @@ def load_airport_groups(
     with path.open(encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames != ["image_name", "group_id"]:
-            raise ValueError(
-                "airport-group CSV header must be exactly image_name,group_id"
-            )
+            raise ValueError("airport-group CSV header must be exactly image_name,group_id")
         mapping: dict[str, str] = {}
         for line_number, row in enumerate(reader, 2):
             image_name = row["image_name"].strip()
@@ -132,9 +130,7 @@ def load_airport_groups(
                 raise ValueError(f"{path}:{line_number}: empty group_id")
             stem = Path(image_name).stem
             if Path(image_name).suffix.lower() not in {".jpg", ".jpeg"}:
-                raise ValueError(
-                    f"{path}:{line_number}: image_name must include a JPEG suffix"
-                )
+                raise ValueError(f"{path}:{line_number}: image_name must include a JPEG suffix")
             if not MAR20_RE.fullmatch(stem):
                 raise ValueError(f"{path}:{line_number}: invalid MAR20 name {image_name}")
             if stem in mapping:
@@ -146,13 +142,11 @@ def load_airport_groups(
 
     if len(mapping) != expected_image_count:
         raise ValueError(
-            f"K60 mapping must contain {expected_image_count} unique images, "
-            f"found {len(mapping)}"
+            f"K60 mapping must contain {expected_image_count} unique images, found {len(mapping)}"
         )
     group_ids = set(mapping.values())
     expected_group_ids = {
-        f"mar20-airport-proxy-{number:03d}"
-        for number in range(1, expected_group_count + 1)
+        f"mar20-airport-proxy-{number:03d}" for number in range(1, expected_group_count + 1)
     }
     if group_ids != expected_group_ids:
         raise ValueError(
@@ -189,16 +183,12 @@ def read_class_ids(label_path: Path | None) -> list[int]:
     if label_path is None:
         return []
     result: list[int] = []
-    for line_number, line in enumerate(
-        label_path.read_text(encoding="utf-8").splitlines(), 1
-    ):
+    for line_number, line in enumerate(label_path.read_text(encoding="utf-8").splitlines(), 1):
         parts = line.split()
         if not parts:
             continue
         if len(parts) != 5:
-            raise ValueError(
-                f"{label_path}:{line_number}: expected five YOLO columns"
-            )
+            raise ValueError(f"{label_path}:{line_number}: expected five YOLO columns")
         result.append(int(parts[0]))
     return result
 
@@ -281,9 +271,7 @@ def load_frozen_assignment(
     return assignment, payload
 
 
-def audit_near_duplicates(
-    path: Path | None, airport_groups: Mapping[str, str]
-) -> dict[str, Any]:
+def audit_near_duplicates(path: Path | None, airport_groups: Mapping[str, str]) -> dict[str, Any]:
     """Audit legacy dHash candidates without changing any K60 assignment."""
 
     result: dict[str, Any] = {
@@ -307,9 +295,7 @@ def audit_near_duplicates(
     cross: list[dict[str, Any]] = []
     for members in duplicate_groups:
         stems = [Path(str(member)).stem for member in members]
-        group_ids = sorted(
-            {airport_groups[stem] for stem in stems if stem in airport_groups}
-        )
+        group_ids = sorted({airport_groups[stem] for stem in stems if stem in airport_groups})
         if len(group_ids) > 1:
             cross.append({"stems": stems, "k60_group_ids": group_ids})
     result["cross_k60_candidate_groups"] = len(cross)
@@ -388,12 +374,8 @@ def build_scientific_audit(
     per_class: list[dict[str, Any]] = []
     for class_id, class_name in enumerate(FINE_NAMES):
         val_boxes = [boxes[(class_id, fold)] for fold in range(FOLD_COUNT)]
-        val_images = [
-            len(images[(class_id, fold)]) for fold in range(FOLD_COUNT)
-        ]
-        val_groups = [
-            len(class_groups[(class_id, fold)]) for fold in range(FOLD_COUNT)
-        ]
+        val_images = [len(images[(class_id, fold)]) for fold in range(FOLD_COUNT)]
+        val_groups = [len(class_groups[(class_id, fold)]) for fold in range(FOLD_COUNT)]
         train_boxes = [total_boxes[class_id] - count for count in val_boxes]
         minimum = MIN_TRAIN_BOXES[class_id]
         if total_boxes[class_id] <= 0:
@@ -410,18 +392,14 @@ def build_scientific_audit(
                 violations.append(f"class_{class_id}_fold_{fold}_validation_uncovered")
             if train_boxes[fold] < minimum:
                 violations.append(
-                    f"class_{class_id}_fold_{fold}_train_boxes_"
-                    f"{train_boxes[fold]}_below_{minimum}"
+                    f"class_{class_id}_fold_{fold}_train_boxes_{train_boxes[fold]}_below_{minimum}"
                 )
         if largest_share > 0.60:
             warnings.append(
-                f"{class_name}: validation box share is group-dominated "
-                f"({largest_share:.3f})"
+                f"{class_name}: validation box share is group-dominated ({largest_share:.3f})"
             )
         if group_class_counts[class_id] >= 6 and min(val_groups) == 1:
-            warnings.append(
-                f"{class_name}: at least one fold has only one source group"
-            )
+            warnings.append(f"{class_name}: at least one fold has only one source group")
         per_class.append(
             {
                 "class_id": class_id,
@@ -445,9 +423,7 @@ def build_scientific_audit(
     if len(k60_group_ids) != EXPECTED_K60_GROUPS:
         violations.append(f"k60_group_count_is_{len(k60_group_ids)}")
     mismatches = [
-        record.stem
-        for record in k60_records
-        if airport_groups.get(record.stem) != record.group_id
+        record.stem for record in k60_records if airport_groups.get(record.stem) != record.group_id
     ]
     if mismatches:
         violations.append(f"k60_mapping_mismatches_{len(mismatches)}")
@@ -459,9 +435,7 @@ def build_scientific_audit(
     }
     if tu_group_boxes != TU160_EXPECTED_GROUP_BOXES:
         violations.append(f"unexpected_tu160_group_boxes_{tu_group_boxes}")
-    tu_group_folds = {
-        group_id: assignment[group_id] for group_id in sorted(tu_group_boxes)
-    }
+    tu_group_folds = {group_id: assignment[group_id] for group_id in sorted(tu_group_boxes)}
     if set(tu_group_folds.values()) != set(range(FOLD_COUNT)):
         violations.append("tu160_source_groups_not_in_three_distinct_folds")
     tu_row = per_class[TU160_CLASS_ID]
@@ -473,9 +447,7 @@ def build_scientific_audit(
     sample_group_folds: defaultdict[str, set[int]] = defaultdict(set)
     for record in records:
         sample_group_folds[record.group_id].add(assignment[record.group_id])
-    crossing = sorted(
-        group_id for group_id, folds in sample_group_folds.items() if len(folds) > 1
-    )
+    crossing = sorted(group_id for group_id, folds in sample_group_folds.items() if len(folds) > 1)
     if crossing:
         violations.append(f"cross_fold_groups_{len(crossing)}")
 

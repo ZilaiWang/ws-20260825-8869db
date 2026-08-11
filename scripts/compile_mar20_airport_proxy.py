@@ -180,16 +180,10 @@ def main() -> None:
         "target_group_size_histogram": histogram(Counter(cluster_target_counts)),
         "route_partition_agreement": route_agreement,
         "confidence": {
-            "membership_cosine_p05": float(
-                np.quantile([scores[node][0] for node in nodes], 0.05)
-            ),
+            "membership_cosine_p05": float(np.quantile([scores[node][0] for node in nodes], 0.05)),
             "membership_cosine_median": float(np.median([scores[node][0] for node in nodes])),
-            "centroid_margin_p05": float(
-                np.quantile([scores[node][1] for node in nodes], 0.05)
-            ),
-            "centroid_margin_median": float(
-                np.median([scores[node][1] for node in nodes])
-            ),
+            "centroid_margin_p05": float(np.quantile([scores[node][1] for node in nodes], 0.05)),
+            "centroid_margin_median": float(np.median([scores[node][1] for node in nodes])),
         },
         "inputs": {
             "registry_sha256": sha256_file(args.registry),

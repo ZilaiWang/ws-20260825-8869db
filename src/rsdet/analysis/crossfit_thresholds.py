@@ -28,13 +28,14 @@ from __future__ import annotations
 
 import json
 import math
-from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping
 
 from rsdet.evaluation.official_metric import (
     OverallMetrics,
+    RankingMetrics,
     evaluate_predictions_with_trace,
+    evaluate_ranking_metrics,
 )
 from rsdet.evaluation.protocol import EvaluationProtocol
 
@@ -93,9 +94,7 @@ def load_cv3_aggregate(
 
     floor = float(metadata.get("low_score_threshold", -1.0))
     if not math.isclose(floor, candidate_floor, abs_tol=1e-12):
-        raise ValueError(
-            f"OOF 低阈值 {floor} 与 candidate_floor {candidate_floor} 不一致"
-        )
+        raise ValueError(f"OOF 低阈值 {floor} 与 candidate_floor {candidate_floor} 不一致")
     return metadata, predictions, image_folds
 
 
@@ -159,9 +158,7 @@ def load_gt_from_formal_crop_manifest(
             f"formal GT 对象数 {len(annotation_uids)} != expected {expected_annotations}"
         )
     if len(boxes) != expected_images:
-        raise ValueError(
-            f"formal GT 图像数 {len(boxes)} != expected {expected_images}"
-        )
+        raise ValueError(f"formal GT 图像数 {len(boxes)} != expected {expected_images}")
     return boxes
 
 
@@ -208,9 +205,7 @@ def _filter_by_score(
     """保留 score >= threshold 的预测。"""
     filtered: dict[int, list[dict[str, Any]]] = {}
     for image_id, records in predictions.items():
-        kept = [
-            record for record in records if float(record["score"]) >= threshold
-        ]
+        kept = [record for record in records if float(record["score"]) >= threshold]
         if kept:
             filtered[image_id] = kept
     return filtered
@@ -233,6 +228,45 @@ def evaluate_workpoint(
         iou_thresholds=protocol.iou_thresholds,
     )
     return metrics
+
+
+def evaluate_ranking_workpoint(
+    gt_boxes: Mapping[int, list[dict[str, Any]]],
+    predictions: Mapping[int, list[dict[str, Any]]],
+    *,
+    threshold: float,
+    protocol: EvaluationProtocol,
+    require_complete_taxonomy: bool,
+) -> RankingMetrics:
+    """在给定阈值下评估 V1.6 细类 macro 排名口径。"""
+    return evaluate_ranking_metrics(
+        dict(gt_boxes),
+        _filter_by_score(predictions, threshold),
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+        require_complete_taxonomy=require_complete_taxonomy,
+    )
+
+
+def _ranking_payload(metrics: RankingMetrics) -> dict[str, Any]:
+    """将 V1.6 macro 结果序列化为 cross-fit 报告块。"""
+    return {
+        "overall_macro_recall": metrics.overall_recall,
+        "overall_macro_fdr": metrics.overall_fdr,
+        "per_coarse": {
+            name: {
+                "macro_recall": item.macro_recall,
+                "macro_fdr": item.macro_fdr,
+                "pooled_recall": item.pooled_recall,
+                "pooled_fdr": item.pooled_fdr,
+                "fine_count": item.fine_count,
+                "fine_ids": item.fine_ids,
+            }
+            for name, item in metrics.per_coarse.items()
+        },
+        "details": metrics.details,
+    }
 
 
 def scan_global_threshold(
@@ -269,10 +303,7 @@ def scan_global_threshold(
             threshold=threshold,
             protocol=protocol,
         )
-        gate_passed = (
-            metrics.recall >= internal_recall_min
-            and metrics.fdr <= internal_fdr_max
-        )
+        gate_passed = metrics.recall >= internal_recall_min and metrics.fdr <= internal_fdr_max
         curve.append(
             {
                 "threshold": threshold,
@@ -286,11 +317,13 @@ def scan_global_threshold(
         )
         candidate_rank = (1.0 if gate_passed else 0.0, metrics.recall)
         best_rank = (
-            1.0 if (
+            1.0
+            if (
                 best_metrics is not None
                 and best_metrics.recall >= internal_recall_min
                 and best_metrics.fdr <= internal_fdr_max
-            ) else 0.0,
+            )
+            else 0.0,
             best_recall,
         )
         if candidate_rank > best_rank:
@@ -317,6 +350,7 @@ def run_crossfit(
     internal_recall_min: float = 0.85,
     internal_fdr_max: float = 0.20,
     internal_fdr_strict: float = 0.17,
+    require_complete_taxonomy: bool = True,
     override_predictions: Mapping[int, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """执行严格 cross-fit 阈值基线。
@@ -360,6 +394,7 @@ def run_crossfit(
     per_fold_results: list[dict[str, Any]] = []
     heldout_gt: dict[int, list[dict[str, Any]]] = {}
     heldout_pred: dict[int, list[dict[str, Any]]] = {}
+    heldout_crossfit_pred: dict[int, list[dict[str, Any]]] = {}
 
     for held_out in sorted(fold_set):
         selection_folds = sorted(fold_set - {held_out})
@@ -384,10 +419,19 @@ def run_crossfit(
             threshold=threshold,
             protocol=protocol,
         )
+        hold_ranking = evaluate_ranking_workpoint(
+            hold_gt,
+            hold_pred,
+            threshold=threshold,
+            protocol=protocol,
+            require_complete_taxonomy=require_complete_taxonomy,
+        )
         for image_id, records in hold_gt.items():
             heldout_gt[image_id] = list(records)
         for image_id, records in hold_pred.items():
             heldout_pred[image_id] = list(records)
+        for image_id, records in _filter_by_score(hold_pred, threshold).items():
+            heldout_crossfit_pred[image_id] = list(records)
 
         per_fold_results.append(
             {
@@ -406,9 +450,8 @@ def run_crossfit(
                     hold_metrics.recall >= internal_recall_min
                     and hold_metrics.fdr <= internal_fdr_max
                 ),
-                "held_out_internal_fdr_passed": (
-                    hold_metrics.fdr <= internal_fdr_strict
-                ),
+                "held_out_internal_fdr_passed": (hold_metrics.fdr <= internal_fdr_strict),
+                "held_out_official_ranking": _ranking_payload(hold_ranking),
             }
         )
 
@@ -416,9 +459,7 @@ def run_crossfit(
     merged_metrics = evaluate_workpoint(
         heldout_gt,
         heldout_pred,
-        threshold=min(
-            float(result["selected_threshold"]) for result in per_fold_results
-        ),
+        threshold=min(float(result["selected_threshold"]) for result in per_fold_results),
         protocol=protocol,
     )
     # 注意：合并评估不能使用单一阈值（每折阈值不同），这里直接用各自折的
@@ -428,18 +469,22 @@ def run_crossfit(
     total_fn = sum(result["held_out_fn"] for result in per_fold_results)
     merged_recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) else 0.0
     merged_fdr = total_fp / (total_tp + total_fp) if (total_tp + total_fp) else 0.0
+    merged_ranking = evaluate_ranking_metrics(
+        heldout_gt,
+        heldout_crossfit_pred,
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+        require_complete_taxonomy=require_complete_taxonomy,
+    )
 
     thresholds = [result["selected_threshold"] for result in per_fold_results]
     threshold_mean = sum(thresholds) / len(thresholds)
     threshold_spread = max(thresholds) - min(thresholds)
-    threshold_std = math.sqrt(
-        sum((t - threshold_mean) ** 2 for t in thresholds) / len(thresholds)
-    )
+    threshold_std = math.sqrt(sum((t - threshold_mean) ** 2 for t in thresholds) / len(thresholds))
 
     gate_folds = [result["held_out_gate_passed"] for result in per_fold_results]
-    strict_folds = [
-        result["held_out_internal_fdr_passed"] for result in per_fold_results
-    ]
+    strict_folds = [result["held_out_internal_fdr_passed"] for result in per_fold_results]
 
     return {
         "analysis": "N0-1_crossfit_threshold_baseline",
@@ -467,10 +512,10 @@ def run_crossfit(
             "recall": merged_recall,
             "fdr": merged_fdr,
             "official_gate_passed": (
-                merged_recall >= internal_recall_min
-                and merged_fdr <= internal_fdr_max
+                merged_recall >= internal_recall_min and merged_fdr <= internal_fdr_max
             ),
             "internal_fdr_passed": merged_fdr <= internal_fdr_strict,
+            "official_ranking": _ranking_payload(merged_ranking),
         },
         "threshold_dispersion": {
             "mean": threshold_mean,
@@ -480,10 +525,7 @@ def run_crossfit(
         },
         "fold_gate_pass_count": sum(1 for p in gate_folds if p),
         "fold_internal_fdr_pass_count": sum(1 for p in strict_folds if p),
-        "note": (
-            "merged held-out 指标由三折各自阈值下的 TP/FP/FN 直接汇总；"
-            "非在同一阈值下评估。"
-        ),
+        "note": ("merged held-out 指标由三折各自阈值下的 TP/FP/FN 直接汇总；非在同一阈值下评估。"),
         "merged_metrics_single_min_threshold": {
             "recall": merged_metrics.recall,
             "fdr": merged_metrics.fdr,

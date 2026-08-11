@@ -14,7 +14,8 @@
 - 验证集 = held-out fold 候选（与训练同源候选、同 fold 划分）；
 - 从原图实时渲染 crop（tight policy、pad、direct square resize）；
 - ConvNeXt-T ImageNet 初始化，25 类 + 背景（26 类）输出；
-- 输出：best checkpoint + 验证集重分类预测 + 逐视图指标。
+- 输出：固定最后 epoch checkpoint + 验证集指标。验证集不参与
+  checkpoint 选择，避免同一 held-out fold 既选模又评估。
 
 说明：N2 是探索性实验（非 formal），不做 P03 那样的冻结 CLI 校验。
 """
@@ -24,7 +25,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import math
 import random
 import sys
 from collections import Counter, defaultdict
@@ -182,18 +182,22 @@ def _train_one_fold(
     """训练单个 held-out fold 的对象学生，返回验证指标。"""
     train_rows = list(train_rows)
     _standard_transform(train_rows, seed=seed)
-    train_dataset = ProposalCropDataset(
-        train_rows, data_root, resolution, image_cache_size=16
-    )
+    train_dataset = ProposalCropDataset(train_rows, data_root, resolution, image_cache_size=16)
     val_dataset = ProposalCropDataset(val_rows, data_root, resolution, image_cache_size=8)
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True,
-        num_workers=4, pin_memory=True,
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True,
     )
     val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False,
-        num_workers=2, pin_memory=True,
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=2,
+        pin_memory=True,
     )
 
     model = build_convnext_tiny_classifier(
@@ -202,13 +206,10 @@ def _train_one_fold(
         regime="fine_tune",
     )
     model = model.to(device)
-    optimizer = torch.optim.AdamW(
-        model.parameters(), lr=lr, weight_decay=weight_decay
-    )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion = torch.nn.CrossEntropyLoss()
 
     best_acc = 0.0
-    best_state = None
     metrics = {
         "fold": fold,
         "train_rows": len(train_rows),
@@ -237,32 +238,36 @@ def _train_one_fold(
         avg_train_loss = total_loss / max(total_batches, 1)
         metrics["train_loss"].append(avg_train_loss)
 
-        val_loss, acc, macro_recall, per_class = _evaluate(
-            model, val_loader, criterion, device
-        )
+        val_loss, acc, macro_recall, per_class = _evaluate(model, val_loader, criterion, device)
         metrics["val_loss"].append(val_loss)
         metrics["val_accuracy"] = acc
         metrics["val_macro_recall"] = macro_recall
         metrics["per_class_recall"] = per_class
         logger.info(
             "fold %d epoch %d/%d train_loss %.4f val_loss %.4f acc %.4f macro %.4f",
-            fold, epoch, epochs, avg_train_loss, val_loss, acc, macro_recall,
+            fold,
+            epoch,
+            epochs,
+            avg_train_loss,
+            val_loss,
+            acc,
+            macro_recall,
         )
-        if acc > best_acc and epoch >= 1:
+        if acc > best_acc:
             best_acc = acc
-            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
 
     fold_dir = output_dir / f"fold{fold}"
     fold_dir.mkdir(parents=True, exist_ok=True)
-    if best_state is not None:
-        torch.save(best_state, fold_dir / "best_checkpoint.pt")
+    torch.save(model.state_dict(), fold_dir / "final_checkpoint.pt")
     summary_path = fold_dir / "run_summary.json"
     summary = {
         **metrics,
         "resolution": resolution,
         "epochs": epochs,
         "best_val_accuracy": best_acc,
-        "checkpoint": "best_checkpoint.pt",
+        "checkpoint": "final_checkpoint.pt",
+        "checkpoint_selection": "fixed_epoch_last_no_heldout_selection",
+        "evaluation_level": "exploratory_level_e",
     }
     summary_path.write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
@@ -336,7 +341,9 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError(f"fold {fold} 无训练或验证样本")
             logger.info(
                 "fold %d: train %d / val %d",
-                fold, len(train_rows), len(val_rows),
+                fold,
+                len(train_rows),
+                len(val_rows),
             )
             summary = _train_one_fold(
                 train_rows,
@@ -364,6 +371,8 @@ def main(argv: list[str] | None = None) -> int:
         "resolution": args.resolution,
         "epochs": args.epochs,
         "seed": args.seed,
+        "checkpoint_selection": "fixed_epoch_last_no_heldout_selection",
+        "evaluation_level": "exploratory_level_e",
         "folds": summaries,
         "mean_val_macro_recall": sum(s["val_macro_recall"] for s in summaries) / len(summaries),
         "mean_val_accuracy": sum(s["val_accuracy"] for s in summaries) / len(summaries),
@@ -373,9 +382,11 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     logger.info("=== N2-1 完成 ===")
-    logger.info("三折平均 macro_recall %.4f / accuracy %.4f",
-                final_summary["mean_val_macro_recall"],
-                final_summary["mean_val_accuracy"])
+    logger.info(
+        "三折平均 macro_recall %.4f / accuracy %.4f",
+        final_summary["mean_val_macro_recall"],
+        final_summary["mean_val_accuracy"],
+    )
     return 0
 
 

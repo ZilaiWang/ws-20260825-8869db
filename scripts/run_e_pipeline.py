@@ -17,12 +17,11 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+import rsdet.pipeline.mock_model  # noqa: F401 — 注册 "mock" 检测器
 from rsdet.contracts import Prediction, TileRecord
 from rsdet.models.base import BaseDetector
 from rsdet.models.registry import build_model, list_models
-import rsdet.pipeline.mock_model  # noqa: F401 — 注册 "mock" 检测器
-from rsdet.pipeline.large_image import PipelineConfig, PipelineTiming, run_pipeline
-from rsdet.predictions import write_coco_predictions
+from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 from rsdet.tiling.synthetic import SyntheticObject, generate_synthetic_scene
 from rsdet.utils.logging import setup_logging
 
@@ -44,8 +43,6 @@ def _tile_metadata_for_mock(
 
     def _fn(tile: TileRecord) -> Dict[str, Any]:
         gt_boxes: List[Dict[str, Any]] = []
-        tx1, ty1 = float(tile.x_offset), float(tile.y_offset)
-        tx2, ty2 = tx1 + tile.width, ty1 + tile.height
         for obj in scene_objects:
             if tile.tile_id not in obj.tile_ids:
                 continue
@@ -75,9 +72,7 @@ def _coco_from_prediction(
 ) -> List[Dict[str, Any]]:
     """将单个 Prediction 转为 COCO detection 列表。"""
     records: List[Dict[str, Any]] = []
-    for box, score, label in zip(
-        prediction.boxes_xyxy, prediction.scores, prediction.labels
-    ):
+    for box, score, label in zip(prediction.boxes_xyxy, prediction.scores, prediction.labels):
         x1, y1, x2, y2 = [float(v) for v in box]
         records.append(
             {
@@ -305,9 +300,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
     # 图像参数
     parser.add_argument("--image", default=None, help="真实图像路径 (image 模式)")
-    parser.add_argument(
-        "--image-size", type=int, default=10000, help="合成图边长 (synthetic 模式)"
-    )
+    parser.add_argument("--image-size", type=int, default=10000, help="合成图边长 (synthetic 模式)")
 
     # Pipeline 参数
     parser.add_argument("--tile-size", type=int, default=1024)

@@ -1,10 +1,7 @@
 """N2-1 proposal crop manifest 模块测试。"""
 
 import csv
-import json
 from pathlib import Path
-
-import pytest
 
 from rsdet.analysis.proposal_crops import (
     BACKGROUND_CLASS_ID,
@@ -39,6 +36,7 @@ def _evidence_manifest() -> dict:
                 "fold": 0,
                 "source_group": "g1",
                 "category_id": 24,
+                "source_prediction_index": 0,
                 "score": 0.9,
                 "bbox_xyxy": [0.0, 0.0, 10.0, 10.0],
                 "official_status": "TP",
@@ -52,12 +50,14 @@ def _evidence_manifest() -> dict:
                 "fold": 1,
                 "source_group": "g2",
                 "category_id": 5,
+                "source_prediction_index": 0,
                 "score": 0.7,
                 "bbox_xyxy": [5.0, 5.0, 15.0, 15.0],
                 "official_status": "FP_CLS",
                 "matched_gt_category": None,
                 "matched_gt_key": None,
                 "oracle_hit": True,  # 大类对、细类错
+                "oracle_gt_category": 4,
             },
             {
                 "proposal_uid": "p3",
@@ -65,6 +65,7 @@ def _evidence_manifest() -> dict:
                 "fold": 0,
                 "source_group": "g1",
                 "category_id": 24,
+                "source_prediction_index": 1,
                 "score": 0.3,
                 "bbox_xyxy": [100.0, 100.0, 110.0, 110.0],
                 "official_status": "FP_BG",
@@ -92,6 +93,7 @@ class TestBuildManifest:
         rows, summary = build_proposal_crop_manifest(
             evidence_manifest=_evidence_manifest(),
             formal_manifest_path=formal,
+            confirmed_background_uids={"p3"},
         )
         assert summary["rows_written"] == 3
         assert summary["missing_image_paths"] == 0
@@ -102,9 +104,10 @@ class TestBuildManifest:
         assert by_uid["p1"]["view"] == "deployable_positive"
         assert by_uid["p1"]["class_id"] == 24
         assert by_uid["p1"]["is_background"] == "false"
-        # FP_CLS 但 oracle hit → oracle_positive，标签=预测类别 5。
+        # FP_CLS 但 oracle hit → oracle_positive，标签=oracle GT 类别 4。
         assert by_uid["p2"]["view"] == "oracle_positive"
-        assert by_uid["p2"]["class_id"] == 5
+        assert by_uid["p2"]["class_id"] == 4
+        assert by_uid["p2"]["detector_category_id"] == 5
         # FP_BG 无 oracle → hard_negative 且 background=true，标签=25。
         assert by_uid["p3"]["view"] == "hard_negative"
         assert by_uid["p3"]["class_id"] == BACKGROUND_CLASS_ID
@@ -131,6 +134,7 @@ class TestBuildManifest:
                     "fold": 0,
                     "source_group": "gx",
                     "category_id": 24,
+                    "source_prediction_index": 0,
                     "score": 0.5,
                     "bbox_xyxy": [0, 0, 10, 10],
                     "official_status": "FP_BG",
@@ -152,21 +156,21 @@ class TestWriteAndSplit:
         rows, _ = build_proposal_crop_manifest(
             evidence_manifest=_evidence_manifest(),
             formal_manifest_path=formal,
+            confirmed_background_uids={"p3"},
         )
         out = tmp_path / "proposal.csv"
         write_proposal_crop_manifest(rows, out)
         with out.open("r", encoding="utf-8") as handle:
             reader = list(csv.DictReader(handle))
         assert len(reader) == 3
-        assert set(reader[0].keys()) >= {
-            "proposal_uid", "crop_xyxy", "fold", "view", "class_id"
-        }
+        assert set(reader[0].keys()) >= {"proposal_uid", "crop_xyxy", "fold", "view", "class_id"}
 
     def test_split_and_stats(self, tmp_path: Path):
         formal = _formal_manifest(tmp_path)
         rows, _ = build_proposal_crop_manifest(
             evidence_manifest=_evidence_manifest(),
             formal_manifest_path=formal,
+            confirmed_background_uids={"p3"},
         )
         folded = split_by_fold(rows)
         assert set(folded) == {0, 1}

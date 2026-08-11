@@ -28,24 +28,16 @@
 
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
-from rsdet.analysis.crossfit_thresholds import (
-    load_gt_from_formal_crop_manifest,
-)
 from rsdet.analysis.decoupled_errors import (
     compute_oracle_localization,
 )
 from rsdet.evaluation.official_metric import (
-    OfficialEvaluationTrace,
-    OfficialMatch,
-    OfficialUnmatchedGroundTruth,
-    OfficialUnmatchedPrediction,
     evaluate_predictions_with_trace,
 )
 from rsdet.evaluation.protocol import EvaluationProtocol
@@ -55,10 +47,6 @@ FP_DUP = "FP_DUP"
 FP_CLS = "FP_CLS"
 FP_LOC = "FP_LOC"
 FP_BG = "FP_BG"
-
-
-def _trace_gt_key(match: OfficialMatch) -> tuple[int, int]:
-    return (match.image_id, match.ground_truth_index)
 
 
 def _build_gt_lookup(
@@ -86,10 +74,8 @@ def _size_bin(bbox_xyxy: list[float]) -> str:
 def _classify_fp(
     record: dict[str, Any],
     gt_lookup: dict[tuple[int, int], dict[str, Any]],
-    trace: OfficialEvaluationTrace,
     protocol: EvaluationProtocol,
     *,
-    pred_index: int,
     image_id: int,
 ) -> str:
     """对一条未匹配预测归类 FP 类型（与 oof_detection 语义对齐）。
@@ -102,7 +88,6 @@ def _classify_fp(
     """
     pred_box = [float(value) for value in record["bbox_xyxy"]]
     pred_category = int(record["category_id"])
-    pred_coarse = protocol.category_mapping.get(pred_category)
 
     best_iou = 0.0
     best_category: int | None = None
@@ -179,8 +164,8 @@ def build_object_evidence_manifest(
         dict(gt_boxes),
         {
             image_id: [
-                record
-                for record in records
+                {**record, "source_prediction_index": source_index}
+                for source_index, record in enumerate(records)
                 if _score_of(record) >= threshold
             ]
             for image_id, records in predictions.items()
@@ -191,20 +176,19 @@ def build_object_evidence_manifest(
     )
 
     # oracle 几何匹配（同大类）。
-    oracle_metrics, oracle_rows = compute_oracle_localization(
+    oracle_metrics, _ = compute_oracle_localization(
         gt_boxes,
         predictions,
         protocol=protocol,
         threshold=threshold,
     )
-    oracle_match_by_gt: dict[tuple[int, int], dict[str, Any]] = {}
+    oracle_match_by_prediction: dict[tuple[int, int], dict[str, Any]] = {}
     for match in oracle_metrics.matches:
-        oracle_match_by_gt[(match["image_id"], match["index"])] = match
+        oracle_match_by_prediction[(int(match["image_id"]), int(match["prediction_index"]))] = match
 
     gt_lookup = _build_gt_lookup(gt_boxes)
 
-    # 官方匹配结果建索引：prediction_index 是过滤后（score>=threshold）
-    # 列表内的下标，与下方循环维护的 kept_index 一一对应。
+    # prediction_index 保留原始低阈值 OOF 列表的位置，避免过滤后错位。
     matched_pred_keys: set[tuple[int, int]] = set()
     for match in trace.matches:
         matched_pred_keys.add((match.image_id, match.prediction_index))
@@ -214,11 +198,10 @@ def build_object_evidence_manifest(
         fold = image_folds[image_id]
         ckpt = checkpoint_sha256.get(image_id, "")
         group = image_groups.get(image_id, "") if image_groups else ""
-        kept_index = 0
         for source_index, record in enumerate(rec_list):
             if _score_of(record) < threshold:
                 continue
-            key = (image_id, kept_index)
+            key = (image_id, source_index)
             matched = key in matched_pred_keys
 
             category_id = int(record["category_id"])
@@ -237,10 +220,7 @@ def build_object_evidence_manifest(
             if matched:
                 match = None
                 for m in trace.matches:
-                    if (
-                        m.image_id == key[0]
-                        and m.prediction_index == key[1]
-                    ):
+                    if m.image_id == key[0] and m.prediction_index == key[1]:
                         match = m
                         break
                 if match is not None:
@@ -253,24 +233,20 @@ def build_object_evidence_manifest(
                 error_type = _classify_fp(
                     record,
                     gt_lookup,
-                    trace,
                     protocol,
-                    pred_index=source_index,
                     image_id=image_id,
                 )
 
             oracle_hit = False
             oracle_iou: float | None = None
             oracle_gt_key: tuple[int, int] | None = None
-            for gt_key_candidate, info in oracle_match_by_gt.items():
-                if (
-                    info["image_id"] == image_id
-                    and info.get("predicted_category_id") == category_id
-                ):
-                    oracle_hit = True
-                    oracle_iou = info["iou"]
-                    oracle_gt_key = gt_key_candidate
-                    break
+            oracle_gt_category: int | None = None
+            oracle_info = oracle_match_by_prediction.get(key)
+            if oracle_info is not None:
+                oracle_hit = True
+                oracle_iou = float(oracle_info["iou"])
+                oracle_gt_key = (int(oracle_info["image_id"]), int(oracle_info["index"]))
+                oracle_gt_category = int(oracle_info["gt_category_id"])
 
             records.append(
                 {
@@ -280,34 +256,32 @@ def build_object_evidence_manifest(
                     "source_group": group,
                     "checkpoint_sha256": ckpt,
                     "category_id": category_id,
+                    "source_prediction_index": source_index,
                     "score": _score_of(record),
                     "bbox_xyxy": [round(value, 4) for value in box],
                     "size_bin": _size_bin(box),
                     "official_status": error_type,
-                    "matched_gt_key": (
-                        f"{gt_key[0]}:{gt_key[1]}" if gt_key else None
-                    ),
+                    "matched_gt_key": (f"{gt_key[0]}:{gt_key[1]}" if gt_key else None),
                     "matched_gt_category": gt_category,
-                    "matched_iou": (
-                        round(matched_iou, 4) if matched_iou is not None else None
-                    ),
+                    "matched_iou": (round(matched_iou, 4) if matched_iou is not None else None),
                     "oracle_hit": oracle_hit,
                     "oracle_gt_key": (
                         f"{oracle_gt_key[0]}:{oracle_gt_key[1]}"
                         if oracle_gt_key is not None
                         else None
                     ),
-                    "oracle_iou": (
-                        round(oracle_iou, 4) if oracle_iou is not None else None
-                    ),
+                    "oracle_iou": (round(oracle_iou, 4) if oracle_iou is not None else None),
+                    "oracle_gt_category": oracle_gt_category,
                 }
             )
-            kept_index += 1
 
     views = _build_views(records)
     summary = _build_summary(records, views, metrics)
     meta = {
-        "manifest_version": "pred_oof_evidence_v1",
+        "manifest_version": "pred_oof_evidence_v2",
+        "oracle_assignment_policy": "candidate_specific_same_coarse_greedy_v2",
+        "fp_subtype_policy": "nearest_overlap_diagnostic_v1",
+        "fp_subtypes_are_official": False,
         "threshold": threshold,
         "official_recall": metrics.recall,
         "official_fdr": metrics.fdr,
@@ -349,13 +323,8 @@ def _build_summary(
     metrics: Any,
 ) -> dict[str, Any]:
     """汇总计数与分类统计。"""
-    status_counts: Counter[str] = Counter(
-        record["official_status"] for record in records
-    )
-    fp_types = {
-        name: status_counts.get(name, 0)
-        for name in (FP_DUP, FP_CLS, FP_LOC, FP_BG)
-    }
+    status_counts: Counter[str] = Counter(record["official_status"] for record in records)
+    fp_types = {name: status_counts.get(name, 0) for name in (FP_DUP, FP_CLS, FP_LOC, FP_BG)}
     total_fp = sum(fp_types.values())
     return {
         "total_candidates": len(records),

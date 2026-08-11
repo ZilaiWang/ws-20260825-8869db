@@ -51,6 +51,7 @@ def test_threshold_sweep_outputs_and_official_reevaluation(tmp_path: Path) -> No
             "1.0",
             "--threshold-step",
             "0.1",
+            "--allow-partial-taxonomy",
         ],
         cwd=root,
         env=environment,
@@ -77,6 +78,7 @@ def test_threshold_sweep_outputs_and_official_reevaluation(tmp_path: Path) -> No
     expected_versions = {
         "contract_version": "contract_v1",
         "eval_version": "official_eval_v1",
+        "ranking_version": "official_ranking_v1_6",
     }
     assert selected["protocol_versions"] == expected_versions
     assert metrics["protocol_versions"] == expected_versions
@@ -107,6 +109,7 @@ def test_threshold_sweep_outputs_and_official_reevaluation(tmp_path: Path) -> No
             str(filtered_path),
             "--output",
             str(reevaluated_path),
+            "--allow-partial-taxonomy",
         ],
         cwd=root,
         env=environment,

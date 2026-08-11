@@ -27,9 +27,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="25 类自适应阈值校准")
     parser.add_argument("--gt", type=Path, required=True)
     parser.add_argument("--pred", type=Path, required=True)
-    parser.add_argument(
-        "--project-config", type=Path, default=Path("configs/project.yaml")
-    )
+    parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     parser.add_argument("--min-threshold", type=float, default=0.001)
     parser.add_argument("--max-threshold", type=float, default=0.50)
     parser.add_argument("--step", type=float, default=0.005)
@@ -63,18 +61,14 @@ def _class_curve(
         if any(int(item["category_id"]) == category_id for item in items)
     }
     class_predictions = {
-        image_id: [
-            item for item in items if int(item["category_id"]) == category_id
-        ]
+        image_id: [item for item in items if int(item["category_id"]) == category_id]
         for image_id, items in predictions.items()
         if any(int(item["category_id"]) == category_id for item in items)
     }
     unique: dict[tuple[int, int], dict[str, Any]] = {}
     for threshold in thresholds:
         filtered = {
-            image_id: [
-                item for item in items if float(item["score"]) >= threshold
-            ]
+            image_id: [item for item in items if float(item["score"]) >= threshold]
             for image_id, items in class_predictions.items()
         }
         result = evaluate_predictions(
@@ -123,7 +117,8 @@ def _optimize(
     feasible = [
         (tp, fp, path)
         for fp, (tp, path) in states.items()
-        if fp / (tp + fp) <= fdr_max if tp + fp > 0
+        if fp / (tp + fp) <= fdr_max
+        if tp + fp > 0
     ]
     if not feasible:
         raise RuntimeError("搜索范围内没有满足全局 FDR 门槛的细类阈值组合")
@@ -140,14 +135,10 @@ def _write_filtered_predictions(
     if not isinstance(document, list):
         raise ValueError("预测文件必须是 COCO detection 列表")
     filtered = [
-        item
-        for item in document
-        if float(item["score"]) >= thresholds[int(item["category_id"])]
+        item for item in document if float(item["score"]) >= thresholds[int(item["category_id"])]
     ]
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(filtered, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    output_path.write_text(json.dumps(filtered, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -156,8 +147,7 @@ def main(argv: list[str] | None = None) -> int:
         project = load_config(args.project_config)
         official = project["official_evaluation"]
         iou_thresholds = {
-            str(name): float(value)
-            for name, value in official["iou_thresholds"].items()
+            str(name): float(value) for name, value in official["iou_thresholds"].items()
         }
         fdr_max = float(official["fdr_max"])
         gt = load_coco_ground_truth(args.gt)
@@ -189,18 +179,12 @@ def main(argv: list[str] | None = None) -> int:
             "fine_score_thresholds": {
                 name: threshold for name, threshold in zip(FINE_NAMES, thresholds)
             },
-            "per_class": {
-                name: point for name, point in zip(FINE_NAMES, selected)
-            },
+            "per_class": {name: point for name, point in zip(FINE_NAMES, selected)},
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        args.output.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
         _write_filtered_predictions(args.pred, args.best_pred, thresholds)
-        exact = evaluate_and_write(
-            args.gt, args.best_pred, args.best_metrics, args.project_config
-        )
+        exact = evaluate_and_write(args.gt, args.best_pred, args.best_metrics, args.project_config)
         logger.info(
             "25 类校准后 Recall=%.4f, FDR=%.4f: %s",
             exact["overall_recall"],

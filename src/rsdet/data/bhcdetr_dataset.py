@@ -123,9 +123,7 @@ def _parse_image_id(value: Any, *, row_index: int) -> int | None:
     try:
         parsed = int(str(value).strip())
     except ValueError as error:
-        raise ValueError(
-            f"manifest row {row_index} has invalid image_id={value!r}"
-        ) from error
+        raise ValueError(f"manifest row {row_index} has invalid image_id={value!r}") from error
     if str(parsed) != str(value).strip() or not 0 < parsed <= _MAX_TORCH_IMAGE_ID:
         raise ValueError(f"manifest row {row_index} has invalid image_id={value!r}")
     return parsed
@@ -140,9 +138,7 @@ def _read_manifest(path: Path) -> list[Mapping[str, Any]]:
         else:
             rows = payload
         if not isinstance(rows, list):
-            raise TypeError(
-                "JSON manifest must be a list or an object with a samples list"
-            )
+            raise TypeError("JSON manifest must be a list or an object with a samples list")
         if any(not isinstance(row, Mapping) for row in rows):
             raise TypeError("every JSON manifest sample must be an object")
         return list(rows)
@@ -178,9 +174,7 @@ def _select_manifest_rows(
 
     if all(has_split):
         selected = [
-            item
-            for item in prepared
-            if str(item[1]["split"]).strip().lower() == split.lower()
+            item for item in prepared if str(item[1]["split"]).strip().lower() == split.lower()
         ]
     elif all(has_fold):
         if type(held_out_fold) is not int or held_out_fold < 0:
@@ -196,9 +190,7 @@ def _select_manifest_rows(
                     f"manifest row {item[0]} has invalid fold={item[1]['fold']!r}"
                 ) from error
             if fold < 0 or str(fold) != str(item[1]["fold"]).strip():
-                raise ValueError(
-                    f"manifest row {item[0]} has invalid fold={item[1]['fold']!r}"
-                )
+                raise ValueError(f"manifest row {item[0]} has invalid fold={item[1]['fold']!r}")
             is_validation = fold == held_out_fold
             if (split.lower() == "val") == is_validation:
                 selected.append(item)
@@ -236,9 +228,7 @@ def _manifest_samples(
     for row_index, row, relative_path in selected:
         key = relative_path.casefold()
         if key in seen_paths:
-            raise ValueError(
-                f"manifest contains duplicate image path={relative_path!r}"
-            )
+            raise ValueError(f"manifest contains duplicate image path={relative_path!r}")
         seen_paths.add(key)
         image_path = _resolve_under_root(data_root, relative_path, field="image path")
         if image_path.suffix.lower() not in IMAGE_SUFFIXES or not image_path.is_file():
@@ -266,9 +256,7 @@ def _manifest_samples(
         ordered = sorted(parsed, key=lambda item: item[1].casefold())
 
     samples: list[BHCDetrSample] = []
-    for position, (image_id, relative_path, image_path, label_path) in enumerate(
-        ordered, start=1
-    ):
+    for position, (image_id, relative_path, image_path, label_path) in enumerate(ordered, start=1):
         samples.append(
             BHCDetrSample(
                 image_id=image_id if image_id is not None else position,
@@ -441,9 +429,7 @@ def _augment(
         output_boxes[:, (0, 2)] = np.clip(output_boxes[:, (0, 2)], 0.0, float(width))
         output_boxes[:, (1, 3)] = np.clip(output_boxes[:, (1, 3)], 0.0, float(height))
 
-    keep = (output_boxes[:, 2] > output_boxes[:, 0]) & (
-        output_boxes[:, 3] > output_boxes[:, 1]
-    )
+    keep = (output_boxes[:, 2] > output_boxes[:, 0]) & (output_boxes[:, 3] > output_boxes[:, 1])
     return (
         np.ascontiguousarray(output),
         output_boxes[keep],
@@ -489,9 +475,7 @@ def _letterbox(
     canvas = np.zeros((image_size, image_size, 3), dtype=np.uint8)
     canvas[top : top + resized_height, left : left + resized_width] = resized
     valid_canvas = np.zeros((image_size, image_size), dtype=np.bool_)
-    valid_canvas[top : top + resized_height, left : left + resized_width] = (
-        resized_valid
-    )
+    valid_canvas[top : top + resized_height, left : left + resized_width] = resized_valid
 
     transformed = boxes.copy()
     if len(transformed):
@@ -562,11 +546,7 @@ class BHCDetrDataset(Dataset):
             raise ImportError("BHCDetrDataset requires PyTorch")
         if not isinstance(split, str) or not split.strip():
             raise ValueError("split must be a non-empty string")
-        if (
-            isinstance(image_size, bool)
-            or not isinstance(image_size, int)
-            or image_size <= 0
-        ):
+        if isinstance(image_size, bool) or not isinstance(image_size, int) or image_size <= 0:
             raise ValueError("image_size must be a positive integer")
         if (
             isinstance(views_per_image, bool)
@@ -574,24 +554,16 @@ class BHCDetrDataset(Dataset):
             or views_per_image <= 0
         ):
             raise ValueError("views_per_image must be a positive integer")
-        if (
-            not math.isfinite(float(flip_probability))
-            or not 0.0 <= flip_probability <= 1.0
-        ):
+        if not math.isfinite(float(flip_probability)) or not 0.0 <= flip_probability <= 1.0:
             raise ValueError("flip_probability must be in [0, 1]")
-        if (
-            not math.isfinite(float(max_shift_ratio))
-            or not 0.0 <= max_shift_ratio < 1.0
-        ):
+        if not math.isfinite(float(max_shift_ratio)) or not 0.0 <= max_shift_ratio < 1.0:
             raise ValueError("max_shift_ratio must be in [0, 1)")
         if training is not None and type(training) is not bool:
             raise ValueError("training must be bool or None")
         if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
             raise ValueError("seed must be a non-negative integer")
         if num_classes is not None and (
-            isinstance(num_classes, bool)
-            or not isinstance(num_classes, int)
-            or num_classes <= 0
+            isinstance(num_classes, bool) or not isinstance(num_classes, int) or num_classes <= 0
         ):
             raise ValueError("num_classes must be a positive integer or None")
 
@@ -693,9 +665,7 @@ class BHCDetrDataset(Dataset):
             normalized_boxes = _normalized_cxcywh(pixel_boxes, self.image_size)
             chw = np.ascontiguousarray(letterboxed.transpose(2, 0, 1))
             image_tensor = torch.from_numpy(chw).to(dtype=torch.float32).div_(255.0)
-            image_tensor = (
-                image_tensor - self._normalization_mean
-            ) / self._normalization_std
+            image_tensor = (image_tensor - self._normalization_mean) / self._normalization_std
             boxes_tensor = torch.from_numpy(normalized_boxes.copy()).to(torch.float32)
             labels_tensor = torch.from_numpy(view_labels.copy()).to(torch.int64)
             target = {
@@ -707,9 +677,7 @@ class BHCDetrDataset(Dataset):
                 "source_image_id": torch.tensor(sample.image_id, dtype=torch.int64),
                 "view_id": torch.tensor(view_index, dtype=torch.int64),
                 "orig_size": torch.tensor((height, width), dtype=torch.int64),
-                "size": torch.tensor(
-                    (self.image_size, self.image_size), dtype=torch.int64
-                ),
+                "size": torch.tensor((self.image_size, self.image_size), dtype=torch.int64),
                 "relative_path": sample.relative_path,
                 "box_format": "cxcywh_normalized",
                 "augmentation": augmentation,
@@ -718,9 +686,7 @@ class BHCDetrDataset(Dataset):
             views.append(
                 {
                     "image": image_tensor,
-                    "padding_mask": torch.from_numpy(padding_mask.copy()).to(
-                        torch.bool
-                    ),
+                    "padding_mask": torch.from_numpy(padding_mask.copy()).to(torch.bool),
                     "target": target,
                 }
             )

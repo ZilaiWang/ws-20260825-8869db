@@ -169,8 +169,7 @@ def summarize_10k_runtime(
         height = _integer(record.get("height"), f"records[{index}].height", minimum=1)
         if width != expected_width or height != expected_height:
             raise ValueError(
-                f"run {run_index} 不是冻结的 {expected_width}x{expected_height}: "
-                f"{width}x{height}"
+                f"run {run_index} 不是冻结的 {expected_width}x{expected_height}: {width}x{height}"
             )
         if not isinstance(record.get("warmup"), bool):
             raise ValueError(f"records[{index}].warmup 必须是布尔值")
@@ -185,9 +184,7 @@ def summarize_10k_runtime(
                 f"missing={sorted(missing)}, extra={sorted(extra)}"
             )
         phases = {
-            phase: _finite_nonnegative(
-                phase_payload[phase], f"records[{index}].phases.{phase}"
-            )
+            phase: _finite_nonnegative(phase_payload[phase], f"records[{index}].phases.{phase}")
             for phase in PHASES
         }
         scientific_fields: dict[str, Any] = {}
@@ -232,9 +229,7 @@ def summarize_10k_runtime(
                 "tile_size": _integer(
                     record["tile_size"], f"records[{index}].tile_size", minimum=1
                 ),
-                "overlap": _integer(
-                    record["overlap"], f"records[{index}].overlap", minimum=0
-                ),
+                "overlap": _integer(record["overlap"], f"records[{index}].overlap", minimum=0),
                 "tile_count": _integer(
                     record["tile_count"], f"records[{index}].tile_count", minimum=1
                 ),
@@ -263,9 +258,7 @@ def summarize_10k_runtime(
                 "overlap",
             ):
                 if scientific_fields[field] != contract[field]:
-                    raise ValueError(
-                        f"records[{index}].{field} 与 benchmark contract 不一致"
-                    )
+                    raise ValueError(f"records[{index}].{field} 与 benchmark contract 不一致")
             if scientific_fields["cuda_synchronized"] is not True:
                 raise ValueError("正式 GPU 分段计时必须执行 CUDA synchronize")
             if scientific_fields["tile_count"] != frozen_tile_count:
@@ -275,17 +268,17 @@ def summarize_10k_runtime(
                 )
             if scientific_fields["raw_proposal_count"] < 0:
                 raise ValueError("raw_proposal_count 不能为负")
-            if not 0 <= scientific_fields["fused_proposal_count"] <= scientific_fields[
-                "raw_proposal_count"
-            ]:
+            if (
+                not 0
+                <= scientific_fields["fused_proposal_count"]
+                <= scientific_fields["raw_proposal_count"]
+            ):
                 raise ValueError("fused_proposal_count 必须位于 [0, raw] 范围")
         after_read = sum(phases[phase] for phase in AFTER_READ_PHASES)
         wall_with_read = phases["image_read"] + after_read
         reported_after_read = record.get("total_after_read")
         if reported_after_read is not None and not math.isclose(
-            _finite_nonnegative(
-                reported_after_read, f"records[{index}].total_after_read"
-            ),
+            _finite_nonnegative(reported_after_read, f"records[{index}].total_after_read"),
             after_read,
             rel_tol=1e-6,
             abs_tol=1e-6,
@@ -314,8 +307,7 @@ def summarize_10k_runtime(
     actual_indices = [record["run_index"] for record in ordered]
     if actual_indices != expected_indices:
         raise ValueError(
-            "run_index 必须从 0 连续递增，禁止删除或重排运行: "
-            f"actual={actual_indices}"
+            f"run_index 必须从 0 连续递增，禁止删除或重排运行: actual={actual_indices}"
         )
     measured = [record for record in normalized if not record["warmup"]]
     if len(measured) < minimum_measured_runs:
@@ -335,9 +327,7 @@ def summarize_10k_runtime(
         expected_warmup_flags = [True] * warmup_runs + [False] * measured_runs
         if [record["warmup"] for record in ordered] != expected_warmup_flags:
             raise ValueError("warmup 必须是运行序列的连续前缀，measured 不得交错")
-        measured_shas = [
-            str(record["image_content_sha256"]) for record in measured
-        ]
+        measured_shas = [str(record["image_content_sha256"]) for record in measured]
         if len(set(measured_shas)) != len(measured_shas):
             raise ValueError("measured runs 必须使用不同内容 SHA 的图像")
         measured_image_ids = [record["image_id"] for record in measured]
@@ -345,12 +335,8 @@ def summarize_10k_runtime(
             raise ValueError("measured runs 必须使用不同 image_id")
     phase_summary = {
         phase: {
-            "p50_seconds": _percentile(
-                [record["phases"][phase] for record in measured], 0.50
-            ),
-            "p95_seconds": _percentile(
-                [record["phases"][phase] for record in measured], 0.95
-            ),
+            "p50_seconds": _percentile([record["phases"][phase] for record in measured], 0.50),
+            "p95_seconds": _percentile([record["phases"][phase] for record in measured], 0.95),
             "max_seconds": max(record["phases"][phase] for record in measured),
         }
         for phase in PHASES
@@ -439,45 +425,32 @@ def _validate_benchmark_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
         "image_manifest_sha256",
         "hardware_sha256",
     ):
-        result[field] = _sha256(
-            result.get(field), f"benchmark contract {field}"
-        )
+        result[field] = _sha256(result.get(field), f"benchmark contract {field}")
     if result.get("cuda_synchronized") is not True:
         raise ValueError("benchmark contract 必须声明 cuda_synchronized=true")
     if not isinstance(result.get("engineering_checkpoint_only"), bool):
-        raise ValueError(
-            "benchmark contract 必须显式声明 engineering_checkpoint_only 布尔值"
-        )
+        raise ValueError("benchmark contract 必须显式声明 engineering_checkpoint_only 布尔值")
     for field in (
         "tile_size",
         "expected_tile_count",
         "warmup_runs",
         "minimum_measured_runs",
     ):
-        result[field] = _integer(
-            result.get(field), f"benchmark contract {field}", minimum=1
-        )
-    overlap = _integer(
-        result.get("overlap"), "benchmark contract overlap", minimum=0
-    )
+        result[field] = _integer(result.get(field), f"benchmark contract {field}", minimum=1)
+    overlap = _integer(result.get("overlap"), "benchmark contract overlap", minimum=0)
     if not 0 <= overlap < result["tile_size"]:
         raise ValueError("benchmark contract overlap 必须位于 [0,tile_size)")
     result["overlap"] = overlap
     result["image_source_type"] = source_type
     result["model_key"] = model_key
     if source_type == "real_official":
-        registry_id = str(
-            result.get("official_manifest_registry_id", "")
-        ).strip()
+        registry_id = str(result.get("official_manifest_registry_id", "")).strip()
         if registry_id not in OFFICIAL_IMAGE_MANIFEST_REGISTRY:
             raise ValueError(
                 "real_official 输入尚未进入代码内官方 manifest 注册表；"
                 "禁止仅改 source_type 获得官方声明资格"
             )
-        if (
-            result["image_manifest_sha256"]
-            != OFFICIAL_IMAGE_MANIFEST_REGISTRY[registry_id]
-        ):
+        if result["image_manifest_sha256"] != OFFICIAL_IMAGE_MANIFEST_REGISTRY[registry_id]:
             raise ValueError("官方 image manifest SHA 与注册表不一致")
         result["official_manifest_registry_id"] = registry_id
     return result
@@ -487,9 +460,7 @@ def load_runtime_jsonl(path: str | Path) -> list[Mapping[str, Any]]:
     """Load non-empty JSON objects from a JSONL runtime ledger."""
 
     result: list[Mapping[str, Any]] = []
-    for line_number, line in enumerate(
-        Path(path).read_text(encoding="utf-8").splitlines(), 1
-    ):
+    for line_number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         value = json.loads(line)
@@ -542,10 +513,7 @@ def audit_runtime_file(
         benchmark_contract=benchmark,
     )
     actual_hardware_sha256 = sha256_file(hardware_file)
-    if (
-        actual_hardware_sha256
-        != summary["benchmark_contract"]["hardware_sha256"]
-    ):
+    if actual_hardware_sha256 != summary["benchmark_contract"]["hardware_sha256"]:
         raise ValueError("hardware record SHA 与 benchmark contract 不一致")
     summary["input"] = {
         "runtime_jsonl": str(Path(input_path)),
@@ -557,9 +525,7 @@ def audit_runtime_file(
     }
     summary["hardware"] = dict(hardware)
     gpu_name = str(hardware["gpu_name"]).strip()
-    gpu_name_eligible = (
-        not OFFICIAL_TIMING_GPU_NAMES or gpu_name in OFFICIAL_TIMING_GPU_NAMES
-    )
+    gpu_name_eligible = not OFFICIAL_TIMING_GPU_NAMES or gpu_name in OFFICIAL_TIMING_GPU_NAMES
     hardware_eligible = gpu_name_eligible and (
         str(hardware.get("other_gpu_processes", "")).strip().lower() == "none"
     )
@@ -568,9 +534,7 @@ def audit_runtime_file(
         and hardware_eligible
         and benchmark.get("engineering_checkpoint_only") is False
     )
-    official_claim_eligible = (
-        summary["time_gate"]["passed"] and official_setup_eligible
-    )
+    official_claim_eligible = summary["time_gate"]["passed"] and official_setup_eligible
     summary["time_gate"]["official_hardware_eligible"] = hardware_eligible
     summary["time_gate"]["official_setup_eligible"] = official_setup_eligible
     summary["time_gate"]["official_claim_eligible"] = official_claim_eligible

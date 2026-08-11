@@ -64,9 +64,7 @@ def _cache_identities(
     for value in values:
         parts = value.split("=", 2)
         if len(parts) != 3:
-            raise ValueError(
-                f"--cache-identity 必须为 NAME=PREFIX=TEACHER_ID: {value!r}"
-            )
+            raise ValueError(f"--cache-identity 必须为 NAME=PREFIX=TEACHER_ID: {value!r}")
         name, prefix, teacher = (part.strip() for part in parts)
         if not name or name in prefixes or not prefix or not teacher:
             raise ValueError(f"--cache-identity 为空或重复: {value!r}")
@@ -85,18 +83,13 @@ def _atomic_json(path: Path, payload: dict) -> None:
     temporary = Path(temporary_name)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            handle.write(
-                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
-                + "\n"
-            )
+            handle.write(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
         try:
             os.link(temporary, path)
         except FileExistsError as error:
-            raise FileExistsError(
-                f"拒绝覆盖 formal input audit: {path}"
-            ) from error
+            raise FileExistsError(f"拒绝覆盖 formal input audit: {path}") from error
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -104,9 +97,7 @@ def _atomic_json(path: Path, payload: dict) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     cache_dirs = _cache_args(args.cache)
-    fingerprint_prefixes, teacher_ids = _cache_identities(
-        args.cache_identity
-    )
+    fingerprint_prefixes, teacher_ids = _cache_identities(args.cache_identity)
     if cache_dirs and not args.data_root:
         raise ValueError("审计 cache 时必须给 --data-root")
     if cache_dirs and not args.asset_lock:

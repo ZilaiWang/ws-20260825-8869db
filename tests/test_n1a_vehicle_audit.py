@@ -7,8 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from rsdet.analysis.crossfit_thresholds import load_cv3_aggregate
-
 
 def _make_aggregate(tmp_path: Path):
     """构造小型 OOF aggregate 用于审计测试。"""
@@ -27,20 +25,12 @@ def _make_aggregate(tmp_path: Path):
     )
     predictions = []
     # 图1: 1 个车辆 GT 匹配的高分候选 + 1 个低分干扰
-    predictions.append(
-        {"image_id": 1, "category_id": 24, "bbox": [0, 0, 10, 10], "score": 0.9}
-    )
+    predictions.append({"image_id": 1, "category_id": 24, "bbox": [0, 0, 10, 10], "score": 0.9})
     # 图2: 车辆 GT 有一个低分候选(0.01) → low_score_only
-    predictions.append(
-        {"image_id": 2, "category_id": 24, "bbox": [0, 0, 10, 10], "score": 0.01}
-    )
+    predictions.append({"image_id": 2, "category_id": 24, "bbox": [0, 0, 10, 10], "score": 0.01})
     # 图3: 车辆 GT 完全无候选(只有飞机候选)
-    predictions.append(
-        {"image_id": 3, "category_id": 4, "bbox": [0, 0, 10, 10], "score": 0.8}
-    )
-    (root / "predictions_oof_low.json").write_text(
-        json.dumps(predictions), encoding="utf-8"
-    )
+    predictions.append({"image_id": 3, "category_id": 4, "bbox": [0, 0, 10, 10], "score": 0.8})
+    (root / "predictions_oof_low.json").write_text(json.dumps(predictions), encoding="utf-8")
     (root / "oof_images.csv").write_text(
         "image_id,relative_path,fold,group_id\n"
         "1,images/train/a.jpg,0,g1\n"
@@ -90,9 +80,9 @@ def test_audit_buckets(tmp_path: Path):
     data = json.loads((output / "vehicle_audit_result.json").read_text(encoding="utf-8"))
     summary = data["summary"]
     assert summary["vehicle_gt_total"] == 3
-    assert summary["matched"] == 1   # 图1 高分
+    assert summary["matched"] == 1  # 图1 高分
     assert summary["low_score_only"] == 1  # 图2 低分
-    assert summary["no_candidate"] == 1    # 图3 无车辆候选
+    assert summary["no_candidate"] == 1  # 图3 无车辆候选
     assert summary["work_recall"] == pytest.approx(1 / 3, abs=0.001)
 
 

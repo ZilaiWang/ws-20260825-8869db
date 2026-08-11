@@ -296,7 +296,9 @@ def train(
         raise ValueError("the active training engine only accepts model: bhcdetr")
     seed = int(config.get("seed", 42))
     _seed_everything(seed, torch)
-    model_config = BHCDetrConfig.from_mapping(_mapping(config.get("architecture", {}), "architecture"))
+    model_config = BHCDetrConfig.from_mapping(
+        _mapping(config.get("architecture", {}), "architecture")
+    )
     loss_config = BHCDetrLossConfig.from_mapping(_mapping(config.get("loss", {}), "loss"))
     data_config = _mapping(config.get("data"), "data")
     train_config = _mapping(config.get("train"), "train")
@@ -442,16 +444,14 @@ def train(
             init_report["model"]["loaded_tensors"],
             init_report["model"]["source_tensors"],
             (
-                f'{init_report["criterion"]["loaded_tensors"]}/'
-                f'{init_report["criterion"]["source_tensors"]}'
+                f"{init_report['criterion']['loaded_tensors']}/"
+                f"{init_report['criterion']['source_tensors']}"
                 if init_report["criterion"] is not None
                 else "not available"
             ),
         )
     learning_rate = float(train_config.get("learning_rate", 5e-5))
-    backbone_learning_rate = float(
-        train_config.get("backbone_learning_rate", learning_rate)
-    )
+    backbone_learning_rate = float(train_config.get("backbone_learning_rate", learning_rate))
     weight_decay = float(train_config.get("weight_decay", 1e-4))
     if (
         not math.isfinite(learning_rate)
@@ -464,11 +464,7 @@ def train(
         raise ValueError("train.weight_decay must be finite and non-negative")
     use_backbone_parameter_group = "backbone_learning_rate" in train_config
     backbone_parameter_ids = (
-        {
-            id(parameter)
-            for parameter in model.backbone.parameters()
-            if parameter.requires_grad
-        }
+        {id(parameter) for parameter in model.backbone.parameters() if parameter.requires_grad}
         if use_backbone_parameter_group
         else set()
     )
@@ -484,9 +480,7 @@ def train(
     ]
     parameter_groups = []
     if main_parameters:
-        parameter_groups.append(
-            {"params": main_parameters, "lr": learning_rate, "name": "main"}
-        )
+        parameter_groups.append({"params": main_parameters, "lr": learning_rate, "name": "main"})
     if backbone_parameters:
         parameter_groups.append(
             {
@@ -534,10 +528,7 @@ def train(
         if not isinstance(raw_milestones, (list, tuple)):
             raise ValueError("train.lr_milestones must be a sequence of epochs")
         milestones = sorted(
-            {
-                _positive_int(int(value), "train.lr_milestones item")
-                for value in raw_milestones
-            }
+            {_positive_int(int(value), "train.lr_milestones item") for value in raw_milestones}
         )
         if any(value >= epochs for value in milestones):
             raise ValueError("train.lr_milestones items must be smaller than epochs")
@@ -548,9 +539,7 @@ def train(
 
         def lr_multiplier(update_index: int) -> float:
             warmup = (
-                min(float(update_index + 1) / float(warmup_steps), 1.0)
-                if warmup_steps > 0
-                else 1.0
+                min(float(update_index + 1) / float(warmup_steps), 1.0) if warmup_steps > 0 else 1.0
             )
             decay_count = sum(update_index >= step for step in milestone_steps)
             return warmup * (lr_gamma**decay_count)
@@ -558,9 +547,7 @@ def train(
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_multiplier)
         scheduler_interval = "update"
     else:
-        raise ValueError(
-            "train.scheduler must be 'none', 'cosine', or 'warmup_multistep'"
-        )
+        raise ValueError("train.scheduler must be 'none', 'cosine', or 'warmup_multistep'")
     try:
         scaler = torch.amp.GradScaler(device.type, enabled=amp)
     except (AttributeError, TypeError):  # PyTorch 2.1 compatibility
@@ -650,8 +637,7 @@ def train(
             epoch_steps += 1
             epoch_source_images += max(1, len(targets) // views_per_image)
             if log_interval and (
-                (batch_index + 1) % log_interval == 0
-                or batch_index + 1 == len(train_loader)
+                (batch_index + 1) % log_interval == 0 or batch_index + 1 == len(train_loader)
             ):
                 elapsed = max(time.perf_counter() - epoch_started_at, 1e-9)
                 memory = ""
@@ -675,9 +661,7 @@ def train(
         train_metrics = _mean_metrics(sums, epoch_steps)
         epoch_train_seconds = time.perf_counter() - epoch_started_at
         validation_ran = (
-            (epoch + 1) % validation_interval == 0
-            or epoch + 1 == epochs
-            or stop_requested
+            (epoch + 1) % validation_interval == 0 or epoch + 1 == epochs or stop_requested
         )
         val_metrics = (
             _run_validation(

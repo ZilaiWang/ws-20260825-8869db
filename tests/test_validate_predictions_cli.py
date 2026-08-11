@@ -44,9 +44,7 @@ def test_valid_prediction_file_passes(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     pred.write_text(
-        json.dumps(
-            [{"image_id": 11, "category_id": 24, "bbox": [10, 20, 30, 40], "score": 0.9}]
-        ),
+        json.dumps([{"image_id": 11, "category_id": 24, "bbox": [10, 20, 30, 40], "score": 0.9}]),
         encoding="utf-8",
     )
 
@@ -65,9 +63,7 @@ def test_unknown_image_id_fails(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     pred.write_text(
-        json.dumps(
-            [{"image_id": 12, "category_id": 0, "bbox": [0, 0, 10, 10], "score": 0.9}]
-        ),
+        json.dumps([{"image_id": 12, "category_id": 0, "bbox": [0, 0, 10, 10], "score": 0.9}]),
         encoding="utf-8",
     )
 

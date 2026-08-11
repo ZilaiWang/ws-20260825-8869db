@@ -23,20 +23,13 @@ ASSIGNMENT = ROOT / "data/splits/cv3_airport_proxy_k60_v2_groups.json"
 MANIFEST = ROOT / "data/splits/cv3_airport_proxy_k60_v2.json"
 AUDIT = ROOT / "reports/data/cv3_airport_proxy_k60_v2_audit.json"
 DATA_ROOT = ROOT.parent / "data"
-EXPECTED_GROUP_MAP_SHA256 = (
-    "3cd2fdb1db0b95ec3069db569fe56019942b9760a3a261f44800164135256f00"
-)
-EXPECTED_MANIFEST_SHA256 = (
-    "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331"
-)
+EXPECTED_GROUP_MAP_SHA256 = "3cd2fdb1db0b95ec3069db569fe56019942b9760a3a261f44800164135256f00"
+EXPECTED_MANIFEST_SHA256 = "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331"
 
 
 def _raw_group_map() -> dict[str, str]:
     with GROUP_MAP.open(encoding="utf-8-sig", newline="") as handle:
-        return {
-            Path(row["image_name"]).stem: row["group_id"]
-            for row in csv.DictReader(handle)
-        }
+        return {Path(row["image_name"]).stem: row["group_id"] for row in csv.DictReader(handle)}
 
 
 def test_k60_csv_contract_is_frozen() -> None:
@@ -50,9 +43,7 @@ def test_k60_csv_contract_is_frozen() -> None:
 
 
 @pytest.mark.parametrize("mutation", ["duplicate", "empty", "missing", "extra"])
-def test_k60_loader_rejects_contract_violations(
-    tmp_path: Path, mutation: str
-) -> None:
+def test_k60_loader_rejects_contract_violations(tmp_path: Path, mutation: str) -> None:
     rows = [
         {"image_name": "MAR20_1.jpg", "group_id": "mar20-airport-proxy-001"},
         {"image_name": "MAR20_2.jpg", "group_id": "mar20-airport-proxy-002"},
@@ -135,18 +126,13 @@ def test_frozen_v2_manifest_preserves_k60_and_all_groups() -> None:
         if Path(sample["relative_path"]).stem.startswith("MAR20_")
     }
     assert set(mar20_samples) == set(k60)
-    assert all(
-        mar20_samples[stem]["group_id"] == group_id
-        for stem, group_id in k60.items()
-    )
+    assert all(mar20_samples[stem]["group_id"] == group_id for stem, group_id in k60.items())
     assert len({sample["group_id"] for sample in mar20_samples.values()}) == 60
 
 
 def test_frozen_v2_preserves_non_mar20_group_fields_from_dev_v1() -> None:
     v2 = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    dev_v1 = json.loads(
-        (ROOT / "data/splits/dev_v1.json").read_text(encoding="utf-8")
-    )
+    dev_v1 = json.loads((ROOT / "data/splits/dev_v1.json").read_text(encoding="utf-8"))
     baseline = {
         sample["image_id"]: sample
         for sample in dev_v1["samples"]

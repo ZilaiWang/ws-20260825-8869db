@@ -35,6 +35,4 @@ def save_split_manifest(
     manifest.update(extra)
     manifest["samples"] = list(samples)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    output_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")

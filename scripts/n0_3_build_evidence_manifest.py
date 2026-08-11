@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 from pathlib import Path
@@ -58,9 +57,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="image_id->group_id 映射 JSON（可选，用于 source_group 填充）",
     )
-    parser.add_argument(
-        "--project-config", type=Path, default=Path("configs/project.yaml")
-    )
+    parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     parser.add_argument(
         "--threshold",
         type=float,
@@ -145,9 +142,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest_path = destination / "pred_oof_evidence.json"
     write_manifest_json(manifest, manifest_path)
     sha = manifest_sha256(manifest_path)
-    (destination / "manifest.sha256").write_text(
-        sha + "\n", encoding="utf-8"
-    )
+    (destination / "manifest.sha256").write_text(sha + "\n", encoding="utf-8")
 
     summary = manifest["summary"]
     logger.info("=== N0-3 对象证据 manifest ===")
@@ -159,7 +154,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     logger.info("FP 类型: %s", summary["fp_by_type"])
     logger.info("视图计数: %s", summary["view_counts"])
-    logger.info("官方指标: Recall %.4f / FDR %.4f", summary["official_recall"], summary["official_fdr"])
+    logger.info(
+        "官方指标: Recall %.4f / FDR %.4f", summary["official_recall"], summary["official_fdr"]
+    )
     logger.info("manifest SHA256: %s", sha)
     logger.info("已保存: %s", manifest_path)
     return 0

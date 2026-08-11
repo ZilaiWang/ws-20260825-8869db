@@ -115,14 +115,8 @@ if _TORCH_AVAILABLE:
                 raise TypeError("fine_labels must have an integer dtype")
             labels = fine_labels.to(dtype=torch.long)
             if labels.numel():
-                in_range = torch.all(
-                    (labels >= 0)
-                    & (labels < self.hierarchy.num_fine_classes)
-                )
-                message = (
-                    "fine_labels must be in "
-                    f"[0, {self.hierarchy.num_fine_classes})"
-                )
+                in_range = torch.all((labels >= 0) & (labels < self.hierarchy.num_fine_classes))
+                message = f"fine_labels must be in [0, {self.hierarchy.num_fine_classes})"
                 if labels.device.type == "cuda" and hasattr(torch, "_assert_async"):
                     # A Python bool(tensor) forces a host/device synchronization.
                     # PyTorch's CUDA async assertion preserves the validation
@@ -145,9 +139,7 @@ if _TORCH_AVAILABLE:
             pair_logits = features @ features.transpose(0, 1) / self.temperature
             prototype_logits = features @ level_prototypes.transpose(0, 1)
             prototype_logits = prototype_logits / self.temperature
-            class_counts = torch.bincount(
-                level_labels, minlength=category_count
-            )
+            class_counts = torch.bincount(level_labels, minlength=category_count)
 
             # Segment the N x N instance logits by their column category.  A
             # scatter log-sum-exp is algebraically identical to the former
@@ -164,9 +156,7 @@ if _TORCH_AVAILABLE:
             )
             category_index = level_labels[None, :].expand(sample_count, -1)
             with torch.no_grad():
-                instance_max = pair_logits.new_full(
-                    (sample_count, category_count), -torch.inf
-                )
+                instance_max = pair_logits.new_full((sample_count, category_count), -torch.inf)
                 instance_max.scatter_reduce_(
                     1,
                     category_index,
@@ -175,12 +165,8 @@ if _TORCH_AVAILABLE:
                     include_self=True,
                 )
                 class_max = torch.maximum(instance_max, prototype_logits.detach())
-            centered_instance = instance_logits - class_max.gather(
-                1, category_index
-            )
-            instance_exp_sum = pair_logits.new_zeros(
-                (sample_count, category_count)
-            ).scatter_add(
+            centered_instance = instance_logits - class_max.gather(1, category_index)
+            instance_exp_sum = pair_logits.new_zeros((sample_count, category_count)).scatter_add(
                 1,
                 category_index,
                 centered_instance.exp(),
@@ -193,19 +179,13 @@ if _TORCH_AVAILABLE:
 
             same_category = level_labels[:, None] == level_labels[None, :]
             same_category.fill_diagonal_(False)
-            positive_instance_sum = pair_logits.masked_fill(
-                ~same_category, 0.0
-            ).sum(dim=1)
-            own_prototype_logits = prototype_logits.gather(
-                1, level_labels[:, None]
-            ).squeeze(1)
+            positive_instance_sum = pair_logits.masked_fill(~same_category, 0.0).sum(dim=1)
+            own_prototype_logits = prototype_logits.gather(1, level_labels[:, None]).squeeze(1)
 
             # P'_l(i) contains all same-category instances except i, plus the
             # own ancestor prototype.  Its cardinality is therefore |I_c|.
             positive_count = class_counts[level_labels].to(pair_logits.dtype)
-            mean_positive_logit = (
-                positive_instance_sum + own_prototype_logits
-            ) / positive_count
+            mean_positive_logit = (positive_instance_sum + own_prototype_logits) / positive_count
             return (log_denominator - mean_positive_logit).mean()
 
         def forward(
@@ -229,9 +209,9 @@ if _TORCH_AVAILABLE:
             features = F.normalize(projected_features, dim=1)
             # Clone because the live buffers can be changed below before
             # backward; autograd needs this constant snapshot for dL/df.
-            prototype_snapshot = F.normalize(
-                self.prototypes.detach().clone(), dim=1
-            ).to(dtype=features.dtype)
+            prototype_snapshot = F.normalize(self.prototypes.detach().clone(), dim=1).to(
+                dtype=features.dtype
+            )
             mapping = self.fine_to_level[:, labels]
 
             total = features.sum() * 0.0

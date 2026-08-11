@@ -7,7 +7,8 @@ N2-1 训练出对象学生（ConvNeXt-T，25 细类 + background 哨兵）。N2-
 cross-fit 阈值评估消融链：
 
 - ``reclassify``（25 类重分类）：每个候选的学生细类预测替换 M1 类别；
-- ``reclassify_bg``（背景拒识）：学生判为 background 的候选直接丢弃；
+- ``background_reject``（背景拒识）：学生判为 background 的候选直接丢弃，
+  其他候选保留检测器原类别；
 - ``joint``（联合）：重分类 + 背景拒识同时生效。
 
 融合保持 M1 的框与 score，只替换类别与过滤状态——这样消融差异干净归因于
@@ -16,10 +17,6 @@ cross-fit 阈值评估消融链：
 
 from __future__ import annotations
 
-import csv
-import json
-import math
-from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -32,9 +29,9 @@ from rsdet.data.crop_classification import render_crop
 from rsdet.models.crop_classifier import build_convnext_tiny_classifier
 
 # 融合模式。
-MODE_RECLASSIFY = "reclassify"          # 25 类重分类（学生类别替换 M1 类别）
-MODE_BACKGROUND = "background_reject"    # 只拒背景（学生判 background 则丢弃）
-MODE_JOINT = "joint"                    # 重分类 + 背景拒识
+MODE_RECLASSIFY = "reclassify"  # 25 类重分类（学生类别替换 M1 类别）
+MODE_BACKGROUND = "background_reject"  # 只拒背景（学生判 background 则丢弃）
+MODE_JOINT = "joint"  # 重分类 + 背景拒识
 
 
 def load_checkpoint(model: torch.nn.Module, checkpoint_path: str | Path) -> None:
@@ -105,9 +102,7 @@ def reclassify_proposals(
                 _parse_xyxy(row["crop_xyxy"]),
                 resolution,
             )
-            tensor = torch.from_numpy(
-                np.asarray(crop, dtype=np.float32).transpose(2, 0, 1)
-            )
+            tensor = torch.from_numpy(np.asarray(crop, dtype=np.float32).transpose(2, 0, 1))
             tensor = (tensor / 255.0 - mean) / std
             batch_tensors.append(tensor)
         batch = torch.stack(batch_tensors).to(device)
@@ -117,22 +112,20 @@ def reclassify_proposals(
         scores = probs.max(dim=1).values
 
         for row, pred, prob_score in zip(batch_rows, preds.tolist(), scores.tolist()):
-            dropped = False
-            category_id = int(pred)
-            if pred == BACKGROUND_CLASS_ID:
-                if mode in {MODE_BACKGROUND, MODE_JOINT}:
-                    dropped = True
-                else:
-                    # reclassify 模式下背景哨兵退化为保留原类别（保守）。
-                    category_id = int(row["class_id"])
-            elif mode == MODE_RECLASSIFY or mode == MODE_JOINT:
+            detector_category_id = int(row["detector_category_id"])
+            predicted_background = pred == BACKGROUND_CLASS_ID
+            dropped = predicted_background and mode in {MODE_BACKGROUND, MODE_JOINT}
+            if mode == MODE_BACKGROUND or predicted_background:
+                category_id = detector_category_id
+            else:
                 category_id = int(pred)
             results.append(
                 {
                     "proposal_uid": str(row["proposal_uid"]),
                     "image_id": int(row["image_id"]),
                     "fold": int(row["fold"]),
-                    "original_category_id": int(row["class_id"]),
+                    "original_category_id": detector_category_id,
+                    "source_prediction_index": int(row["source_prediction_index"]),
                     "category_id": category_id,
                     "score": float(row["score"]),
                     "student_score": float(prob_score),
@@ -151,33 +144,34 @@ def build_reclassified_predictions(
 ) -> dict[int, list[dict[str, Any]]]:
     """把重分类结果融合回 M1 原始预测，输出 COCO 格式预测。
 
-    匹配键：``(image_id, score)``。重分类结果只覆盖 manifest 中的候选
+    匹配键：``(image_id, source_prediction_index)``。重分类结果只覆盖 manifest 中的候选
     （score >= manifest 阈值），OOF 聚合里更低的候选没有重分类记录，
     保持原样（它们低于工作点，不影响 cross-fit 的评估窗口）。
 
     - MODE_RECLASSIFY / MODE_JOINT：替换类别；
     - MODE_BACKGROUND / MODE_JOINT：dropped 的候选被剔除。
     """
-    by_image_score: dict[tuple[int, float], Mapping[str, Any]] = {}
+    by_image_index: dict[tuple[int, int], Mapping[str, Any]] = {}
     for record in reclassified:
-        key = (int(record["image_id"]), float(record["score"]))
-        by_image_score[key] = record
+        key = (int(record["image_id"]), int(record["source_prediction_index"]))
+        if key in by_image_index:
+            raise ValueError(f"重复的重分类键: {key}")
+        by_image_index[key] = record
 
     result: dict[int, list[dict[str, Any]]] = {}
     for image_id, records in oof_predictions.items():
         kept: list[dict[str, Any]] = []
-        for record in records:
-            key = (int(record["image_id"]), float(record["score"]))
-            rc = by_image_score.get(key)
+        for source_prediction_index, record in enumerate(records):
+            key = (int(image_id), source_prediction_index)
+            rc = by_image_index.get(key)
             if rc is not None:
-                # manifest 中的背景训练样本（原类别 25）不属于检测候选，
-                # 一律剔除；学生判背景的按模式处理。
-                if int(rc["original_category_id"]) == BACKGROUND_CLASS_ID:
-                    continue
                 if rc.get("dropped"):
                     continue
                 new_record = dict(record)
-                new_record["category_id"] = int(rc["category_id"])
+                if mode in {MODE_RECLASSIFY, MODE_JOINT}:
+                    new_record["category_id"] = int(rc["category_id"])
+                else:
+                    new_record["category_id"] = int(record["category_id"])
                 new_record["student_score"] = float(rc["student_score"])
                 kept.append(new_record)
             else:

@@ -24,13 +24,12 @@ def _model_state(checkpoint: Mapping[str, Any]) -> Mapping[str, Any]:
     state = checkpoint.get("model", checkpoint.get("state_dict"))
     if not isinstance(state, Mapping):
         raise ValueError("checkpoint must contain a model/state_dict mapping")
-    return {
-        str(key).removeprefix("module."): value
-        for key, value in state.items()
-    }
+    return {str(key).removeprefix("module."): value for key, value in state.items()}
 
 
-def _letterbox_rgb(image: np.ndarray, image_size: int) -> tuple[torch.Tensor, torch.Tensor, dict[str, float]]:
+def _letterbox_rgb(
+    image: np.ndarray, image_size: int
+) -> tuple[torch.Tensor, torch.Tensor, dict[str, float]]:
     if image.ndim != 3 or image.shape[2] != 3 or image.dtype != np.uint8:
         raise ValueError(f"BHC-DETR input must be uint8 HWC RGB, found {image.shape}/{image.dtype}")
     height, width = image.shape[:2]
@@ -55,12 +54,16 @@ def _letterbox_rgb(image: np.ndarray, image_size: int) -> tuple[torch.Tensor, to
     tensor = (tensor - mean) / std
     mask = torch.ones((image_size, image_size), dtype=torch.bool)
     mask[pad_y : pad_y + resized_height, pad_x : pad_x + resized_width] = False
-    return tensor, mask, {
-        "scale_x": resized_width / width,
-        "scale_y": resized_height / height,
-        "pad_x": float(pad_x),
-        "pad_y": float(pad_y),
-    }
+    return (
+        tensor,
+        mask,
+        {
+            "scale_x": resized_width / width,
+            "scale_y": resized_height / height,
+            "pad_x": float(pad_x),
+            "pad_y": float(pad_y),
+        },
+    )
 
 
 @register_model("bhcdetr")
@@ -128,7 +131,9 @@ class BHCDetrDetector(BaseDetector):
             raise RuntimeError("BHC-DETR has not been loaded")
         if not batch:
             return []
-        prepared = [_letterbox_rgb(np.asarray(sample.image), self._config.image_size) for sample in batch]
+        prepared = [
+            _letterbox_rgb(np.asarray(sample.image), self._config.image_size) for sample in batch
+        ]
         images = torch.stack([item[0] for item in prepared]).to(self._device, non_blocking=True)
         masks = torch.stack([item[1] for item in prepared]).to(self._device, non_blocking=True)
         autocast_enabled = self.half and self._device.type == "cuda"

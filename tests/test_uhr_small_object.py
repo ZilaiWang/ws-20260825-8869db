@@ -7,7 +7,6 @@ import sys
 
 import pytest
 
-
 # Importing torch can fail with a Windows DLL error before pytest can turn the
 # exception into a module-level skip.  Probe it in a child process first, as in
 # the BHC-DETR dataset tests.
@@ -92,22 +91,13 @@ def _dynamic_sparse_token_reference(
         y2 = (center_y + half_height).ceil().clamp(0, height)[:, None, None]
         x1 = (center_x - half_width).floor().clamp(0, width)[:, None, None]
         x2 = (center_x + half_width).ceil().clamp(0, width)[:, None, None]
-        window_masks = (
-            (row_grid >= y1)
-            & (row_grid < y2)
-            & (column_grid >= x1)
-            & (column_grid < x2)
-        )
+        window_masks = (row_grid >= y1) & (row_grid < y2) & (column_grid >= x1) & (column_grid < x2)
         window_masks &= ~local_padding_mask[batch_index][None]
         for window_mask in window_masks:
             candidate_mask |= window_mask
-            window_candidates.append(
-                torch.nonzero(window_mask.flatten(), as_tuple=False).flatten()
-            )
+            window_candidates.append(torch.nonzero(window_mask.flatten(), as_tuple=False).flatten())
         candidate_mask &= ~local_padding_mask[batch_index]
-        candidates = torch.nonzero(
-            candidate_mask.flatten(), as_tuple=False
-        ).flatten()
+        candidates = torch.nonzero(candidate_mask.flatten(), as_tuple=False).flatten()
         if candidates.numel() == 0:
             candidates = torch.nonzero(
                 (~local_padding_mask[batch_index]).flatten(), as_tuple=False
@@ -117,9 +107,7 @@ def _dynamic_sparse_token_reference(
             continue
 
         flat_dense_scores = dense_scores[batch_index].flatten()
-        chosen_mask = torch.zeros(
-            height * width, dtype=torch.bool, device=local_features.device
-        )
+        chosen_mask = torch.zeros(height * width, dtype=torch.bool, device=local_features.device)
         selected_chunks = []
         base_quota, remainder = divmod(max_tokens, patch_budget)
         for window_index, window in enumerate(window_candidates):
@@ -129,9 +117,7 @@ def _dynamic_sparse_token_reference(
             available = window[~chosen_mask.index_select(0, window)]
             if available.numel() > quota:
                 local_scores = flat_dense_scores.index_select(0, available)
-                available = available.index_select(
-                    0, local_scores.topk(quota, sorted=True).indices
-                )
+                available = available.index_select(0, local_scores.topk(quota, sorted=True).indices)
             chosen_mask[available] = True
             selected_chunks.append(available)
         selected_count = sum(int(chunk.numel()) for chunk in selected_chunks)
@@ -145,24 +131,18 @@ def _dynamic_sparse_token_reference(
                 )
             if available.numel():
                 selected_chunks.append(available)
-        candidates = (
-            torch.cat(selected_chunks)
-            if selected_chunks
-            else candidates[:max_tokens]
-        )
+        candidates = torch.cat(selected_chunks) if selected_chunks else candidates[:max_tokens]
         count = min(int(candidates.numel()), max_tokens)
         candidates = candidates[:count]
         if count:
-            selected_features[batch_index, :count] = token_features[
-                batch_index
-            ].index_select(0, candidates)
-            selected_position[batch_index, :count] = token_position[
-                batch_index
-            ].index_select(0, candidates)
+            selected_features[batch_index, :count] = token_features[batch_index].index_select(
+                0, candidates
+            )
+            selected_position[batch_index, :count] = token_position[batch_index].index_select(
+                0, candidates
+            )
             selected_padding[batch_index, :count] = False
-    routing = torch.cat(
-        (coordinates.to(scores.dtype), scores[..., None]), dim=-1
-    )
+    routing = torch.cat((coordinates.to(scores.dtype), scores[..., None]), dim=-1)
     return selected_features, selected_position, selected_padding, routing
 
 
@@ -268,9 +248,7 @@ def test_local_peak_margin_enforces_four_neighbours_and_plateau_is_deterministic
     expected_peak = torch.tensor([[[True, False], [False, False]]])
     assert torch.equal(plateau_peaks, expected_peak)
 
-    separated_plateaus = torch.tensor(
-        [[[1.0, 1.0, 0.0, 2.0, 2.0]]]
-    )
+    separated_plateaus = torch.tensor([[[1.0, 1.0, 0.0, 2.0, 2.0]]])
     separated_peaks = ground_truth_peak_mask(separated_plateaus)
     assert torch.equal(
         separated_peaks,
@@ -428,16 +406,10 @@ def test_batched_sparse_selector_matches_dynamic_reference(
     padded sample.  ``max_tokens=70`` also covers capacity above H*W.
     """
 
-    generator = torch.Generator().manual_seed(
-        9100 + patch_budget * 100 + max_tokens
-    )
+    generator = torch.Generator().manual_seed(9100 + patch_budget * 100 + max_tokens)
     batch, channels, height, width = 3, 4, 7, 9
-    local_features = torch.randn(
-        batch, channels, height, width, generator=generator
-    )
-    local_position = torch.randn(
-        batch, channels, height, width, generator=generator
-    )
+    local_features = torch.randn(batch, channels, height, width, generator=generator)
+    local_position = torch.randn(batch, channels, height, width, generator=generator)
     padding = torch.rand(batch, height, width, generator=generator) < 0.22
     padding[0, 0, 0] = False
     padding[1] = True

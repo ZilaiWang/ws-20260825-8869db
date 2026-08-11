@@ -48,9 +48,7 @@ def _make_dataset(tmp_path: Path) -> tuple[Path, Path]:
         )
         image_id += 1
     manifest = tmp_path / "dev_v1.json"
-    manifest.write_text(
-        json.dumps({"version": "dev_v1", "samples": samples}), encoding="utf-8"
-    )
+    manifest.write_text(json.dumps({"version": "dev_v1", "samples": samples}), encoding="utf-8")
     return root, manifest
 
 
@@ -73,9 +71,10 @@ def test_prepare_balanced_ultralytics_lists(tmp_path: Path) -> None:
     assert len(base_lines) == 44
     assert len(balanced_lines) > len(base_lines)
     assert len(val_lines) == 2
-    assert report["classes"][1]["effective_number_weight"] > report["classes"][0][
-        "effective_number_weight"
-    ]
+    assert (
+        report["classes"][1]["effective_number_weight"]
+        > report["classes"][0]["effective_number_weight"]
+    )
     rare_sample = next(sample for sample in report["samples"] if sample["labels"] == [1])
     common_sample = next(sample for sample in report["samples"] if sample["labels"] == [0])
     assert rare_sample["repeat_factor"] > common_sample["repeat_factor"]

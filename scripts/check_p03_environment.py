@@ -12,9 +12,7 @@ from pathlib import Path
 from rsdet.data.crop_classification import load_crop_records, validate_fold_isolation
 from rsdet.models.crop_classifier import CONVNEXT_TINY_WEIGHT_SHA256, sha256_file
 
-EXPECTED_MANIFEST_SHA256 = (
-    "f259cd33542f4bfaad8f6af31cc71a87819fe3e4fd27ebd9a8b3da5922a0e26e"
-)
+EXPECTED_MANIFEST_SHA256 = "f259cd33542f4bfaad8f6af31cc71a87819fe3e4fd27ebd9a8b3da5922a0e26e"
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,9 +66,7 @@ def main() -> int:
         train = load_crop_records(
             args.manifest, crop_policy="tight", held_out_fold=fold, split="train"
         )
-        val = load_crop_records(
-            args.manifest, crop_policy="tight", held_out_fold=fold, split="val"
-        )
+        val = load_crop_records(args.manifest, crop_policy="tight", held_out_fold=fold, split="val")
         validate_fold_isolation(train, val)
         checks[f"fold{fold}_train"] = len(train)
         checks[f"fold{fold}_val"] = len(val)

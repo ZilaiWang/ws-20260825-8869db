@@ -64,9 +64,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     queue_path = Path(args.geometry_queue).expanduser().resolve()
     queue_summary_path = Path(args.geometry_queue_summary).expanduser().resolve()
     queue_summary = json.loads(queue_summary_path.read_text(encoding="utf-8"))
-    if queue_summary.get("status") != "pass" or queue_summary.get(
-        "artifact_sha256"
-    ) != sha256_file(queue_path):
+    if queue_summary.get("status") != "pass" or queue_summary.get("artifact_sha256") != sha256_file(
+        queue_path
+    ):
         raise ValueError("geometry queue artifacts are not admitted")
     registry_path = Path(args.registry).expanduser().resolve()
     annotations_path = Path(args.annotations).expanduser().resolve()

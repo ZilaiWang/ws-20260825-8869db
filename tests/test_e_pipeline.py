@@ -1,6 +1,6 @@
 """E 的端到端 pipeline 集成测试。"""
 
-import pytest
+import numpy as np
 
 from rsdet.models.registry import build_model
 from rsdet.pipeline.large_image import (
@@ -12,12 +12,10 @@ from rsdet.pipeline.mock_model import MockDetector
 from rsdet.tiling.slicer import generate_tiles
 from rsdet.tiling.synthetic import generate_synthetic_scene
 
-import numpy as np
-
-
 # ---------------------------------------------------------------------------
 # 辅助
 # ---------------------------------------------------------------------------
+
 
 def _tile_metadata_for_mock(scene):
     """为每个 tile 生成包含 gt_boxes 的 metadata（mock detector 使用）。"""
@@ -51,6 +49,7 @@ def _tile_metadata_for_mock(scene):
 # 单元：tile 图像裁取
 # ---------------------------------------------------------------------------
 
+
 class TestExtractTileImage:
     def test_extract_preserves_content(self):
         """裁取后像素值与原图对应区域一致。"""
@@ -59,13 +58,19 @@ class TestExtractTileImage:
         tile = tiles[0]
         patch = _extract_tile_image(full, tile)
         assert patch.shape == (tile.height, tile.width, 3)
-        np.testing.assert_array_equal(patch, full[tile.y_offset:tile.y_offset + tile.height,
-                                                    tile.x_offset:tile.x_offset + tile.width])
+        np.testing.assert_array_equal(
+            patch,
+            full[
+                tile.y_offset : tile.y_offset + tile.height,
+                tile.x_offset : tile.x_offset + tile.width,
+            ],
+        )
 
 
 # ---------------------------------------------------------------------------
 # 集成：端到端 pipeline
 # ---------------------------------------------------------------------------
+
 
 class TestEndToEndPipeline:
     def test_mock_detector_registered(self):
@@ -172,8 +177,13 @@ class TestEndToEndPipeline:
     def test_timing_fields_populated(self):
         """PipelineTiming 各字段均有值。"""
         scene = generate_synthetic_scene(
-            image_size=2048, tile_size=1024, overlap=128, seed=99,
-            num_ships=1, num_aircraft=2, num_vehicles=1,
+            image_size=2048,
+            tile_size=1024,
+            overlap=128,
+            seed=99,
+            num_ships=1,
+            num_aircraft=2,
+            num_vehicles=1,
         )
 
         detector = build_model("mock", {"init_args": {}})
@@ -201,8 +211,13 @@ class TestEndToEndPipeline:
         """pipeline 接受任何 BaseDetector 实例（用 dummy 测试）。"""
         detector = build_model("dummy", {"init_args": {}})
         scene = generate_synthetic_scene(
-            image_size=1024, tile_size=1024, overlap=0, seed=0,
-            num_ships=0, num_aircraft=0, num_vehicles=0,
+            image_size=1024,
+            tile_size=1024,
+            overlap=0,
+            seed=0,
+            num_ships=0,
+            num_aircraft=0,
+            num_vehicles=0,
         )
         config = PipelineConfig(tile_size=1024, overlap=0, batch_size=1)
         prediction, timing = run_pipeline(scene.image, detector, config=config)

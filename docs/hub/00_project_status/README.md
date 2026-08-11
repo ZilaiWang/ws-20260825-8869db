@@ -1,7 +1,11 @@
 # 当前项目状态与总体方向
 
-更新日期：2026-08-04  
+更新日期：2026-08-10
 状态：`current`
+
+> 创新实验立项时先读
+> [`PRE_INNOVATION_CLOSURE_20260810.md`](../../../reports/experiments/PRE_INNOVATION_CLOSURE_20260810.md)。
+> 该文档是当前数字、作废项、评估口径和大文件血缘的最高优先级入口。
 
 ## 1. 当前已经掌握的事实
 
@@ -24,9 +28,12 @@
   20,933 个 GT、55,548 个候选。探索工作点 `t=0.051` 的 Overall Recall
   为 `0.9172`、FDR 为 `0.1957`，说明总体存在过线区间，但 fold 0/2 的
   FDR 仍超过 0.20，且距离内部目标 FDR≤0.17 仍有明显差距。
-- 工作点错误分解为 `FP_BG=3303`、`FN_CLS=1115`、`FN_MISS=553`、
-  `FN_LOC=66`。后续优先级由此改为：飞机细分类、舰船背景拒识、车辆候选
-  召回；框修正与 bbox diffusion 暂缓。
+- 正式工作点计数守恒分解为 `FP_BG=3303`、`FP_CLS=1115`、
+  `FP_DUP=187`、`FP_LOC=66`。N0 v2 中的 nearest-overlap 子类只是研究标签，
+  不得与这组正式计数混用。后续优先级为：车辆/小目标候选、舰船虚警、
+  飞机结构性细类混淆；常规框修正与 bbox diffusion 暂缓。
+- N0-3 v1、N2 v1 和 P2 的正式增益声称已作废；N0 v2 已重放，N2 v2
+  代码已修复但尚未重训。
 
 ## 2. 现阶段模型角色已经明确
 
@@ -78,8 +85,10 @@ ImageNet、DINOv2 和 YOLO/RT-DETR 不是三选一：
 ## 5. 当前主要证据入口
 
 - **官方 V1.6 评分标准速查与团队工具**：
-  [`docs/hub/01_scoring_standard/README.md`](../../../hub/01_scoring_standard/README.md)
+  [`docs/hub/01_scoring_standard/README.md`](../01_scoring_standard/README.md)
   （七项排名/二次排序口径、`evaluate.py --latency-seconds`、`rank_official.py` 用法）
+- **创新前实验收尾（当前权威入口）**：
+  [`PRE_INNOVATION_CLOSURE_20260810.md`](../../../reports/experiments/PRE_INNOVATION_CLOSURE_20260810.md)
 - 总体创新评估：[`doc/下一阶段创新方向评估与总体逻辑.md`](../../../../doc/下一阶段创新方向评估与总体逻辑.md)
 - 详细实验路线：[`doc/扩散模型创新路线详细执行报告.md`](../../../../doc/扩散模型创新路线详细执行报告.md)
 - 当前分工（第二阶段，含 V1.6 口径对齐）：[`doc/第二阶段分工.md`](../../../../doc/第二阶段分工.md)

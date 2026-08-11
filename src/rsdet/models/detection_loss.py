@@ -50,9 +50,9 @@ def box_xyxy_to_cxcywh(boxes: Tensor) -> Tensor:
 
 
 def box_area(boxes: Tensor) -> Tensor:
-    return (boxes[..., 2] - boxes[..., 0]).clamp(min=0) * (
-        boxes[..., 3] - boxes[..., 1]
-    ).clamp(min=0)
+    return (boxes[..., 2] - boxes[..., 0]).clamp(min=0) * (boxes[..., 3] - boxes[..., 1]).clamp(
+        min=0
+    )
 
 
 def box_iou(boxes1: Tensor, boxes2: Tensor) -> tuple[Tensor, Tensor]:
@@ -168,11 +168,15 @@ class HungarianMatcher(nn.Module):
         target_boxes = target["boxes"]
         eps = 1e-8
         probability = logits[batch_index].sigmoid()
-        negative_cost = (1.0 - self.alpha) * probability.pow(self.gamma) * -torch.log(
-            (1.0 - probability).clamp(min=eps)
+        negative_cost = (
+            (1.0 - self.alpha)
+            * probability.pow(self.gamma)
+            * -torch.log((1.0 - probability).clamp(min=eps))
         )
-        positive_cost = self.alpha * (1.0 - probability).pow(self.gamma) * -torch.log(
-            probability.clamp(min=eps)
+        positive_cost = (
+            self.alpha
+            * (1.0 - probability).pow(self.gamma)
+            * -torch.log(probability.clamp(min=eps))
         )
         classification = positive_cost[:, target_labels] - negative_cost[:, target_labels]
         bbox = torch.cdist(boxes[batch_index], target_boxes, p=1)
@@ -180,11 +184,7 @@ class HungarianMatcher(nn.Module):
             box_cxcywh_to_xyxy(boxes[batch_index]),
             box_cxcywh_to_xyxy(target_boxes),
         )
-        return (
-            self.class_cost * classification
-            + self.bbox_cost * bbox
-            + self.giou_cost * giou
-        )
+        return self.class_cost * classification + self.bbox_cost * bbox + self.giou_cost * giou
 
     @torch.no_grad()
     def match_layers(
@@ -211,9 +211,7 @@ class HungarianMatcher(nn.Module):
         # matrix.  Keeping the matrices on the accelerator until all layers have
         # queued their work avoids one blocking ``.cpu()`` per image and layer.
         pending: list[tuple[int, int, int, int, Tensor]] = []
-        results: list[list[tuple[Tensor, Tensor] | None]] = [
-            [None] * len(targets) for _ in outputs
-        ]
+        results: list[list[tuple[Tensor, Tensor] | None]] = [[None] * len(targets) for _ in outputs]
         common_device = outputs[0]["pred_logits"].device
         for layer_index, layer_outputs in enumerate(outputs):
             logits = layer_outputs["pred_logits"]
@@ -229,19 +227,13 @@ class HungarianMatcher(nn.Module):
                     results[layer_index][batch_index] = (empty, empty.clone())
                     continue
                 cost = self._cost_matrix(layer_outputs, target, batch_index)
-                pending.append(
-                    (layer_index, batch_index, cost.shape[0], target_count, cost)
-                )
+                pending.append((layer_index, batch_index, cost.shape[0], target_count, cost))
 
         if pending:
             # Exactly one synchronization and D2H copy for all non-empty cost
             # matrices.  Their flattened order is layer-major then batch-major,
             # identical to the former nested matcher calls.
-            flat_costs = (
-                torch.cat([item[-1].reshape(-1) for item in pending])
-                .cpu()
-                .numpy()
-            )
+            flat_costs = torch.cat([item[-1].reshape(-1) for item in pending]).cpu().numpy()
             offset = 0
             solved: list[tuple[int, int, Tensor, Tensor]] = []
             for layer_index, batch_index, query_count, target_count, _ in pending:
@@ -361,12 +353,15 @@ class BHCDetrCriterion(nn.Module):
             if source_indices.numel():
                 labels = targets[batch_index]["labels"][target_indices]
                 target_classes[batch_index, source_indices, labels] = 1.0
-        classification = sigmoid_focal_loss(
-            logits,
-            target_classes,
-            alpha=self.config.focal_alpha,
-            gamma=self.config.focal_gamma,
-        ).sum() / number_of_boxes
+        classification = (
+            sigmoid_focal_loss(
+                logits,
+                target_classes,
+                alpha=self.config.focal_alpha,
+                gamma=self.config.focal_gamma,
+            ).sum()
+            / number_of_boxes
+        )
 
         if not any(source.numel() for source, _ in indices):
             zero = output["pred_boxes"].sum() * 0.0
@@ -374,7 +369,10 @@ class BHCDetrCriterion(nn.Module):
         batch_indices, source_indices = self._matched_permutation(indices)
         predicted_boxes = output["pred_boxes"][batch_indices, source_indices]
         target_boxes = torch.cat(
-            [target["boxes"][target_indices] for target, (_, target_indices) in zip(targets, indices)]
+            [
+                target["boxes"][target_indices]
+                for target, (_, target_indices) in zip(targets, indices)
+            ]
         )
         bbox = F.l1_loss(predicted_boxes, target_boxes, reduction="none").sum() / number_of_boxes
         giou_matrix = generalized_box_iou(
@@ -400,7 +398,10 @@ class BHCDetrCriterion(nn.Module):
         batch_indices, source_indices = BHCDetrCriterion._matched_permutation(indices)
         projected = output["projected_queries"][batch_indices, source_indices]
         labels = torch.cat(
-            [target["labels"][target_indices] for target, (_, target_indices) in zip(targets, indices)]
+            [
+                target["labels"][target_indices]
+                for target, (_, target_indices) in zip(targets, indices)
+            ]
         )
         return projected, labels
 
@@ -458,10 +459,7 @@ class BHCDetrCriterion(nn.Module):
             if not isinstance(gain_map, Tensor):
                 raise ValueError("gain_map output is required with gain_logits")
             patch_fraction = outputs.get("gain_patch_fraction")
-            if (
-                not isinstance(patch_fraction, tuple)
-                or len(patch_fraction) != 2
-            ):
+            if not isinstance(patch_fraction, tuple) or len(patch_fraction) != 2:
                 raise ValueError("gain_patch_fraction must be a (height,width) tuple")
             valid_mask = outputs.get("gain_valid_mask")
             if valid_mask is not None and not isinstance(valid_mask, Tensor):

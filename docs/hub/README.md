@@ -1,6 +1,10 @@
 # 项目资料导航
 
-更新日期：2026-08-04
+更新日期：2026-08-10
+
+> 开始新创新实验前，先读
+> [`PRE_INNOVATION_CLOSURE_20260810.md`](../../reports/experiments/PRE_INNOVATION_CLOSURE_20260810.md)；
+> 它统一了官方 V1.6 口径、可信基线、作废结论和后续准入。
 
 本目录是项目文档的非破坏式导航层。原始报告、数据清单、任务单和服务器产物仍保留在原路径，避免破坏相对链接、复现命令和 SHA 合同。
 
@@ -36,4 +40,5 @@
 - 两份划分总索引：[`reports/data/DATA_SPLITS_MASTER_INDEX_v1.md`](../../reports/data/DATA_SPLITS_MASTER_INDEX_v1.md)
 - 机场代理分组主链：[`reports/data/MAR20_AIRPORT_PROXY_GROUPING_MASTER_CHAIN_INDEX_v1.md`](../../reports/data/MAR20_AIRPORT_PROXY_GROUPING_MASTER_CHAIN_INDEX_v1.md)
 - 延期实验台账：[`reports/experiments/DEFERRED_WORK_REGISTER.md`](../../reports/experiments/DEFERRED_WORK_REGISTER.md)
-- 服务器资产登记：[`reports/experiments/SERVER_ARTIFACT_REGISTER.csv`](../../reports/experiments/SERVER_ARTIFACT_REGISTER.csv)
+- 大文件交付登记：[`reports/experiments/ARTIFACT_RELEASE_REGISTER.csv`](../../reports/experiments/ARTIFACT_RELEASE_REGISTER.csv)
+- 历史服务器路径快照：[`reports/experiments/SERVER_ARTIFACT_REGISTER.csv`](../../reports/experiments/SERVER_ARTIFACT_REGISTER.csv)

@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from rsdet.models.registry import build_model
 import rsdet.pipeline.mock_model  # noqa: F401 — 注册 "mock"
+from rsdet.models.registry import build_model
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 
 
@@ -23,7 +23,6 @@ def _make_image(h, w, channels, dtype=np.uint8):
 
 
 class TestImageFormats:
-
     @pytest.mark.parametrize("channels", [1, 3, 4])
     def test_pipeline_no_crash(self, channels):
         """灰度(1ch) / RGB(3ch) / RGBA(4ch) 均不崩溃。"""
@@ -32,7 +31,10 @@ class TestImageFormats:
         detector.eval()
         config = PipelineConfig(tile_size=1024, overlap=128, batch_size=4)
         pred, timing = run_pipeline(
-            img, detector, config=config, parent_image_id=1,
+            img,
+            detector,
+            config=config,
+            parent_image_id=1,
         )
         assert pred.image_id == 1
         assert timing.n_tiles > 0
@@ -44,7 +46,10 @@ class TestImageFormats:
         detector.eval()
         config = PipelineConfig(tile_size=1024, overlap=128, batch_size=4)
         pred, timing = run_pipeline(
-            img, detector, config=config, parent_image_id=1,
+            img,
+            detector,
+            config=config,
+            parent_image_id=1,
         )
         assert pred.image_id == 1
 
@@ -55,7 +60,10 @@ class TestImageFormats:
         detector.eval()
         config = PipelineConfig(tile_size=1024, overlap=128, batch_size=4)
         pred, timing = run_pipeline(
-            img, detector, config=config, parent_image_id=1,
+            img,
+            detector,
+            config=config,
+            parent_image_id=1,
         )
         assert timing.n_tiles == 1
 
@@ -66,7 +74,10 @@ class TestImageFormats:
         detector.eval()
         config = PipelineConfig(tile_size=1024, overlap=0, batch_size=1)
         pred, timing = run_pipeline(
-            img, detector, config=config, parent_image_id=1,
+            img,
+            detector,
+            config=config,
+            parent_image_id=1,
         )
         assert timing.n_tiles == 1
         assert pred.image_id == 1

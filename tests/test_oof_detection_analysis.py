@@ -25,6 +25,7 @@ def _protocol() -> EvaluationProtocol:
     return EvaluationProtocol(
         contract_version="contract_v1",
         eval_version="official_eval_v1",
+        ranking_version="official_ranking_v1_6",
         class_names=["ship"],
         category_mapping={0: "ship", 1: "ship", 2: "ship"},
         iou_thresholds={"ship": 0.5},
@@ -40,12 +41,7 @@ def _formal_gt() -> FormalGroundTruth:
         ("gt-loc", 2, [40.0, 0.0, 50.0, 10.0]),
         ("gt-miss", 0, [60.0, 0.0, 70.0, 10.0]),
     ]
-    boxes = {
-        1: [
-            {"category_id": category_id, "bbox_xyxy": bbox}
-            for _, category_id, bbox in specs
-        ]
-    }
+    boxes = {1: [{"category_id": category_id, "bbox_xyxy": bbox} for _, category_id, bbox in specs]}
     objects = {
         (1, index): GroundTruthObject(
             annotation_uid=uid,
@@ -100,9 +96,7 @@ def _predictions() -> dict[int, list[dict[str, object]]]:
 
 
 def test_frozen_analysis_config_loads() -> None:
-    config = load_analysis_config(
-        "configs/experiments/m1_m3_cv3_oof_analysis_v1.yaml"
-    )
+    config = load_analysis_config("configs/experiments/m1_m3_cv3_oof_analysis_v1.yaml")
     assert config["candidate_floor"] == 0.001
     assert config["thresholds"][0] == 0.001
     assert config["thresholds"][-1] == 1.0
@@ -291,8 +285,7 @@ def test_oof_aggregate_requires_sha_closure(tmp_path: Path) -> None:
     )
     images = root / "oof_images.csv"
     images.write_text(
-        "image_id,fold,model_key,checkpoint_sha256,prediction_count\n"
-        f"1,0,M1,{'a' * 64},1\n",
+        f"image_id,fold,model_key,checkpoint_sha256,prediction_count\n1,0,M1,{'a' * 64},1\n",
         encoding="utf-8",
     )
     proposals = root / "oof_proposals.csv"
@@ -376,8 +369,7 @@ def test_oof_aggregate_rejects_self_consistent_proposal_tampering(
     )
     images = root / "oof_images.csv"
     images.write_text(
-        "image_id,fold,model_key,checkpoint_sha256,prediction_count\n"
-        f"1,0,M1,{'a' * 64},1\n",
+        f"image_id,fold,model_key,checkpoint_sha256,prediction_count\n1,0,M1,{'a' * 64},1\n",
         encoding="utf-8",
     )
     proposals = root / "oof_proposals.csv"

@@ -104,11 +104,7 @@ def load_and_validate_spec(path: Path) -> dict[str, Any]:
         if set(item) != expected_asset_fields:
             raise ValueError(f"asset {key} 字段不一致")
         filename = item["filename"]
-        if (
-            not isinstance(filename, str)
-            or not filename
-            or Path(filename).name != filename
-        ):
+        if not isinstance(filename, str) or not filename or Path(filename).name != filename:
             raise ValueError(f"asset {key} filename 必须是不含目录的文件名")
         if filename in filenames:
             raise ValueError(f"asset filename 重复: {filename}")
@@ -231,9 +227,7 @@ def validate_environment(
         for name, expected in spec["packages"].items():
             actual = observed_packages.get(name)
             if actual != expected:
-                failures.append(
-                    f"{name} 版本不符: expected={expected}, actual={actual}"
-                )
+                failures.append(f"{name} 版本不符: expected={expected}, actual={actual}")
     cuda = environment.get("cuda")
     if not isinstance(cuda, Mapping):
         failures.append("CUDA 观测缺失")
@@ -260,9 +254,7 @@ def validate_environment(
             )
     actual_name = torch_gpu.get("name") if isinstance(torch_gpu, Mapping) else None
     if actual_name != expected_gpu:
-        failures.append(
-            f"GPU 不符: expected={expected_gpu}, actual={actual_name}"
-        )
+        failures.append(f"GPU 不符: expected={expected_gpu}, actual={actual_name}")
     if failures:
         raise ValueError("; ".join(failures))
 
@@ -295,13 +287,11 @@ def build_lock_payload(
         actual_sha = sha256_file(path)
         if actual_size != expected["size_bytes"]:
             raise ValueError(
-                f"asset {key} 大小不符: "
-                f"expected={expected['size_bytes']}, actual={actual_size}"
+                f"asset {key} 大小不符: expected={expected['size_bytes']}, actual={actual_size}"
             )
         if actual_sha != expected["sha256"]:
             raise ValueError(
-                f"asset {key} SHA-256 不符: "
-                f"expected={expected['sha256']}, actual={actual_sha}"
+                f"asset {key} SHA-256 不符: expected={expected['sha256']}, actual={actual_sha}"
             )
         assets[key] = {
             "filename": expected["filename"],
@@ -337,9 +327,7 @@ def validate_lock_fingerprint(payload: Mapping[str, Any]) -> None:
     body.pop("lock_fingerprint", None)
     recomputed = canonical_json_sha256(body)
     if recorded != recomputed:
-        raise ValueError(
-            f"lock_fingerprint 不匹配: recorded={recorded}, recomputed={recomputed}"
-        )
+        raise ValueError(f"lock_fingerprint 不匹配: recorded={recorded}, recomputed={recomputed}")
 
 
 def verify_existing_lock(
@@ -389,9 +377,9 @@ def atomic_write_new_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         raise FileExistsError(f"拒绝覆盖不可变资产环境锁: {path}")
-    encoded = (
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    ).encode("utf-8")
+    encoded = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode(
+        "utf-8"
+    )
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.",
         suffix=".tmp",

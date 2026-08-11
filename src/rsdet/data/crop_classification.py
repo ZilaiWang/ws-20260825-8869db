@@ -213,8 +213,16 @@ def validate_fold_isolation(
     """校验训练/验证间的对象、图像和泄漏组三层隔离。"""
 
     axes = (
-        ("annotation_uid", {item.annotation_uid for item in train_records}, {item.annotation_uid for item in val_records}),
-        ("source_image_id", {item.source_image_id for item in train_records}, {item.source_image_id for item in val_records}),
+        (
+            "annotation_uid",
+            {item.annotation_uid for item in train_records},
+            {item.annotation_uid for item in val_records},
+        ),
+        (
+            "source_image_id",
+            {item.source_image_id for item in train_records},
+            {item.source_image_id for item in val_records},
+        ),
         (
             "leakage_group_id",
             {item.leakage_group_id for item in train_records},

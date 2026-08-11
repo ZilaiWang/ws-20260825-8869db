@@ -6,9 +6,18 @@
 数据：`cv3_airport_proxy_k60_v2`（4,481 图 / 20,933 GT / 55,548 低阈值候选）
 环境：本机 CPU（MacBook），全部 N0 任务为纯后处理，未占用 GPU
 
+> **2026-08-10 收尾更正**：N0-1/N0-2 的官方匹配与解耦结论保持有效。
+> N0-3 v1 存在 oracle 命中按“同图+同预测类”误传给其他候选的缺陷，
+> 且 FP 子类是 nearest-overlap 诊断分类，不是官方计数守恒错误分解。
+> `outputs/N0-EVIDENCE-M1` 与由它生成的 N0-4 抽样包已冻结为
+> **superseded_invalid**。修复重放已完成：`outputs/N0-EVIDENCE-M1-v2`，
+> 合同为 `pred_oof_evidence_v2`，主文件 SHA256 为
+> `ae5ffc8d3559a8eb87d38d0c2851ad53d1f8a5ec1c274b3117aae9f5a8bbe900`。
+
 ## 1. N0-1：cross-fit 阈值基线（已完成 ✅）
 
-**产出**：`outputs/N0-CROSSFIT-M1/crossfit_result.json`
+**当前产出**：`outputs/N0-CROSSFIT-M1-v2/crossfit_result.json`（V1.6 macro 补算；
+SHA256 `53f985039b3bb72694538e353fc4a32a92b380e9df844e8693813b3a7cc73b06`）
 
 | 项 | 值 |
 |---|---|
@@ -18,6 +27,15 @@
 | fold 1 | 选阈 0.071 → Recall 0.9379 / FDR 0.1401（gate PASS） |
 | fold 2 | 选阈 0.041 → Recall 0.9155 / FDR 0.2294（**gate FAIL**） |
 | 阈值离散度 | mean 0.051 / std 0.014 / spread 0.030 |
+
+cross-fit 合并 held-out 的完整 V1.6 macro：
+
+| 大类 | macro Recall | macro FDR |
+|---|---:|---:|
+| 舰船 | 0.7162 | 0.5389 |
+| 飞机 | 0.9080 | 0.1589 |
+| 车辆 | 0.6119 | 0.6239 |
+| 25 细类 overall diagnostic | 0.8654 | 0.2383 |
 
 **结论**：
 - 与同 OOF 探索值（Recall 0.9172 / FDR 0.1957）对比，cross-fit FDR 差约 **0.003**
@@ -55,9 +73,9 @@
 - 结论：**N1/N2 的对象分类器解决"报出来但认错"（FP_CLS/细类混淆）；C 分工的
   小目标候选恢复解决"根本没报出来"（FN_MISS）**。二者不是替代关系，是叠加。
 
-## 3. N0-3：Pred-OOF 对象证据 manifest（已完成 ✅）
+## 3. N0-3：Pred-OOF 对象证据 manifest（v1 废弃，v2 完成）
 
-**产出**：`outputs/N0-EVIDENCE-M1/pred_oof_evidence.json`（SHA256: 1e205e246977...）
+**当前产出**：`outputs/N0-EVIDENCE-M1-v2/pred_oof_evidence.json`
 
 阈值 0.051 工作点：
 
@@ -67,17 +85,18 @@
 | 官方 TP | 19,199 |
 | 官方 FP | 4,671 |
 | FP 类型 | FP_CLS 2,103 / FP_BG 1,826 / FP_LOC 556 / FP_DUP 186 |
-| oracle_positive 视图 | 22,996 |
+| oracle_positive 视图 | 20,315 |
 | deployable_positive 视图 | 19,199 |
-| hard_negative 视图 | 2,217 |
+| hard_negative 视图 | 3,242 |
 
-**说明**：每条候选含 proposal_uid、fold、checkpoint_sha256、source_group、
-官方状态、错误类型、匹配 GT、oracle 命中、尺寸档。**该 manifest 是下游
-P03/P05/困难门控/对象学生的唯一输入**，按 SHA256 引用不可变。
+**说明**：每条候选含原始 `source_prediction_index`，oracle 只能赋给
+实际匹配到 GT 的那条候选，不再在“同图+同预测类”之间传播。表中 FP 类型
+仍是 `nearest_overlap_diagnostic_v1`，只用于抽样与研究；正式计数守恒的
+`FP_BG/FP_CLS/FP_DUP/FP_LOC` 仍以 M1 正式错误分解为准。
 
-## 4. N0-4：FP_BG 人工语义审计抽检包（已完成 ✅）
+## 4. N0-4：FP_BG 人工语义审计抽检包（v2 抽样包已重放）
 
-**产出**：`outputs/N0-FP-BG-AUDIT/`
+**当前产出**：`outputs/N0-FP-BG-AUDIT-v2/`
 - `audit_samples.csv`：人工标注表（label/labeler 待 B 填写）
 - `audit_samples.json`：抽检包明细
 
@@ -88,7 +107,7 @@ P03/P05/困难门控/对象学生的唯一输入**，按 SHA256 引用不可变�
 | 盲重复卡 | 54（20%） |
 | 总审计样本 | 324 |
 
-**待办**：B（蔡婕）按 `docs/hub/01_scoring_standard` 协议的 5 类标签盲审；
+**待办**：按 `docs/hub/01_scoring_standard` 协议的 5 类标签盲审；
 一致性率 ≥ 0.85 通过人工程序质检。只有 `clear_background` 可作背景训练样本。
 
 ## 5. 代码资产（全部合入主项目）
@@ -116,4 +135,5 @@ P03/P05/困难门控/对象学生的唯一输入**，按 SHA256 引用不可变�
 3. **资源方向修正**：小目标（<32px）定位是硬瓶颈（oracle 0.20-0.62），
    C 分工的小目标候选恢复优先级应高于常规细类调优；但 FP_CLS 2,103 仍是
    N1/N2 对象分类器的主战场（FP_BG 1,826 待 B 审计后决定背景样本资格）。
-4. **下一步**：N0-4 审计表交 B → 同时启动 N1（P04-F → P03-F 正式 CV3）。
+4. **下一步**：N1 已完成；N0-4 v2 只在重启真实背景拒识时交人工
+   盲审，未确认的 hard negative 不得自动标为背景。

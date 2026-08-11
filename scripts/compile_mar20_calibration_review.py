@@ -134,9 +134,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     node_path = output_dir / "calibration_node_uids.txt"
     node_path.write_text("\n".join(node_list) + "\n", encoding="utf-8")
     summary = {
-        "status": "fail" if failures else (
-            "pass" if evidence_sufficient else "pass_with_insufficient_positive_evidence"
-        ),
+        "status": "fail"
+        if failures
+        else ("pass" if evidence_sufficient else "pass_with_insufficient_positive_evidence"),
         "protocol_version": PROTOCOL_VERSION,
         "repeat_total": repeat_total,
         "repeat_agreement": agreement,

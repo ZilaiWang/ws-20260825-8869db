@@ -74,9 +74,7 @@ def test_consumer_builds_complete_group_isolated_views(tmp_path: Path) -> None:
         view = manifest.view(held_out_fold)
         assert len(view.train) == 4
         assert len(view.val) == 2
-        assert {item.group_id for item in view.train}.isdisjoint(
-            item.group_id for item in view.val
-        )
+        assert {item.group_id for item in view.train}.isdisjoint(item.group_id for item in view.val)
 
     audit = formal_cv3_audit_payload(manifest)
     assert audit["formal_cv3_admission"] is True

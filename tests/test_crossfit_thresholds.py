@@ -9,6 +9,7 @@ import pytest
 from rsdet.analysis.crossfit_thresholds import (
     _filter_by_score,
     _merge_folds,
+    evaluate_ranking_workpoint,
     evaluate_workpoint,
     load_gt_from_formal_crop_manifest,
     run_crossfit,
@@ -108,9 +109,7 @@ class TestLoadGtFromManifest:
             "tight,ann_3,102,1,1,9,9,0\n",
             encoding="utf-8",
         )
-        boxes = load_gt_from_formal_crop_manifest(
-            path, expected_images=3, expected_annotations=3
-        )
+        boxes = load_gt_from_formal_crop_manifest(path, expected_images=3, expected_annotations=3)
         assert set(boxes) == {100, 101, 102}
         assert len(boxes[100]) == 1  # context 行被忽略
         assert boxes[100][0]["bbox_xyxy"] == [0, 0, 10, 10]
@@ -125,9 +124,7 @@ class TestLoadGtFromManifest:
             encoding="utf-8",
         )
         with pytest.raises(ValueError, match="重复"):
-            load_gt_from_formal_crop_manifest(
-                path, expected_images=1, expected_annotations=1
-            )
+            load_gt_from_formal_crop_manifest(path, expected_images=1, expected_annotations=1)
 
 
 class TestScanGlobalThreshold:
@@ -177,11 +174,22 @@ class TestEvaluateWorkpoint:
     def test_basic_workpoint(self):
         gt = {1: [_gt(1, 24, [0, 0, 10, 10])]}
         preds = {1: [_pred(1, 24, 0.9, [0, 0, 10, 10])]}
-        metrics = evaluate_workpoint(
-            gt, preds, threshold=0.5, protocol=PROTOCOL
-        )
+        metrics = evaluate_workpoint(gt, preds, threshold=0.5, protocol=PROTOCOL)
         assert metrics.recall == 1.0
         assert metrics.fdr == 0.0
+
+    def test_partial_taxonomy_ranking_is_explicit(self):
+        gt = {1: [_gt(1, 24, [0, 0, 10, 10])]}
+        preds = {1: [_pred(1, 24, 0.9, [0, 0, 10, 10])]}
+        metrics = evaluate_ranking_workpoint(
+            gt,
+            preds,
+            threshold=0.5,
+            protocol=PROTOCOL,
+            require_complete_taxonomy=False,
+        )
+        assert metrics.overall_recall == 1.0
+        assert metrics.details["fine_average_policy"] == "present_in_gt_only_diagnostic"
 
 
 class TestRunCrossfit:
@@ -201,9 +209,7 @@ class TestRunCrossfit:
                 ]
             )
         ]
-        lines = [
-            "crop_policy,annotation_uid,formal_image_id,gt_x0,gt_y0,gt_x1,gt_y1,class_id"
-        ]
+        lines = ["crop_policy,annotation_uid,formal_image_id,gt_x0,gt_y0,gt_x1,gt_y1,class_id"]
         for row in rows:
             lines.append(",".join(str(value) for value in row))
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -257,9 +263,7 @@ class TestRunCrossfit:
                     "bbox": [xyxy[0], xyxy[1], w, h],
                 }
             )
-        (root / "predictions_oof_low.json").write_text(
-            json.dumps(predictions), encoding="utf-8"
-        )
+        (root / "predictions_oof_low.json").write_text(json.dumps(predictions), encoding="utf-8")
         (root / "oof_images.csv").write_text(
             "image_id,relative_path,fold,group_id\n"
             "1,images/train/a.jpg,0,g1\n"
@@ -285,6 +289,7 @@ class TestRunCrossfit:
             threshold_start=0.001,
             threshold_stop=0.5,
             threshold_step=0.01,
+            require_complete_taxonomy=False,
         )
         assert len(result["per_fold"]) == 3
         merged = result["merged_held_out"]
@@ -296,6 +301,9 @@ class TestRunCrossfit:
             assert per_fold["selected_threshold"] < 0.9
         assert math.isfinite(result["threshold_dispersion"]["mean"])
         assert result["merged_held_out"]["official_gate_passed"] is True
+        ranking = result["merged_held_out"]["official_ranking"]
+        assert ranking["overall_macro_recall"] == pytest.approx(1.0)
+        assert ranking["details"]["fine_average_policy"] == "present_in_gt_only_diagnostic"
 
     def test_crossfit_rejects_wrong_fold_count(self, tmp_path: Path):
         aggregate = tmp_path / "aggregate"

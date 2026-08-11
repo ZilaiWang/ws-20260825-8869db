@@ -4,7 +4,6 @@ import pytest
 
 from rsdet.evaluation.official_ranking import (
     RankingItem,
-    TeamRankingResult,
     compute_official_rankings,
     compute_score_range_from_percentile,
     format_ranking_table,
@@ -87,14 +86,15 @@ class TestComputeOfficialRankings:
         assert ranks["c"] == 3
 
     def test_missing_latency_does_not_crash(self):
-        """缺时延的队伍只按 6 项排名，且标记 incomplete。"""
+        """缺时延的队伍不参与七项排名，且标记 incomplete。"""
         items = [
             _item("a", latency_seconds=None),
             _item("b"),
         ]
         results = compute_official_rankings(items)
         by_id = {result.team_id: result for result in results}
-        assert by_id["a"].rank_count == 6
+        assert by_id["a"].rank_count == 0
+        assert by_id["a"].second_order_position is None
         assert by_id["a"].incomplete is True
         assert by_id["b"].rank_count == 7
         assert by_id["b"].incomplete is False
@@ -122,20 +122,29 @@ class TestComputeOfficialRankings:
     def test_score_range_matches_official_example(self):
         """官方示例：第 30% -> 区间 5-9 分。"""
         results = compute_official_rankings(
-            [_item("a"), _item("b"), _item("c"), _item("d"), _item("e"), _item("f"), _item("g"), _item("h"), _item("i"), _item("j")],
+            [
+                _item("a"),
+                _item("b"),
+                _item("c"),
+                _item("d"),
+                _item("e"),
+                _item("f"),
+                _item("g"),
+                _item("h"),
+                _item("i"),
+                _item("j"),
+            ],
         )
-        # 第 3 名（position=3, n=10, p=0.3）
-        assert results[2].second_order_percentile == pytest.approx(0.3)
-        assert results[2].score_min == pytest.approx(5.0)
-        assert results[2].score_max == pytest.approx(9.0)
+        # 全部七项相同时二次排序也并列第 1，p=1/10。
+        assert results[2].second_order_percentile == pytest.approx(0.1)
+        assert results[2].score_min == pytest.approx(7.0)
+        assert results[2].score_max == pytest.approx(10.0)
 
-    def test_percentile_scale_zero_uses_position_minus_one(self):
-        items = [_item(f"t{i}") for i in range(5)]
-        results = compute_official_rankings(
-            items, percentile_fraction_scale=0.0
-        )
-        assert results[0].second_order_percentile == pytest.approx(0.0)
-        assert results[4].second_order_percentile == pytest.approx(1.0)
+    def test_second_order_rank_sum_ties_share_position(self):
+        items = [_item("a"), _item("b")]
+        results = compute_official_rankings(items)
+        assert results[0].second_order_position == 1
+        assert results[1].second_order_position == 1
 
 
 class TestComputeScoreRangeFromPercentile:
@@ -164,9 +173,7 @@ class TestFormatRankingTable:
         assert "b" in lines[3]
 
     def test_incomplete_row_marked(self):
-        results = compute_official_rankings(
-            [_item("a", latency_seconds=None), _item("b")]
-        )
+        results = compute_official_rankings([_item("a", latency_seconds=None), _item("b")])
         lines = format_ranking_table(results)
         assert any("[incomplete]" in line for line in lines)
 

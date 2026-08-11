@@ -317,9 +317,7 @@ def parse_analysis_config(
         raise TypeError("risk_thresholds 必须是映射")
     thresholds = (
         _finite_positive(thresholds_config.get("severe_upper"), "severe_upper"),
-        _finite_positive(
-            thresholds_config.get("constrained_upper"), "constrained_upper"
-        ),
+        _finite_positive(thresholds_config.get("constrained_upper"), "constrained_upper"),
         _finite_positive(thresholds_config.get("moderate_upper"), "moderate_upper"),
     )
     if not thresholds[0] < thresholds[1] < thresholds[2]:
@@ -401,12 +399,9 @@ def compute_scenario_values(
     grid_width = {item.id: resized_width / item.step for item in representations}
     grid_height = {item.id: resized_height / item.step for item in representations}
     grid_short = {
-        item.id: np.minimum(grid_width[item.id], grid_height[item.id])
-        for item in representations
+        item.id: np.minimum(grid_width[item.id], grid_height[item.id]) for item in representations
     }
-    grid_area = {
-        item.id: grid_width[item.id] * grid_height[item.id] for item in representations
-    }
+    grid_area = {item.id: grid_width[item.id] * grid_height[item.id] for item in representations}
     return ScenarioValues(
         resized_width=resized_width,
         resized_height=resized_height,
@@ -550,9 +545,7 @@ def summarize_scenarios(
                     "crop_resolution": scenario.crop_resolution,
                     "context_scale": scenario.context_scale,
                     "padding_fraction_mean": float(values.padding_fraction[mask].mean()),
-                    "bbox_visible_fraction_mean": float(
-                        values.bbox_visible_fraction[mask].mean()
-                    ),
+                    "bbox_visible_fraction_mean": float(values.bbox_visible_fraction[mask].mean()),
                 }
                 row.update(_percentile_columns("native_short_px", native_short[mask], percentiles))
                 row.update(
@@ -582,21 +575,15 @@ def summarize_scenarios(
                             f"{representation.id}_short_span", grid_values, percentiles
                         )
                     )
-                    row[f"{representation.id}_lt2_count"] = int(
-                        (grid_values < thresholds[0]).sum()
-                    )
+                    row[f"{representation.id}_lt2_count"] = int((grid_values < thresholds[0]).sum())
                     row[f"{representation.id}_lt2_pct"] = float(
                         100.0 * (grid_values < thresholds[0]).mean()
                     )
-                    row[f"{representation.id}_lt4_count"] = int(
-                        (grid_values < thresholds[1]).sum()
-                    )
+                    row[f"{representation.id}_lt4_count"] = int((grid_values < thresholds[1]).sum())
                     row[f"{representation.id}_lt4_pct"] = float(
                         100.0 * (grid_values < thresholds[1]).mean()
                     )
-                    row[f"{representation.id}_lt8_count"] = int(
-                        (grid_values < thresholds[2]).sum()
-                    )
+                    row[f"{representation.id}_lt8_count"] = int((grid_values < thresholds[2]).sum())
                     row[f"{representation.id}_lt8_pct"] = float(
                         100.0 * (grid_values < thresholds[2]).mean()
                     )
@@ -769,7 +756,14 @@ def build_scenario_comparison(
             "padding_fraction_mean": source["padding_fraction_mean"],
         }
         for rep_id in primary_ids:
-            for suffix in ("short_span_p05", "short_span_p50", "lt2_pct", "lt4_pct", "lt8_pct", "ge8_pct"):
+            for suffix in (
+                "short_span_p05",
+                "short_span_p50",
+                "lt2_pct",
+                "lt4_pct",
+                "lt8_pct",
+                "ge8_pct",
+            ):
                 row[f"{rep_id}_{suffix}"] = source[f"{rep_id}_{suffix}"]
         selected.append(row)
         if source["group_level"] == "macro":
@@ -798,8 +792,16 @@ def build_scenario_comparison(
         for key in numeric_keys:
             average[key] = float(np.mean([float(item[key]) for item in macro_rows]))
         selected.append(average)
-    group_order = {"all_objects": 0, "ship": 1, "aircraft": 2, "vehicle": 3, "macro_average_equal_weight": 4}
-    return sorted(selected, key=lambda row: (str(row["scenario_id"]), group_order[row["group_name"]]))
+    group_order = {
+        "all_objects": 0,
+        "ship": 1,
+        "aircraft": 2,
+        "vehicle": 3,
+        "macro_average_equal_weight": 4,
+    }
+    return sorted(
+        selected, key=lambda row: (str(row["scenario_id"]), group_order[row["group_name"]])
+    )
 
 
 def _summary_lookup(
@@ -844,8 +846,10 @@ def derive_recommendations(
     macros_meeting_reduction = [
         macro for macro, value in crop_deltas.items() if value >= reduction_threshold
     ]
-    crop_preferred = bool(significant_macros) and bool(macros_meeting_reduction) and all(
-        value >= -1e-9 for value in crop_deltas.values()
+    crop_preferred = (
+        bool(significant_macros)
+        and bool(macros_meeting_reduction)
+        and all(value >= -1e-9 for value in crop_deltas.values())
     )
 
     high_resolution_gain = {
@@ -912,9 +916,7 @@ def derive_recommendations(
             "requires_accuracy_validation": True,
         },
         "crop_resolution": {
-            "recommendation": "probe_224_and_336"
-            if high_resolution_probe
-            else "probe_224_first",
+            "recommendation": "probe_224_and_336" if high_resolution_probe else "probe_224_first",
             "ge8_gain_336_vs_224_percentage_points": {
                 key: round(value, 6) for key, value in high_resolution_gain.items()
             },
@@ -960,8 +962,12 @@ def _write_svg_bar_chart(
     ]
     for tick in range(0, 101, 20):
         y = top + chart_height * (1 - tick / max_value)
-        parts.append(f'<line x1="{left}" y1="{y:.2f}" x2="{width-right}" y2="{y:.2f}" stroke="#e5e7eb"/>')
-        parts.append(f'<text x="{left-8}" y="{y+4:.2f}" text-anchor="end" font-family="sans-serif" font-size="11">{tick}</text>')
+        parts.append(
+            f'<line x1="{left}" y1="{y:.2f}" x2="{width - right}" y2="{y:.2f}" stroke="#e5e7eb"/>'
+        )
+        parts.append(
+            f'<text x="{left - 8}" y="{y + 4:.2f}" text-anchor="end" font-family="sans-serif" font-size="11">{tick}</text>'
+        )
     group_width = chart_width / max(1, len(labels))
     bar_width = group_width * 0.72 / max(1, len(series))
     for series_index, (name, values) in enumerate(series.items()):
@@ -970,17 +976,25 @@ def _write_svg_bar_chart(
             x = left + index * group_width + group_width * 0.14 + series_index * bar_width
             bar_height = chart_height * float(value) / max_value
             y = top + chart_height - bar_height
-            parts.append(f'<rect x="{x:.2f}" y="{y:.2f}" width="{bar_width-2:.2f}" height="{bar_height:.2f}" fill="{color}"/>')
+            parts.append(
+                f'<rect x="{x:.2f}" y="{y:.2f}" width="{bar_width - 2:.2f}" height="{bar_height:.2f}" fill="{color}"/>'
+            )
     for index, label in enumerate(labels):
         x = left + (index + 0.5) * group_width
-        parts.append(f'<text x="{x:.2f}" y="{top+chart_height+18}" transform="rotate(38 {x:.2f} {top+chart_height+18})" text-anchor="start" font-family="sans-serif" font-size="10">{escape(label)}</text>')
+        parts.append(
+            f'<text x="{x:.2f}" y="{top + chart_height + 18}" transform="rotate(38 {x:.2f} {top + chart_height + 18})" text-anchor="start" font-family="sans-serif" font-size="10">{escape(label)}</text>'
+        )
     legend_x = left
     for series_index, name in enumerate(series):
         x = legend_x + series_index * 140
         color = colors[series_index % len(colors)]
-        parts.append(f'<rect x="{x}" y="{height-24}" width="12" height="12" fill="{color}"/>')
-        parts.append(f'<text x="{x+18}" y="{height-13}" font-family="sans-serif" font-size="11">{escape(name)}</text>')
-    parts.append(f'<text x="18" y="{top+chart_height/2}" transform="rotate(-90 18 {top+chart_height/2})" text-anchor="middle" font-family="sans-serif" font-size="12">{escape(y_label)}</text>')
+        parts.append(f'<rect x="{x}" y="{height - 24}" width="12" height="12" fill="{color}"/>')
+        parts.append(
+            f'<text x="{x + 18}" y="{height - 13}" font-family="sans-serif" font-size="11">{escape(name)}</text>'
+        )
+    parts.append(
+        f'<text x="18" y="{top + chart_height / 2}" transform="rotate(-90 18 {top + chart_height / 2})" text-anchor="middle" font-family="sans-serif" font-size="12">{escape(y_label)}</text>'
+    )
     parts.append("</svg>")
     path.write_text("\n".join(parts), encoding="utf-8")
 
@@ -1170,9 +1184,7 @@ def build_report(
     available_fine_names = {
         str(row["group_name"])
         for row in summary_rows
-        if row["scenario_id"] == tile_ref
-        and row["scope"] == "all"
-        and row["group_level"] == "fine"
+        if row["scenario_id"] == tile_ref and row["scope"] == "all" and row["group_level"] == "fine"
     }
     for name in FINE_NAMES:
         if name not in available_fine_names:
@@ -1203,22 +1215,25 @@ def build_report(
     rec_resolution = recommendations["crop_resolution"]
     risky_tiles = recommendations["tile_scenarios_flagged_for_vehicle_grid_risk"]
     equivalent_groups = recommendations["scale_equivalent_tile_groups"]
-    equivalent_text = "; ".join(
-        f"s={item['scale_factor']:g}: {', '.join(item['scenarios'])}"
-        for item in equivalent_groups
-    ) or "无"
+    equivalent_text = (
+        "; ".join(
+            f"s={item['scale_factor']:g}: {', '.join(item['scenarios'])}"
+            for item in equivalent_groups
+        )
+        or "无"
+    )
     risky_text = "、".join(item["scenario_id"] for item in risky_tiles) or "无"
 
     return f"""# X-CROP-00 对象尺度与表征网格几何可见性报告
 
 ## 1. 结论摘要
 
-本实验是“几何表征分配/架构瓶颈审计”，不是模型精度实验。全量统计了 {counts['n_boxes']:,} 个 bbox，其中 {counts['n_clean_in_bounds']:,} 个无审计标记，{counts['n_source_edge_risk']:,} 个有原图贴边/越界风险；后者未被删除。
+本实验是“几何表征分配/架构瓶颈审计”，不是模型精度实验。全量统计了 {counts["n_boxes"]:,} 个 bbox，其中 {counts["n_clean_in_bounds"]:,} 个无审计标记，{counts["n_source_edge_risk"]:,} 个有原图贴边/越界风险；后者未被删除。
 
 按预注册几何规则，当前建议是：
 
-- 教师输入：`{rec_teacher['recommendation']}`，即优先做对象 crop 实证，但不宣称整 tile 教师无效。
-- crop 分辨率：`{rec_resolution['recommendation']}`，224 作成本基线，336 作一档高分辨率对照；最终取舍必须看 P0-3/P0-4 精度、显存和吞吐。
+- 教师输入：`{rec_teacher["recommendation"]}`，即优先做对象 crop 实证，但不宣称整 tile 教师无效。
+- crop 分辨率：`{rec_resolution["recommendation"]}`，224 作成本基线，336 作一档高分辨率对照；最终取舍必须看 P0-3/P0-4 精度、显存和吞吐。
 - crop 上下文：首轮保留 tight 和 1.25x，1.5x 先延后；本实验只能量化主体稀释和 padding，不能量化语义上下文的价值。
 - 按车辆 `{vit}` 短边网格跨度规则标记的高风险 tile 场景：{risky_text}。这些只是后续实验的重点对照，不是直接禁用。
 
@@ -1226,7 +1241,7 @@ def build_report(
 
 直接观测证据是当前训练集审计表中的 bbox 像素尺度、图像尺寸、类别和边界标记。派生证据是按固定 resize/crop 公式计算的输入像素跨度和 feature-grid 跨度。“未来 10K 测试图与当前数据的原生目标像素尺度近似可迁移”只是待验证假设。
 
-{_markdown_table(['macro', 'n', 'native short P5', 'P50', 'P95'], raw_rows)}
+{_markdown_table(["macro", "n", "native short P5", "P50", "P95"], raw_rows)}
 
 数据校验已确认：annotation_uid 唯一，所有 image_uid 成功连接，25 个细类与 `rsdet.data.xh_dataset` 的大类映射一致，宽高均为有限正数，且像素宽高与归一化标注反算一致。
 
@@ -1240,33 +1255,33 @@ tile 场景假设目标完整位于固定 tile canvas：`s=I/T`，`w_in=s*w`，`
 
 下表对比参考 tile `{tile_ref}`、对象 crop `{crop_ref}` 和高分辨率 crop `{high_crop}`。“放大”只增加网格分配，不增加原图里已经存在的信息量。
 
-{_markdown_table(['macro', 'tile median span', 'tile <4', 'crop224 median span', 'crop224 <4', 'crop336 >=8'], comparison_rows)}
+{_markdown_table(["macro", "tile median span", "tile <4", "crop224 median span", "crop224 <4", "crop336 >=8"], comparison_rows)}
 
 对候选扩散 `/8` 网格，可见性数值如下。它只代表一个候选潜空间分配；具体教师不一定使用该步长。
 
-{_markdown_table(['macro', 'tile P5', 'tile P50', 'tile <4', 'crop224 P5', 'crop224 P50', 'crop224 <4'], diffusion_rows)}
+{_markdown_table(["macro", "tile P5", "tile P50", "tile <4", "crop224 P5", "crop224 P50", "crop224 <4"], diffusion_rows)}
 
 ### 4.1 224 输入的上下文稀释
 
-{_markdown_table(['scenario', 'macro', 'vit14 P50', '<4', '>=8', 'mean padding'], context_rows)}
+{_markdown_table(["scenario", "macro", "vit14 P50", "<4", ">=8", "mean padding"], context_rows)}
 
-tight crop 在纯几何指标上必然最好，因为主体占比最大；这不能证明它的分类精度最高。1.25x 保留为语义上下文对照；1.5x 使舰船 `{vit}<4` 风险相对 1.25x 再增加 {recommendations['crop_context']['lt4_increase_1p5_vs_1p25_percentage_points']['ship']:.1f} 个百分点，所以不进首轮。
+tight crop 在纯几何指标上必然最好，因为主体占比最大；这不能证明它的分类精度最高。1.25x 保留为语义上下文对照；1.5x 使舰船 `{vit}<4` 风险相对 1.25x 再增加 {recommendations["crop_context"]["lt4_increase_1p5_vs_1p25_percentage_points"]["ship"]:.1f} 个百分点，所以不进首轮。
 
 ### 4.2 细类分层
 
-{_markdown_table(['fine class', 'n', 'native short P50', 'tile vit14 <4', 'crop224 <4', 'crop336 >=8'], fine_rows)}
+{_markdown_table(["fine class", "n", "native short P50", "tile vit14 <4", "crop224 <4", "crop336 >=8"], fine_rows)}
 
-表中 `n` 必须与百分比同时阅读。当前低于 50 例的细类为：{low_support_text}，其分位数和风险比例稳定性明显低于高频类。overall 结果也会被 {macro_counts['aircraft']:,} 个飞机框主导，因此本实验的决策一律检查三大类和细类，不只看实例加权总体。
+表中 `n` 必须与百分比同时阅读。当前低于 50 例的细类为：{low_support_text}，其分位数和风险比例稳定性明显低于高频类。overall 结果也会被 {macro_counts["aircraft"]:,} 个飞机框主导，因此本实验的决策一律检查三大类和细类，不只看实例加权总体。
 
 ### 4.3 原图边界风险
 
-{_markdown_table(['scope', 'n', 'bbox visible P5', 'bbox visible mean', 'mean padding', 'padding P95'], edge_rows)}
+{_markdown_table(["scope", "n", "bbox visible P5", "bbox visible mean", "mean padding", "padding P95"], edge_rows)}
 
 同一缩放因子的 tile 在 P0-1 中完全等价：{equivalent_text}。tile 尺寸对上下文、tile 数和截断概率仍有影响，但这些不属于本指标。
 
 ## 5. 边界对象与限制
 
-- {counts['n_source_edge_risk']:,} 个 `source_edge_risk` 对象单独出表；其中原图外已缺失的内容无法由 padding 恢复。
+- {counts["n_source_edge_risk"]:,} 个 `source_edge_risk` 对象单独出表；其中原图外已缺失的内容无法由 padding 恢复。
 - crop 的 `allocation_gain` 是表征网格预算增益，不是超分或新细节。
 - HBB 对旋转飞机/舰船含有背景，所以 bbox 跨度仍是结构可见性的上界代理。
 - feature step 不等于感受野；具体扩散教师确定后，必须用它的真实 VAE factor、patchification 和抽取层更新配置。
@@ -1281,14 +1296,14 @@ tight crop 在纯几何指标上必然最好，因为主体占比最大；这不
 
 ## 7. 复现信息
 
-- analysis version: `{metadata['analysis_version']}`
-- generated at: `{metadata['generated_at']}`
-- git commit: `{metadata['git']['commit']}`
-- bbox SHA-256: `{metadata['inputs']['bbox_statistics']['sha256']}`
-- image stats SHA-256: `{metadata['inputs']['image_stats']['sha256']}`
-- config SHA-256: `{metadata['inputs']['config']['sha256']}`
-- analysis module SHA-256: `{metadata['inputs']['implementation']['analysis_module']['sha256']}`
-- CLI SHA-256: `{metadata['inputs']['implementation']['cli_script']['sha256']}`
+- analysis version: `{metadata["analysis_version"]}`
+- generated at: `{metadata["generated_at"]}`
+- git commit: `{metadata["git"]["commit"]}`
+- bbox SHA-256: `{metadata["inputs"]["bbox_statistics"]["sha256"]}`
+- image stats SHA-256: `{metadata["inputs"]["image_stats"]["sha256"]}`
+- config SHA-256: `{metadata["inputs"]["config"]["sha256"]}`
+- analysis module SHA-256: `{metadata["inputs"]["implementation"]["analysis_module"]["sha256"]}`
+- CLI SHA-256: `{metadata["inputs"]["implementation"]["cli_script"]["sha256"]}`
 - 完整数值产物：`object_visibility.csv`、`visibility_summary.csv`、`scenario_comparison.csv`、`recommendations.yaml`、`meta.json`
 """
 
@@ -1365,7 +1380,9 @@ def run_visibility_analysis(
     )
     issue_counts: dict[str, int] = {}
     for obj in objects:
-        issue_counts[obj.issue_flags or "clean"] = issue_counts.get(obj.issue_flags or "clean", 0) + 1
+        issue_counts[obj.issue_flags or "clean"] = (
+            issue_counts.get(obj.issue_flags or "clean", 0) + 1
+        )
     analysis_meta = config.get("analysis", {})
     repo_root_path = Path(repo_root).resolve() if repo_root else Path.cwd().resolve()
     implementation_inputs: dict[str, Any] = {

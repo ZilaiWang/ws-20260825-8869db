@@ -100,11 +100,7 @@ def export_coco(
         relative_path = image_path.relative_to(data_root.resolve()).as_posix()
         if membership is not None and relative_path not in membership:
             continue
-        image_id = (
-            int(target["image_id"])
-            if membership is None
-            else membership.pop(relative_path)
-        )
+        image_id = int(target["image_id"]) if membership is None else membership.pop(relative_path)
         coco["images"].append(
             {
                 "id": image_id,
@@ -130,8 +126,7 @@ def export_coco(
 
     if membership:
         raise FileNotFoundError(
-            f"manifest 中有 {len(membership)} 张图未在 data root 找到: "
-            f"{list(membership)[:3]}"
+            f"manifest 中有 {len(membership)} 张图未在 data root 找到: {list(membership)[:3]}"
         )
 
     output.parent.mkdir(parents=True, exist_ok=True)

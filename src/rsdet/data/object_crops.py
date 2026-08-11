@@ -86,9 +86,7 @@ def crop_and_resize(
     if x2 <= x1 or y2 <= y1:
         raise ValueError("目标框裁剪后为空")
 
-    crop = source.crop(
-        (int(np.floor(x1)), int(np.floor(y1)), int(np.ceil(x2)), int(np.ceil(y2)))
-    )
+    crop = source.crop((int(np.floor(x1)), int(np.floor(y1)), int(np.ceil(x2)), int(np.ceil(y2))))
     side = max(crop.size)
     canvas = Image.new("RGB", (side, side), fill)
     canvas.paste(crop, ((side - crop.width) // 2, (side - crop.height) // 2))
@@ -128,9 +126,7 @@ class ObjectCropDataset(Dataset):
         if not 0.0 <= self.box_jitter <= 0.5:
             raise ValueError("box_jitter 必须在 [0, 0.5]")
         self.augment = bool(augment)
-        samples = load_split_manifest(
-            manifest_path, data_root, num_classes=len(FINE_NAMES)
-        )
+        samples = load_split_manifest(manifest_path, data_root, num_classes=len(FINE_NAMES))
         self.records: tuple[ObjectCropRecord, ...] = self._build_records(
             [sample for sample in samples if sample.split == split]
         )
@@ -176,9 +172,7 @@ class ObjectCropDataset(Dataset):
         if random.random() < 0.5:
             gain = random.uniform(0.85, 1.15)
             bias = random.uniform(-8.0, 8.0)
-            crop = np.clip(crop.astype(np.float32) * gain + bias, 0, 255).astype(
-                np.uint8
-            )
+            crop = np.clip(crop.astype(np.float32) * gain + bias, 0, 255).astype(np.uint8)
         return np.ascontiguousarray(crop)
 
     def __getitem__(self, index: int):

@@ -68,9 +68,7 @@ def _tile_metadata_for_mock(scene, dual_class: tuple[int, int, float] | None = N
             if lx2 <= lx1 or ly2 <= ly1:
                 continue
             bbox = [lx1, ly1, lx2, ly2]
-            boxes.append(
-                {"bbox": bbox, "category_id": obj.category_id, "score": 1.0}
-            )
+            boxes.append({"bbox": bbox, "category_id": obj.category_id, "score": 1.0})
             if dual_class is not None and idx == dual_class[0]:
                 # 同一框再报一个冲突类别（低分）→ 制造跨类别冲突
                 boxes.append(
@@ -89,6 +87,7 @@ def _tile_metadata_for_mock(scene, dual_class: tuple[int, int, float] | None = N
 # 单元：fuse_global_predictions
 # ---------------------------------------------------------------------------
 
+
 class TestFuseCoordinateRestore:
     def test_single_tile_restores_global_coords(self):
         """tile 局部框 + offset = 全局框。"""
@@ -97,8 +96,11 @@ class TestFuseCoordinateRestore:
         )
         rec = _make_tile_record(tile_id=0, x_offset=500, y_offset=300)
         fused = fuse_global_predictions(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         assert fused.boxes_xyxy[0] == [600.0, 500.0, 800.0, 700.0]
@@ -117,8 +119,11 @@ class TestFuseCoordinateRestore:
         rec0 = _make_tile_record(tile_id=0, x_offset=0, y_offset=0)
         rec1 = _make_tile_record(tile_id=1, x_offset=100, y_offset=0)
         fused = fuse_global_predictions(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         assert fused.scores[0] == 0.9  # canonical 取最高分框
@@ -127,16 +132,25 @@ class TestFuseCoordinateRestore:
         """同一目标跨 2 tile、报成不同型号 → 投票归并成 1 型号。"""
         box0 = [500, 500, 600, 600]
         pred0 = _make_tile_prediction(
-            tile_id=0, boxes=[box0], scores=[0.8], labels=[22]  # SU-34
+            tile_id=0,
+            boxes=[box0],
+            scores=[0.8],
+            labels=[22],  # SU-34
         )
         pred1 = _make_tile_prediction(
-            tile_id=1, boxes=[box0], scores=[0.6], labels=[9]  # TU-160
+            tile_id=1,
+            boxes=[box0],
+            scores=[0.6],
+            labels=[9],  # TU-160
         )
         rec0 = _make_tile_record(tile_id=0)
         rec1 = _make_tile_record(tile_id=1)
         fused = fuse_global_predictions(
-            [pred0, pred1], [rec0, rec1],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0, pred1],
+            [rec0, rec1],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         assert fused.labels[0] == 22  # score 加权后 SU-34 胜
@@ -151,8 +165,11 @@ class TestFuseCoordinateRestore:
         )
         rec0 = _make_tile_record(tile_id=0)
         fused = fuse_global_predictions(
-            [pred0], [rec0],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred0],
+            [rec0],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 2
 
@@ -163,8 +180,11 @@ class TestFuseCoordinateRestore:
         )
         rec = _make_tile_record(tile_id=0)
         fused = fuse_global_predictions(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 1
         box = fused.boxes_xyxy[0]
@@ -178,16 +198,22 @@ class TestFuseCoordinateRestore:
         )
         rec = _make_tile_record(tile_id=0)
         fused = fuse_global_predictions(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert len(fused.boxes_xyxy) == 0
 
     def test_empty_predictions(self):
         """无预测 → 空 Prediction。"""
         fused = fuse_global_predictions(
-            [_make_tile_prediction(tile_id=0)], [_make_tile_record(tile_id=0)],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [_make_tile_prediction(tile_id=0)],
+            [_make_tile_record(tile_id=0)],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
         )
         assert fused.image_id == 0
         assert len(fused.boxes_xyxy) == 0
@@ -204,8 +230,11 @@ class TestFuseThresholds:
         )
         rec = _make_tile_record(tile_id=0)
         fused = fuse_global_predictions(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
             score_threshold=0.3,
         )
         assert len(fused.boxes_xyxy) == 1
@@ -221,8 +250,11 @@ class TestFuseThresholds:
         )
         rec = _make_tile_record(tile_id=0)
         fused = fuse_global_predictions(
-            [pred], [rec],
-            parent_image_id=0, image_width=10000, image_height=10000,
+            [pred],
+            [rec],
+            parent_image_id=0,
+            image_width=10000,
+            image_height=10000,
             max_detections=1,
         )
         assert len(fused.boxes_xyxy) == 1
@@ -235,7 +267,9 @@ class TestFuseValidation:
             fuse_global_predictions(
                 [_make_tile_prediction(), _make_tile_prediction()],
                 [_make_tile_record()],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_duplicate_tile_id(self):
@@ -243,7 +277,9 @@ class TestFuseValidation:
             fuse_global_predictions(
                 [_make_tile_prediction(tile_id=0), _make_tile_prediction(tile_id=0)],
                 [_make_tile_record(tile_id=0), _make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_prediction_image_mismatch(self):
@@ -251,7 +287,9 @@ class TestFuseValidation:
             fuse_global_predictions(
                 [_make_tile_prediction(tile_id=99)],
                 [_make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_parent_mismatch(self):
@@ -259,7 +297,9 @@ class TestFuseValidation:
             fuse_global_predictions(
                 [_make_tile_prediction(tile_id=0)],
                 [_make_tile_record(parent_image_id=7)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_invalid_score(self):
@@ -268,8 +308,11 @@ class TestFuseValidation:
         )
         with pytest.raises(ValueError):
             fuse_global_predictions(
-                [pred], [_make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                [pred],
+                [_make_tile_record(tile_id=0)],
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
     def test_raises_on_invalid_label(self):
@@ -278,8 +321,11 @@ class TestFuseValidation:
         )
         with pytest.raises(ValueError):
             fuse_global_predictions(
-                [pred], [_make_tile_record(tile_id=0)],
-                parent_image_id=0, image_width=10000, image_height=10000,
+                [pred],
+                [_make_tile_record(tile_id=0)],
+                parent_image_id=0,
+                image_width=10000,
+                image_height=10000,
             )
 
 
@@ -287,19 +333,26 @@ class TestFuseValidation:
 # 端到端：run_pipeline(fusion="global")
 # ---------------------------------------------------------------------------
 
+
 class TestGlobalFusionEndToEnd:
     def test_recovers_every_object_exactly_once(self):
         """全局聚合：每个目标恰好一个对象（无重复、无遗漏）。"""
         scene = generate_synthetic_scene(
-            image_size=4096, tile_size=1024, overlap=128,
-            num_ships=8, num_aircraft=15, num_vehicles=5, seed=42,
+            image_size=4096,
+            tile_size=1024,
+            overlap=128,
+            num_ships=8,
+            num_aircraft=15,
+            num_vehicles=5,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
 
         config = PipelineConfig(tile_size=1024, overlap=128, batch_size=8, fusion="global")
         prediction, _ = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=config,
             tile_metadata_fn=_tile_metadata_for_mock(scene),
         )
@@ -308,19 +361,26 @@ class TestGlobalFusionEndToEnd:
     def test_no_worse_than_baseline_tile_fusion(self):
         """全局聚合输出框数不劣于基线 tile_fusion。"""
         scene = generate_synthetic_scene(
-            image_size=4096, tile_size=1024, overlap=128,
-            num_ships=8, num_aircraft=15, num_vehicles=5, seed=42,
+            image_size=4096,
+            tile_size=1024,
+            overlap=128,
+            num_ships=8,
+            num_aircraft=15,
+            num_vehicles=5,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
 
         base_pred, _ = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=PipelineConfig(tile_size=1024, overlap=128, batch_size=8, fusion="tile"),
             tile_metadata_fn=_tile_metadata_for_mock(scene),
         )
         global_pred, _ = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=PipelineConfig(tile_size=1024, overlap=128, batch_size=8, fusion="global"),
             tile_metadata_fn=_tile_metadata_for_mock(scene),
         )
@@ -329,8 +389,13 @@ class TestGlobalFusionEndToEnd:
     def test_resolves_cross_tile_conflict(self):
         """某个目标被同时报成两个型号 → 聚合后只有 1 个对象、选回真类。"""
         scene = generate_synthetic_scene(
-            image_size=4096, tile_size=1024, overlap=128,
-            num_ships=8, num_aircraft=15, num_vehicles=5, seed=42,
+            image_size=4096,
+            tile_size=1024,
+            overlap=128,
+            num_ships=8,
+            num_aircraft=15,
+            num_vehicles=5,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
@@ -341,7 +406,8 @@ class TestGlobalFusionEndToEnd:
         alt_class = next(c for c in range(25) if c not in used)
         config = PipelineConfig(tile_size=1024, overlap=128, batch_size=8, fusion="global")
         prediction, _ = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=config,
             tile_metadata_fn=_tile_metadata_for_mock(
                 scene, dual_class=(conflict_idx, alt_class, 0.5)
@@ -355,13 +421,19 @@ class TestGlobalFusionEndToEnd:
     def test_empty_scene_returns_empty(self):
         """空场景 → 空 Prediction。"""
         scene = generate_synthetic_scene(
-            image_size=1024, tile_size=1024, overlap=128,
-            num_ships=0, num_aircraft=0, num_vehicles=0, seed=42,
+            image_size=1024,
+            tile_size=1024,
+            overlap=128,
+            num_ships=0,
+            num_aircraft=0,
+            num_vehicles=0,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         prediction, _ = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=PipelineConfig(tile_size=1024, overlap=128, batch_size=1, fusion="global"),
             tile_metadata_fn=_tile_metadata_for_mock(scene),
         )
@@ -370,13 +442,19 @@ class TestGlobalFusionEndToEnd:
     def test_fusion_timing_small(self):
         """小图全局聚合耗时远低于预算。"""
         scene = generate_synthetic_scene(
-            image_size=2048, tile_size=1024, overlap=128,
-            num_ships=3, num_aircraft=5, num_vehicles=2, seed=42,
+            image_size=2048,
+            tile_size=1024,
+            overlap=128,
+            num_ships=3,
+            num_aircraft=5,
+            num_vehicles=2,
+            seed=42,
         )
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         _, timing = run_pipeline(
-            scene.image, detector,
+            scene.image,
+            detector,
             config=PipelineConfig(tile_size=1024, overlap=128, batch_size=4, fusion="global"),
             tile_metadata_fn=_tile_metadata_for_mock(scene),
         )

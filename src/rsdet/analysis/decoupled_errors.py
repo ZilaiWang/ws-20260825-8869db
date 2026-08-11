@@ -30,13 +30,11 @@ M1 错误分解显示"细类错 (FN_CLS=1115) 远多于定位错 (FN_LOC=66)"，
 
 from __future__ import annotations
 
-import math
 import random
-from collections import Counter, defaultdict
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
-from rsdet.analysis.crossfit_thresholds import load_gt_from_formal_crop_manifest
 from rsdet.evaluation.official_metric import compute_iou
 from rsdet.evaluation.protocol import EvaluationProtocol
 
@@ -86,7 +84,8 @@ def compute_oracle_localization(
     Returns:
         (metrics, detail_rows)。detail_rows 每项对应一个 GT 对象：
         ``{annotation_uid_key, image_id, index, class_name, category_id,
-        oracle_matched, matched_iou, predicted_category_id, correct_fine}``。
+        oracle_matched, matched_iou, prediction_index, predicted_category_id,
+        correct_fine}``。
     """
     thresholds = protocol.iou_thresholds
     mapping = {int(category_id): name for category_id, name in protocol.category_mapping.items()}
@@ -103,9 +102,7 @@ def compute_oracle_localization(
             category_id = int(record["category_id"])
             if category_id not in coarse_of:
                 raise ValueError(f"GT category_id={category_id} 缺少大类映射")
-            gt_by_coarse[coarse_of[category_id]].append(
-                (image_id, index, record)
-            )
+            gt_by_coarse[coarse_of[category_id]].append((image_id, index, record))
 
     for image_id, records in predictions.items():
         for index, record in enumerate(records):
@@ -115,17 +112,13 @@ def compute_oracle_localization(
             category_id = int(record["category_id"])
             if category_id not in coarse_of:
                 raise ValueError(f"预测 category_id={category_id} 缺少大类映射")
-            pred_by_coarse[coarse_of[category_id]].append(
-                (image_id, index, record)
-            )
+            pred_by_coarse[coarse_of[category_id]].append((image_id, index, record))
 
     metrics = OracleLocalizationMetrics()
     detail_rows: list[dict[str, Any]] = []
     matched_gt: set[tuple[int, int]] = set()
     all_gt_keys: set[tuple[int, int]] = {
-        (image_id, index)
-        for image_id, records in gt_boxes.items()
-        for index in range(len(records))
+        (image_id, index) for image_id, records in gt_boxes.items() for index in range(len(records))
     }
 
     for coarse in protocol.class_names:
@@ -136,7 +129,7 @@ def compute_oracle_localization(
         preds_sorted = sorted(preds, key=lambda item: -float(item[2]["score"]))
         matched_pred: set[tuple[int, int]] = set()
         for pred_image_id, pred_index, pred_record in preds_sorted:
-            if pred_index in matched_pred:
+            if (pred_image_id, pred_index) in matched_pred:
                 continue
             best_iou = -1.0
             best_gt: tuple[int, int, dict[str, Any]] | None = None
@@ -161,6 +154,7 @@ def compute_oracle_localization(
                         "image_id": gt_image_id,
                         "index": gt_index,
                         "iou": best_iou,
+                        "prediction_index": pred_index,
                         "predicted_category_id": int(pred_record["category_id"]),
                         "gt_category_id": int(gt_record["category_id"]),
                     }
@@ -172,26 +166,22 @@ def compute_oracle_localization(
     )
 
     # 生成逐对象明细（全部 GT）。
-    fine_correct = 0
-    fine_total = 0
     for image_id, records in gt_boxes.items():
         for index, record in enumerate(records):
-            key = (image_id, index)
             category_id = int(record["category_id"])
-            matched = [m for m in metrics.matches if m["image_id"] == image_id and m["index"] == index]
+            matched = [
+                m for m in metrics.matches if m["image_id"] == image_id and m["index"] == index
+            ]
             oracle_matched = bool(matched)
             if oracle_matched:
-                fine_total += 1
-                correct_fine = bool(
-                    matched[0]["predicted_category_id"] == category_id
-                )
-                fine_correct += int(correct_fine)
+                correct_fine = bool(matched[0]["predicted_category_id"] == category_id)
                 matched_iou = matched[0]["iou"]
                 pred_cat = matched[0]["predicted_category_id"]
+                pred_index = matched[0]["prediction_index"]
             else:
-                fine_correct = fine_correct
                 matched_iou = None
                 pred_cat = None
+                pred_index = None
             detail_rows.append(
                 {
                     "image_id": image_id,
@@ -201,9 +191,8 @@ def compute_oracle_localization(
                     "oracle_matched": oracle_matched,
                     "matched_iou": matched_iou,
                     "predicted_category_id": pred_cat,
-                    "correct_fine": (
-                        correct_fine if oracle_matched else None
-                    ),
+                    "prediction_index": pred_index,
+                    "correct_fine": (correct_fine if oracle_matched else None),
                 }
             )
     return metrics, detail_rows
@@ -243,9 +232,7 @@ def compute_source_group_bootstrap(
     for row in detail_rows:
         group = group_of_image.get(row["image_id"])
         if group is None:
-            raise ValueError(
-                f"image_id={row['image_id']} 缺少来源组映射"
-            )
+            raise ValueError(f"image_id={row['image_id']} 缺少来源组映射")
         group_members[group].append(row)
 
     groups = list(group_members)
@@ -315,9 +302,7 @@ def stratify_oracle_localization(
             x0, y0, x1, y1 = (float(v) for v in record["bbox_xyxy"])
             sizes[(image_id, index)] = min(x1 - x0, y1 - y0)
 
-    scopes: dict[str, dict[str, Any]] = defaultdict(
-        lambda: {"n_objects": 0, "matched": 0}
-    )
+    scopes: dict[str, dict[str, Any]] = defaultdict(lambda: {"n_objects": 0, "matched": 0})
     for row in detail_rows:
         key = (row["image_id"], row["gt_index"])
         short_edge = sizes.get(key, float("inf"))
@@ -333,9 +318,7 @@ def stratify_oracle_localization(
         if group_of_image is not None:
             group = group_of_image.get(row["image_id"], "unknown")
             scopes[f"group_{group}"]["n_objects"] += 1
-            scopes[f"group_{group}"]["matched"] += int(
-                bool(row["oracle_matched"])
-            )
+            scopes[f"group_{group}"]["matched"] += int(bool(row["oracle_matched"]))
 
     result: dict[str, dict[str, Any]] = {}
     for scope, counts in scopes.items():
@@ -343,9 +326,7 @@ def stratify_oracle_localization(
         result[scope] = {
             "n_objects": total,
             "matched": counts["matched"],
-            "recall": (
-                counts["matched"] / total if total else 1.0
-            ),
+            "recall": (counts["matched"] / total if total else 1.0),
         }
     return result
 

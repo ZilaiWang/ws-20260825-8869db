@@ -76,7 +76,9 @@ def main() -> int:
                 segments_of_class[class_id].add(segment_of[number])
 
     print("侧 = 官方 MAR20 划分；val 只能从 test 侧抽，故 test 侧证据量决定该类可评估性\n")
-    header = f"{'ID':>3} {'机型':<12} {'train图':>7} {'test图':>7} {'test框':>7} {'test段':>7}  风险"
+    header = (
+        f"{'ID':>3} {'机型':<12} {'train图':>7} {'test图':>7} {'test框':>7} {'test段':>7}  风险"
+    )
     print(header)
     print("-" * len(header))
     for class_id in range(4, 24):

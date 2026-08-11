@@ -7,12 +7,14 @@
         --formal-manifest outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv \
         --output outputs/N2-PROPO-CROP/proposal_crop_manifest.csv \
         --include-views deployable_positive oracle_positive hard_negative \
-        --background-candidates fp_bg_no_oracle
+        --background-candidates manual_clear_background \
+        --background-audit outputs/N0-FP-BG-AUDIT/audit_samples.csv
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -43,8 +45,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--background-candidates",
-        default="fp_bg_no_oracle",
-        choices=("fp_bg_no_oracle",),
+        default="manual_clear_background",
+        choices=("manual_clear_background",),
+    )
+    parser.add_argument(
+        "--background-audit",
+        type=Path,
+        default=None,
+        help="可选人工审核 CSV；只接受 label=clear_background 的 proposal_uid",
     )
     return parser.parse_args(argv)
 
@@ -54,11 +62,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
         evidence = json.loads(args.evidence.read_text(encoding="utf-8"))
+        confirmed_background_uids: set[str] = set()
+        if args.background_audit is not None:
+            with args.background_audit.open("r", encoding="utf-8-sig", newline="") as handle:
+                for row in csv.DictReader(handle):
+                    if row.get("label", "").strip() == "clear_background":
+                        confirmed_background_uids.add(row["proposal_uid"].strip())
         rows, summary = build_proposal_crop_manifest(
             evidence_manifest=evidence,
             formal_manifest_path=args.formal_manifest,
             include_views=args.include_views,
             background_candidates=args.background_candidates,
+            confirmed_background_uids=confirmed_background_uids,
         )
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         logger.error("manifest 生成失败: %s", error)

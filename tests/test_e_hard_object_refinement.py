@@ -7,10 +7,8 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 import rsdet.pipeline.mock_model  # noqa: F401  触发 mock 模型注册
-from rsdet.contracts import InferenceSample
 from rsdet.engine.predictor import predict_batches
 from rsdet.models.registry import build_model
 from rsdet.postprocess.global_aggregation import (
@@ -63,6 +61,7 @@ def _crop_metadata_for_scene(scene):
 # 困难判定 gate
 # ---------------------------------------------------------------------------
 
+
 class TestHardObjectGate:
     def test_low_score_flagged(self):
         objs = [_scene_object_to_hard(o, score=0.2) for o in _scene(4).objects]
@@ -72,12 +71,16 @@ class TestHardObjectGate:
     def test_high_score_not_flagged_when_evidence_ok(self):
         """高分且证据充足 → 不判困难（容易对象直接通过）。"""
         objs = [_scene_object_to_hard(o, score=0.9) for o in _scene(4).objects]
-        idx = gate_hard_objects(objs, HardObjectCriteria(hard_score_threshold=0.3, hard_evidence_threshold=0))
+        idx = gate_hard_objects(
+            objs, HardObjectCriteria(hard_score_threshold=0.3, hard_evidence_threshold=0)
+        )
         assert idx == []
 
     def test_low_evidence_flagged_even_at_high_score(self):
         objs = [_scene_object_to_hard(o, score=0.9) for o in _scene(4).objects]
-        idx = gate_hard_objects(objs, HardObjectCriteria(hard_score_threshold=0.3, hard_evidence_threshold=2))
+        idx = gate_hard_objects(
+            objs, HardObjectCriteria(hard_score_threshold=0.3, hard_evidence_threshold=2)
+        )
         assert idx == [0, 1, 2, 3]  # evidence=1 仍判困难
 
     def test_max_crops_caps_count(self):
@@ -86,7 +89,9 @@ class TestHardObjectGate:
         assert len(idx) == 3
 
     def test_weakest_first(self):
-        objs = [_scene_object_to_hard(o, score=s) for o, s in zip(_scene(3).objects, [0.8, 0.1, 0.4])]
+        objs = [
+            _scene_object_to_hard(o, score=s) for o, s in zip(_scene(3).objects, [0.8, 0.1, 0.4])
+        ]
         idx = gate_hard_objects(objs, HardObjectCriteria(hard_score_threshold=0.9))
         assert idx == [1, 2, 0]  # 按 score 升序
 
@@ -94,6 +99,7 @@ class TestHardObjectGate:
 # ---------------------------------------------------------------------------
 # 二次检测 + 证据融合
 # ---------------------------------------------------------------------------
+
 
 class TestReDetectFusion:
     def test_hard_object_score_evidence_boosted(self):
@@ -105,18 +111,19 @@ class TestReDetectFusion:
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         updated, timing = re_detect_hard_objects(
-            scene.image, objs,
+            scene.image,
+            objs,
             detect_batch=lambda samples: predict_batches(detector, samples, batch_size=4),
             crop_metadata_fn=_crop_metadata_for_scene(scene),
         )
         assert len(updated) == len(objs)
         for u, o in zip(updated, objs):
-            assert u.score > o.score          # 0.2 → ~1.0
+            assert u.score > o.score  # 0.2 → ~1.0
             assert u.evidence >= o.evidence
             assert u.category_id == o.category_id
         assert timing.n_hard == len(objs)
         assert timing.n_crops == len(objs)
-        assert timing.refine_s < 1.0          # 20s 预算的 5%
+        assert timing.refine_s < 1.0  # 20s 预算的 5%
 
     def test_bbox_adopts_full_redetection_box(self):
         """重检得到更高分框 → 采纳其坐标（完整重裁的框更全）。"""
@@ -125,7 +132,8 @@ class TestReDetectFusion:
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         updated, _ = re_detect_hard_objects(
-            scene.image, objs,
+            scene.image,
+            objs,
             detect_batch=lambda samples: predict_batches(detector, samples, batch_size=1),
             crop_metadata_fn=_crop_metadata_for_scene(scene),
         )
@@ -134,7 +142,7 @@ class TestReDetectFusion:
         # 与真值框 IoU 很高（mock 完美重检，重裁框即真值框）
         inter_w = max(0.0, min(got[2], gt[2]) - max(got[0], gt[0]))
         inter_h = max(0.0, min(got[3], gt[3]) - max(got[1], gt[1]))
-        iou = (inter_w * inter_h) / max(1e-9, (gt[2]-gt[0]) * (gt[3]-gt[1]))
+        iou = (inter_w * inter_h) / max(1e-9, (gt[2] - gt[0]) * (gt[3] - gt[1]))
         assert iou > 0.9
 
     def test_votes_merge_with_redetection(self):
@@ -144,7 +152,8 @@ class TestReDetectFusion:
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         updated, _ = re_detect_hard_objects(
-            scene.image, objs,
+            scene.image,
+            objs,
             detect_batch=lambda samples: predict_batches(detector, samples, batch_size=2),
             crop_metadata_fn=_crop_metadata_for_scene(scene),
         )
@@ -160,7 +169,8 @@ class TestReDetectFusion:
         detector = build_model("mock", {"init_args": {}})
         detector.eval()
         updated, timing = re_detect_hard_objects(
-            scene.image, objs,
+            scene.image,
+            objs,
             detect_batch=lambda samples: predict_batches(detector, samples, batch_size=2),
             crop_metadata_fn=_crop_metadata_for_scene(scene),
             criteria=HardObjectCriteria(hard_score_threshold=0.3, hard_evidence_threshold=2),
@@ -171,7 +181,8 @@ class TestReDetectFusion:
 
     def test_empty_objects(self):
         updated, timing = re_detect_hard_objects(
-            np.zeros((100, 100, 3), dtype=np.uint8), [],
+            np.zeros((100, 100, 3), dtype=np.uint8),
+            [],
             detect_batch=lambda s: [],
             crop_metadata_fn=lambda r, c: {},
         )
@@ -181,8 +192,13 @@ class TestReDetectFusion:
     def test_end_to_end_pipeline_refinement(self):
         """全链路：低分 mock 跑 pipeline → 对象低置信 → 完美 mock 二次检测提升。"""
         scene = generate_synthetic_scene(
-            image_size=2048, tile_size=1024, overlap=128,
-            num_ships=2, num_aircraft=3, num_vehicles=1, seed=42,
+            image_size=2048,
+            tile_size=1024,
+            overlap=128,
+            num_ships=2,
+            num_aircraft=3,
+            num_vehicles=1,
+            seed=42,
         )
         # 第一遍：低分检测器（score_offset 0.85 → 全 0.15，全部困难）
         weak = build_model("mock", {"init_args": {"score_offset": 0.85}})
@@ -207,7 +223,8 @@ class TestReDetectFusion:
             return {"gt_boxes": boxes}
 
         _, _, objs = run_pipeline(
-            scene.image, weak,
+            scene.image,
+            weak,
             config=PipelineConfig(tile_size=1024, overlap=128, batch_size=4, fusion="global"),
             tile_metadata_fn=_tile_meta,
             collect_objects=True,
@@ -218,7 +235,8 @@ class TestReDetectFusion:
         perfect = build_model("mock", {"init_args": {}})
         perfect.eval()
         updated, timing = re_detect_hard_objects(
-            scene.image, objs,
+            scene.image,
+            objs,
             detect_batch=lambda samples: predict_batches(perfect, samples, batch_size=4),
             crop_metadata_fn=_crop_metadata_for_scene(scene),
         )
@@ -229,6 +247,11 @@ class TestReDetectFusion:
 
 def _scene(n: int):
     return generate_synthetic_scene(
-        image_size=1024, tile_size=1024, overlap=0,
-        num_ships=n, num_aircraft=0, num_vehicles=0, seed=7,
+        image_size=1024,
+        tile_size=1024,
+        overlap=0,
+        num_ships=n,
+        num_aircraft=0,
+        num_vehicles=0,
+        seed=7,
     )

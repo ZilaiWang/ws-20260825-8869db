@@ -119,10 +119,7 @@ def _sample_features(model, image: Image.Image, bbox: list[float], imgsz: int):
     img = image.resize((new_w, new_h), Image.BILINEAR)
     canvas = Image.new("RGB", (imgsz, imgsz), (114, 114, 114))
     canvas.paste(img, (0, 0))
-    tensor = (
-        torch.from_numpy(np.asarray(canvas, dtype=np.float32).transpose(2, 0, 1))
-        / 255.0
-    )
+    tensor = torch.from_numpy(np.asarray(canvas, dtype=np.float32).transpose(2, 0, 1)) / 255.0
     tensor = tensor.unsqueeze(0).to(next(model.parameters()).device)
 
     # 目标中心在原图 → letterbox 后坐标。
@@ -130,7 +127,6 @@ def _sample_features(model, image: Image.Image, bbox: list[float], imgsz: int):
     cy = (bbox[1] + bbox[3]) / 2 * ratio
 
     features: dict[str, float] = {}
-    activations: dict[str, float] = {}
     # 注册 hook：收集 Detect 前各尺度特征。
     hooks = []
     storage = {}
@@ -154,17 +150,13 @@ def _sample_features(model, image: Image.Image, bbox: list[float], imgsz: int):
     for src_idx, stride in zip(source_layers, strides):
         name = stride_to_name.get(stride, f"P{stride}x")
         candidates[name] = model_nn[src_idx]
-        hooks.append(
-            model_nn[src_idx].register_forward_hook(make_hook(name))
-        )
+        hooks.append(model_nn[src_idx].register_forward_hook(make_hook(name)))
     # 同时 hook 前两个 C2f（浅层特征，若 stride 不同会重复捕获）。
     # 该模型 stride 只到 8，无 P2；浅层 C2f 层 6/8 是 backbone 中段。
     for extra_idx in (6, 8):
         extra_name = f"backbone{extra_idx}"
         candidates[extra_name] = model_nn[extra_idx]
-        hooks.append(
-            model_nn[extra_idx].register_forward_hook(make_hook(extra_name))
-        )
+        hooks.append(model_nn[extra_idx].register_forward_hook(make_hook(extra_name)))
 
     try:
         model(tensor)
@@ -203,9 +195,7 @@ def main(argv: list[str] | None = None) -> int:
 
         model = YOLO(str(args.checkpoint)).model.to(device)
 
-        _, predictions, image_folds = load_cv3_aggregate(
-            args.aggregate, candidate_floor=0.001
-        )
+        _, predictions, image_folds = load_cv3_aggregate(args.aggregate, candidate_floor=0.001)
         vehicles = _load_gt_vehicles(args.formal_manifest, args.fold)
         data_root = Path(args.data_root).expanduser().resolve()
 

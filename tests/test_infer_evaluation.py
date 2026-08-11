@@ -83,6 +83,8 @@ def test_inference_automatically_writes_official_metrics(tmp_path: Path) -> None
             "gt": str(gt_path),
             "project_config": "configs/project.yaml",
             "metrics_output": str(metrics_path),
+            # 单类 fixture 只验证 infer 自动评估链，不是正式 V1.6 税表。
+            "require_complete_taxonomy": False,
         }
     }
 

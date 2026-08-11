@@ -43,9 +43,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="N0-4 FP_BG 人工语义审计抽检包",
     )
     parser.add_argument("--manifest", type=Path, required=True)
-    parser.add_argument(
-        "--project-config", type=Path, default=Path("configs/project.yaml")
-    )
+    parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     parser.add_argument("--max-per-stratum", type=int, default=10)
     parser.add_argument("--repeat-control-fraction", type=float, default=0.20)
     parser.add_argument("--seed", type=int, default=42)
@@ -63,8 +61,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
         category_mapping = {
-            int(category_id): name
-            for category_id, name in protocol.category_mapping.items()
+            int(category_id): name for category_id, name in protocol.category_mapping.items()
         }
         samples, summary = sample_fp_bg_audit(
             manifest,

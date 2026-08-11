@@ -1,7 +1,11 @@
 # P 系列实验总览
 
-更新日期：2026-07-25  
-状态：`current_after_M1_formal_OOF`
+更新日期：2026-08-10
+状态：`current_pre_innovation_closure`
+
+> 正式数字、作废项和后续准入以
+> [`PRE_INNOVATION_CLOSURE_20260810.md`](../../../reports/experiments/PRE_INNOVATION_CLOSURE_20260810.md)
+> 为准。下表中的探索数字仅用于说明方向演化。
 
 本页补足当前 Git 中缺失的 P04 后续、P05、P06、P07 结果索引。数值来自已验收的服务器最终回报；正式报告和回传包仍需按服务器资产登记恢复。
 
@@ -11,7 +15,7 @@
 | P0-2 crop manifest | 20,933 对象、3 种 crop、62,799 行，可追溯并通过几何/哈希审计 | crop 几何可靠，旧 fold 探索性 | CV3 后只重挂 fold |
 | P03 普通 crop 分类 | ConvNeXt-T 全量微调：tight-224 macro R `0.9703±0.0078`；三 seed 均值约 0.9686；context 较差，sqrt-inverse 无收益，jitter 仅小幅下降 | GT-crop 探索上限 | 冻结 tight-224 + natural，不再重开大网格 |
 | P04 教师探针 | DINOv2-B CLS+patch `0.9098`；ConvNeXt train-RMS `0.8797`；DINO-S `0.8629`；CleanDIFT map0 `0.8293` | 探索性教师排序 | DINOv2-B 为首选教师；CleanDIFT 只作对照 |
-| P05 真实背景拒识 | 旧易背景 pilot 被阻断；M1 工作点现有 `FP_BG=3303/4671` | 正式 OOF 已给出准入方向，但语义仍待人工审计 | 先构建 Pred-OOF hard-negative manifest 并抽检，随后做 cross-fit 背景头 |
+| P05/N2 真实背景拒识 | 正式计数守恒 `FP_BG=3303`；N2 v1 已因合同缺陷作废 | v2 代码已修复，尚无人工确认背景 | 只在重启时审 N0-4 v2；未标 hard negative 不进训练 |
 | P06 合成框修正 | 合成任务可学；M1 正式工作点只有 `FN_LOC=66/1734` | 真实定位收益容量过小 | `deferred_low_localization_evidence`，不占近期 GPU |
 | P07 扩散背景融合 | 保护区工程门禁通过；SD1.5 仅 1/24 优于最佳传统融合，48 个输出中 43 个有 halo | 有充分停止证据 | 扩散融合停止；传统 Copy-Paste 可保留 |
 
@@ -40,9 +44,9 @@ OOF 审计、cross-fit 阈值与真实错误分解
 按背景 FP / 定位错误证据有条件放行 P05 / P06
 ```
 
-M1 已完成，因此 P03/P04/P05 已解锁；P06 因真实定位容量不足主动暂缓。
-当前顺序是：N0 证据层 → P04/P03 正式复验 → 真实对象学生与 P05 背景头。
-M3 与 E-10K 可作为独立支线并行。
+M1、N0 v2、P03-F 和 P04-F 已完成。N2 v1 作废，v2 只在重启对象学生时
+重放；P06 因真实定位容量不足暂缓，P07 停止。M3 与 E-10K 继续作为
+独立成员支线，不阻塞以 M1 为对照的创新实验。
 
 M1 后的当前顺序、准入条件和资源队列统一见
 [`NEXT_STAGE_AFTER_M1_FORMAL_OOF_MASTER_v1.md`](../../../reports/experiments/NEXT_STAGE_AFTER_M1_FORMAL_OOF_MASTER_v1.md)。

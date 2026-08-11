@@ -63,9 +63,7 @@ def load_group_map(path: Path) -> tuple[dict[str, str], str]:
 
 def write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:
@@ -89,9 +87,7 @@ def main() -> int:
 
     proxy_by_stem, source_image_column = load_group_map(args.group_map)
     mar20_samples = [
-        sample
-        for sample in samples
-        if MAR20_RE.fullmatch(Path(sample["relative_path"]).stem)
+        sample for sample in samples if MAR20_RE.fullmatch(Path(sample["relative_path"]).stem)
     ]
     manifest_stems = {Path(sample["relative_path"]).stem for sample in mar20_samples}
     if manifest_stems != set(proxy_by_stem):

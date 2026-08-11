@@ -89,9 +89,7 @@ def _fixture(tmp_path: Path) -> dict[str, Path]:
     p02_path = tmp_path / "crop_manifest.csv"
     _write_csv(p02_path, p02_rows)
     p02_sha = sha256_file(p02_path)
-    formal_rows = [
-        {**row, "source_crop_manifest_sha256": p02_sha} for row in p02_rows
-    ]
+    formal_rows = [{**row, "source_crop_manifest_sha256": p02_sha} for row in p02_rows]
     formal_path = tmp_path / "formal_crop_manifest.csv"
     _write_csv(formal_path, formal_rows)
 
@@ -271,10 +269,7 @@ def test_writable_or_tampered_lock_is_rejected(tmp_path: Path) -> None:
 
 def test_project_spec_freezes_all_formal_dataset_counts() -> None:
     spec = load_and_validate_spec(
-        Path(__file__).parents[1]
-        / "configs"
-        / "experiments"
-        / "formal_detection_data_lock.json"
+        Path(__file__).parents[1] / "configs" / "experiments" / "formal_detection_data_lock.json"
     )
     assert spec["cv3_manifest"]["sample_count"] == 4481
     assert spec["cv3_manifest"]["source_group_count"] == 255

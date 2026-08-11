@@ -90,27 +90,19 @@ class TestSampleAudit:
 
     def test_deterministic_seed(self):
         manifest = _manifest_with_fp_bg(60)
-        _, summary_a = sample_fp_bg_audit(
-            manifest, category_mapping=_MAPPING, seed=7
-        )
-        _, summary_b = sample_fp_bg_audit(
-            manifest, category_mapping=_MAPPING, seed=7
-        )
+        _, summary_a = sample_fp_bg_audit(manifest, category_mapping=_MAPPING, seed=7)
+        _, summary_b = sample_fp_bg_audit(manifest, category_mapping=_MAPPING, seed=7)
         assert summary_a == summary_b
 
     def test_class_name_filled_from_mapping(self):
         manifest = _manifest_with_fp_bg(9)
-        samples, _ = sample_fp_bg_audit(
-            manifest, category_mapping=_MAPPING, max_per_stratum=5
-        )
+        samples, _ = sample_fp_bg_audit(manifest, category_mapping=_MAPPING, max_per_stratum=5)
         class_names = {s.class_name for s in samples}
         assert "FSC" in class_names
 
     def test_empty_pool_rejected(self):
         with pytest.raises(ValueError, match="抽检池为空"):
-            sample_fp_bg_audit(
-                {"records": []}, category_mapping=_MAPPING
-            )
+            sample_fp_bg_audit({"records": []}, category_mapping=_MAPPING)
 
     def test_max_per_stratum_limits(self):
         # 全部属同一大类 FSC；fold = i % 3、score = [0.05, 0.2, 0.5][(i//3) % 3]
@@ -142,9 +134,7 @@ class TestSampleAudit:
 class TestCsvRoundTrip:
     def test_round_trip_with_labels(self, tmp_path: Path):
         manifest = _manifest_with_fp_bg(30)
-        samples, _ = sample_fp_bg_audit(
-            manifest, category_mapping=_MAPPING, max_per_stratum=5
-        )
+        samples, _ = sample_fp_bg_audit(manifest, category_mapping=_MAPPING, max_per_stratum=5)
         csv_path = tmp_path / "audit.csv"
         audit_samples_to_csv(samples, csv_path)
         # 填上标签后读回。
@@ -162,9 +152,7 @@ class TestCsvRoundTrip:
         import csv
 
         manifest = _manifest_with_fp_bg(10)
-        samples, _ = sample_fp_bg_audit(
-            manifest, category_mapping=_MAPPING, max_per_stratum=3
-        )
+        samples, _ = sample_fp_bg_audit(manifest, category_mapping=_MAPPING, max_per_stratum=3)
         csv_path = tmp_path / "audit.csv"
         audit_samples_to_csv(samples, csv_path)
 

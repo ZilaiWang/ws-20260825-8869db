@@ -154,9 +154,7 @@ def _iou_subcluster(
     return list(groups.values())
 
 
-def _class_vote_scores(
-    indices: List[int], proposals: List[Dict[str, Any]]
-) -> Dict[int, float]:
+def _class_vote_scores(indices: List[int], proposals: List[Dict[str, Any]]) -> Dict[int, float]:
     """子簇内各细类的 score 加权票数（evidence 明细，主线 2 消费）。"""
     votes: Dict[int, float] = {}
     for i in indices:
@@ -216,14 +214,14 @@ def class_aware_nms(boxes: List[Dict[str, Any]], iou_thr: float = 0.5) -> List[D
             if a + 1 >= m:
                 break
             # 一次向量化算 box a 与所有低分同类的 IoU，标记需压制的
-            x1 = np.maximum(xyxy[a, 0], xyxy[a + 1:, 0])
-            y1 = np.maximum(xyxy[a, 1], xyxy[a + 1:, 1])
-            x2 = np.minimum(xyxy[a, 2], xyxy[a + 1:, 2])
-            y2 = np.minimum(xyxy[a, 3], xyxy[a + 1:, 3])
+            x1 = np.maximum(xyxy[a, 0], xyxy[a + 1 :, 0])
+            y1 = np.maximum(xyxy[a, 1], xyxy[a + 1 :, 1])
+            x2 = np.minimum(xyxy[a, 2], xyxy[a + 1 :, 2])
+            y2 = np.minimum(xyxy[a, 3], xyxy[a + 1 :, 3])
             iw = np.maximum(0.0, x2 - x1)
             ih = np.maximum(0.0, y2 - y1)
             inter = iw * ih
-            union = area[a] + area[a + 1:] - inter
+            union = area[a] + area[a + 1 :] - inter
             ious = np.where(union > 0.0, inter / union, 0.0)
             for offset in np.flatnonzero(ious >= iou_thr):
                 suppressed[indices[a + 1 + offset]] = True
@@ -274,9 +272,7 @@ def aggregate(
                 "evidence": len(sub),
             }
             if "source_tile_id" in p:
-                source_tiles = {
-                    int(proposals[i]["source_tile_id"]) for i in sub
-                }
+                source_tiles = {int(proposals[i]["source_tile_id"]) for i in sub}
                 obj["source_tile_ids"] = sorted(source_tiles)
                 obj["category_votes"] = _class_vote_scores(sub, proposals)
             aggregated.append(obj)
@@ -286,6 +282,7 @@ def aggregate(
 # ---------------------------------------------------------------------------
 # tile 流水线桥接：fuse_global_predictions
 # ---------------------------------------------------------------------------
+
 
 def _validated_label(label: object, *, location: str) -> int:
     """校验细类 id 为 [0, 24] 的整数。"""
@@ -358,11 +355,7 @@ def _restore_proposals(
                 f"tile_predictions[{index}].image_id={prediction.image_id} does not match "
                 f"tiles[{index}].tile_id={tile.tile_id}"
             )
-        if not (
-            len(prediction.boxes_xyxy)
-            == len(prediction.scores)
-            == len(prediction.labels)
-        ):
+        if not (len(prediction.boxes_xyxy) == len(prediction.scores) == len(prediction.labels)):
             raise ValueError(
                 f"tile_predictions[{index}] boxes, scores, and labels must have equal lengths"
             )
@@ -380,15 +373,17 @@ def _restore_proposals(
                 raise ValueError(f"{location}.box is invalid: {error}") from error
             if clipped[2] <= clipped[0] or clipped[3] <= clipped[1]:
                 continue
-            proposals.append({
-                "x": clipped[0],
-                "y": clipped[1],
-                "width": clipped[2] - clipped[0],
-                "height": clipped[3] - clipped[1],
-                "category_id": numeric_label,
-                "score": numeric_score,
-                "source_tile_id": tile.tile_id,
-            })
+            proposals.append(
+                {
+                    "x": clipped[0],
+                    "y": clipped[1],
+                    "width": clipped[2] - clipped[0],
+                    "height": clipped[3] - clipped[1],
+                    "category_id": numeric_label,
+                    "score": numeric_score,
+                    "source_tile_id": tile.tile_id,
+                }
+            )
     return proposals
 
 
@@ -573,6 +568,7 @@ def global_object_manifest(
 # WP6：条件计算 / 困难对象二次检测（复用同一检测器，不设计新网络）
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class HardObjectCriteria:
     """困难对象判定与二次检测参数。
@@ -598,8 +594,8 @@ class HardObjectCriteria:
 class RefinementTiming:
     """二次检测计时（纳入 20s 端到端预算检查）。"""
 
-    n_hard: int = 0      # 被判困难的对象数
-    n_crops: int = 0     # 实际重裁检测的 crop 数
+    n_hard: int = 0  # 被判困难的对象数
+    n_crops: int = 0  # 实际重裁检测的 crop 数
     refine_s: float = 0.0  # 二次检测总耗时
 
 
@@ -726,11 +722,8 @@ def re_detect_hard_objects(
         votes = dict(obj.category_votes)
         evidence = int(obj.evidence)
         best_score = float(obj.score)
-        best_cat = obj.category_id
         best_box: List[float] = list(obj.bbox_xyxy)
-        for box, score, label in zip(
-            prediction.boxes_xyxy, prediction.scores, prediction.labels
-        ):
+        for box, score, label in zip(prediction.boxes_xyxy, prediction.scores, prediction.labels):
             if score < criteria.min_score:
                 continue
             global_box = [box[0] + ox, box[1] + oy, box[2] + ox, box[3] + oy]
@@ -740,7 +733,6 @@ def re_detect_hard_objects(
             evidence += 1
             if float(score) > best_score:
                 best_score = float(score)
-                best_cat = int(label)
                 best_box = global_box
         if evidence > obj.evidence:
             # 证据增加才更新；重投票选类，平手取较小 category_id

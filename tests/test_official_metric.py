@@ -223,7 +223,13 @@ class TestRankingMetrics:
             ],
             2: [_make_pred(2, [500, 500, 600, 600], 0.7, 1)],
         }
-        ranking = evaluate_ranking_metrics(gt, pred, ["ship"], category_mapping=mapping)
+        ranking = evaluate_ranking_metrics(
+            gt,
+            pred,
+            ["ship"],
+            category_mapping=mapping,
+            require_complete_taxonomy=False,
+        )
 
         fine0 = ranking.per_fine[0]
         fine1 = ranking.per_fine[1]
@@ -276,11 +282,17 @@ class TestRankingMetrics:
         mapping = {0: "ship", 1: "ship", 2: "ship"}
         gt = {1: [_make_gt(1, [0, 0, 100, 100], 0)]}
         pred = {1: [_make_pred(1, [0, 0, 100, 100], 0.9, 0)]}
-        ranking = evaluate_ranking_metrics(gt, pred, ["ship"], category_mapping=mapping)
+        ranking = evaluate_ranking_metrics(
+            gt,
+            pred,
+            ["ship"],
+            category_mapping=mapping,
+            require_complete_taxonomy=False,
+        )
 
         assert ranking.per_coarse["ship"].fine_count == 1
         assert ranking.per_coarse["ship"].fine_ids == [0]
-        assert ranking.details["fine_average_policy"] == "present_in_gt_only"
+        assert ranking.details["fine_average_policy"] == ("present_in_gt_only_diagnostic")
         # 细类 1、2 无 GT 无预测，不产生记录也不参与平均
         assert 1 not in ranking.per_fine
         assert 2 not in ranking.per_fine
@@ -296,15 +308,11 @@ class TestRankingMetrics:
             1: [_make_pred(1, [0, 0, 100, 100], 0.9, 0)],
             2: [_make_pred(2, [500, 500, 600, 600], 0.8, 4)],
         }
-        ranking = evaluate_ranking_metrics(
-            gt, pred, ["ship", "aircraft"], category_mapping=mapping
-        )
+        ranking = evaluate_ranking_metrics(gt, pred, ["ship", "aircraft"], category_mapping=mapping)
         assert ranking.per_coarse["ship"].macro_recall == pytest.approx(1.0)
         assert ranking.per_coarse["aircraft"].macro_recall == pytest.approx(0.0)
         assert ranking.overall_recall == pytest.approx(0.5)
-        assert ranking.details["aggregation_policy"] == (
-            "official_ranking_v1_6_fine_macro_average"
-        )
+        assert ranking.details["aggregation_policy"] == ("official_ranking_v1_6_fine_macro_average")
 
     def test_ranking_matches_pooled_when_single_fine_per_coarse(self):
         """细类数=1 时 macro 与 pooled 完全一致（同源验证）。"""

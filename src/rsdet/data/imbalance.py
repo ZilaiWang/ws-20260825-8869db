@@ -281,9 +281,7 @@ def prepare_ultralytics_data(
     repeats = stochastic_repeat_counts(factors, seed=seed)
     base_paths = [sample.image_path for sample in train_samples]
     balanced_paths = [
-        sample.image_path
-        for sample in train_samples
-        for _ in range(repeats[sample.image_id])
+        sample.image_path for sample in train_samples for _ in range(repeats[sample.image_id])
     ]
     random.Random(seed).shuffle(balanced_paths)
     val_paths = [sample.image_path for sample in val_samples]
@@ -300,9 +298,7 @@ def prepare_ultralytics_data(
     _write_dataset_yaml(base_yaml, train_list, val_list)
     _write_dataset_yaml(balanced_yaml, balanced_train_list, val_list)
 
-    instance_counts, positive_counts = class_statistics(
-        train_samples, num_classes=len(FINE_NAMES)
-    )
+    instance_counts, positive_counts = class_statistics(train_samples, num_classes=len(FINE_NAMES))
     weights = effective_number_weights(
         instance_counts,
         beta=effective_beta,
@@ -338,9 +334,7 @@ def prepare_ultralytics_data(
             for sample in train_samples
         ],
     }
-    statistics_json.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    statistics_json.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return PreparedUltralyticsData(
         base_yaml=base_yaml,
         balanced_yaml=balanced_yaml,

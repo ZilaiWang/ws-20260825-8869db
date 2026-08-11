@@ -69,8 +69,7 @@ def _policies() -> dict[str, CropPolicy]:
         / "exploratory_crop_manifest.yaml"
     )
     return {
-        policy.id: policy
-        for policy in parse_crop_policies(load_crop_manifest_config(config_path))
+        policy.id: policy for policy in parse_crop_policies(load_crop_manifest_config(config_path))
     }
 
 
@@ -108,9 +107,7 @@ def test_jitter_is_deterministic_bounded_and_versioned() -> None:
     assert -0.08 <= first["jitter_dy_fraction"] <= 0.08
     assert 0.9 <= first["jitter_width_scale"] <= 1.1
     assert 0.9 <= first["jitter_height_scale"] <= 1.1
-    assert math.isclose(
-        first["crop_x1"] - first["crop_x0"], first["crop_side_px"], abs_tol=1e-12
-    )
+    assert math.isclose(first["crop_x1"] - first["crop_x0"], first["crop_side_px"], abs_tol=1e-12)
     assert 0 <= first["gt_coverage_fraction"] <= 1
 
 

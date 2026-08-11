@@ -34,9 +34,7 @@ def l2_normalize(values: np.ndarray, eps: float = 1e-12) -> np.ndarray:
     return array / np.maximum(norms, eps)
 
 
-def deterministic_view_index(
-    annotation_uid: str, epoch: int, seed: int, view_count: int
-) -> int:
+def deterministic_view_index(annotation_uid: str, epoch: int, seed: int, view_count: int) -> int:
     if view_count <= 0:
         raise ValueError("view_count 必须大于 0")
     digest = hashlib.sha256(f"{seed}|{epoch}|{annotation_uid}".encode("utf-8")).digest()
@@ -163,9 +161,7 @@ def fit_pca_train_only(
     return {
         "components": np.asarray(model.components_, dtype=np.float32),
         "mean": np.asarray(model.mean_, dtype=np.float32),
-        "explained_variance_ratio": np.asarray(
-            model.explained_variance_ratio_, dtype=np.float32
-        ),
+        "explained_variance_ratio": np.asarray(model.explained_variance_ratio_, dtype=np.float32),
     }
 
 

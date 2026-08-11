@@ -122,9 +122,7 @@ def test_cache_writer_resume_audit_and_feature_load(tmp_path: Path) -> None:
         "view_id": ["r0", "r0"],
     }
     features = {"f": np.asarray([[1, 2], [3, 4]], dtype=np.float32)}
-    cache = _write_cache(
-        tmp_path / "cache", feature_names=("f",), rows=rows, features=features
-    )
+    cache = _write_cache(tmp_path / "cache", feature_names=("f",), rows=rows, features=features)
     assert cache.audit()["status"] == "pass"
     assert np.array_equal(cache.load_feature("f")["f"], features["f"])
     writer = FeatureCacheWriter(
@@ -145,9 +143,7 @@ def test_repeat_and_subset_overlap_compare_use_annotation_view_keys(
         "canonical_input_sha256": ["1" * 64, "1" * 64, "2" * 64],
         "view_id": ["r0", "r90", "r0"],
     }
-    full_features = {
-        "f": np.asarray([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], dtype=np.float32)
-    }
+    full_features = {"f": np.asarray([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], dtype=np.float32)}
     _write_cache(
         tmp_path / "full-a",
         feature_names=("f",),
@@ -242,16 +238,12 @@ def test_probe_rejects_unverified_cross_manifest_cache_reuse(tmp_path: Path) -> 
         metadata={"manifest_sha256": "0" * 64},
     )
     with pytest.raises(ValueError, match="P04-TASK-05"):
-        load_probe_data(
-            tmp_path / "cache-mismatch", feature_name="f", manifest_path=manifest
-        )
+        load_probe_data(tmp_path / "cache-mismatch", feature_name="f", manifest_path=manifest)
 
 
 def test_raw_ensemble_gate_uses_nested_e4_and_e8(tmp_path: Path) -> None:
     names = tuple(
-        f"raw_{location}_e{size}"
-        for location in ("map0_t100", "map6_t261")
-        for size in (1, 4, 8)
+        f"raw_{location}_e{size}" for location in ("map0_t100", "map6_t261") for size in (1, 4, 8)
     )
     rows = {
         "annotation_uid": ["a", "b"],
@@ -261,9 +253,7 @@ def test_raw_ensemble_gate_uses_nested_e4_and_e8(tmp_path: Path) -> None:
     }
     base = np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
     features = {name: base.copy() for name in names}
-    _write_cache(
-        tmp_path / "raw", feature_names=names, rows=rows, features=features
-    )
+    _write_cache(tmp_path / "raw", feature_names=names, rows=rows, features=features)
     report = analyze_raw_ensemble(str(tmp_path / "raw"))
     assert report["ensemble4_gate"]["status"] == "pass"
     assert report["comparisons"]["map0_t100_e4_vs_e8"]["median"] == pytest.approx(1.0)

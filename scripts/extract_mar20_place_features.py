@@ -56,7 +56,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--shard-size", type=int, default=128)
     parser.add_argument("--device", default="cuda")
-    parser.add_argument("--compute-dtype", choices=("float16", "float32", "bfloat16"), default="float16")
+    parser.add_argument(
+        "--compute-dtype", choices=("float16", "float32", "bfloat16"), default="float16"
+    )
     parser.add_argument("--storage-dtype", choices=("float16", "float32"), default="float16")
     parser.add_argument("--seed", type=int, default=202625)
     parser.add_argument("--allow-mock", action="store_true")
@@ -92,9 +94,15 @@ def _asset_options(args: argparse.Namespace) -> dict[str, str]:
     }
     if args.asset_lock:
         lock = json.loads(Path(args.asset_lock).expanduser().resolve().read_text(encoding="utf-8"))
-        values["weights"] = values["weights"] or lock.get("files", {}).get("dinov2_vitb14", {}).get("path")
-        values["weight_sha256"] = values["weight_sha256"] or lock.get("files", {}).get("dinov2_vitb14", {}).get("sha256")
-        values["repo"] = values["repo"] or lock.get("repositories", {}).get("dinov2", {}).get("path")
+        values["weights"] = values["weights"] or lock.get("files", {}).get("dinov2_vitb14", {}).get(
+            "path"
+        )
+        values["weight_sha256"] = values["weight_sha256"] or lock.get("files", {}).get(
+            "dinov2_vitb14", {}
+        ).get("sha256")
+        values["repo"] = values["repo"] or lock.get("repositories", {}).get("dinov2", {}).get(
+            "path"
+        )
     missing = [key for key, value in values.items() if not value]
     if args.encoder != "mock" and missing:
         raise ValueError(f"DINOv2 资产缺失: {missing}")
@@ -108,7 +116,11 @@ def _select_rows(args: argparse.Namespace) -> list[dict[str, str]]:
     if args.node_list:
         allow = {
             value.strip()
-            for value in Path(args.node_list).expanduser().resolve().read_text(encoding="utf-8").splitlines()
+            for value in Path(args.node_list)
+            .expanduser()
+            .resolve()
+            .read_text(encoding="utf-8")
+            .splitlines()
             if value.strip() and not value.lstrip().startswith("#")
         }
         if not allow:

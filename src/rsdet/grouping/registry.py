@@ -121,9 +121,7 @@ def _parse_original_annotation(
     width, height = image_size
     size_missing = xml_width <= 0 or xml_height <= 0
     if not size_missing and (xml_width, xml_height) != image_size:
-        raise ValueError(
-            f"{path}: XML 尺寸 {(xml_width, xml_height)} 与图像 {image_size} 不一致"
-        )
+        raise ValueError(f"{path}: XML 尺寸 {(xml_width, xml_height)} 与图像 {image_size} 不一致")
     boxes: list[BoxAnnotation] = []
     for obj in root.findall("object"):
         name = (obj.findtext("name") or "").strip()
@@ -133,7 +131,9 @@ def _parse_original_annotation(
         bbox = obj.find("bndbox")
         if bbox is None:
             raise ValueError(f"{path}: object 缺少 bndbox")
-        values = tuple(float(bbox.findtext(key, default="nan")) for key in ("xmin", "ymin", "xmax", "ymax"))
+        values = tuple(
+            float(bbox.findtext(key, default="nan")) for key in ("xmin", "ymin", "xmax", "ymax")
+        )
         x1, y1, x2, y2 = values
         if not (0 <= x1 < x2 <= width and 0 <= y1 < y2 <= height):
             raise ValueError(f"{path}: 非法 HBB {values}")
@@ -299,9 +299,7 @@ def build_registry(
                 competition_pixel_sha = canonical_pixel_sha256(image)
             competition_file_sha = sha256_file(competition_image)
             competition_boxes = _parse_competition_label(label_path, width, height)
-            competition_annotation_sha = stable_json_sha256(
-                _annotation_payload(competition_boxes)
-            )
+            competition_annotation_sha = stable_json_sha256(_annotation_payload(competition_boxes))
             file_equal = competition_file_sha == original_file_sha
             pixel_equal = competition_pixel_sha == original_pixel_sha
             class_hist_equal = _class_hist(competition_boxes) == _class_hist(original_boxes)

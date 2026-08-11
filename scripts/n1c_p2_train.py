@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -28,6 +29,14 @@ from rsdet.utils.logging import setup_logging
 logger = setup_logging(name="n1c_p2_train")
 
 CLASS_NAMES_25 = [str(i) for i in range(25)]
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -84,7 +93,9 @@ def build_dataset_yaml(
     output_dir.mkdir(parents=True, exist_ok=True)
     train_txt = output_dir / f"train_fold{fold}.txt"
     val_txt = output_dir / f"val_fold{fold}.txt"
-    train_txt.write_text("\n".join(str(data_root / p) for p in train_paths) + "\n", encoding="utf-8")
+    train_txt.write_text(
+        "\n".join(str(data_root / p) for p in train_paths) + "\n", encoding="utf-8"
+    )
     val_txt.write_text("\n".join(str(data_root / p) for p in val_paths) + "\n", encoding="utf-8")
 
     dataset_yaml = output_dir / f"dataset_fold{fold}.yaml"
@@ -129,6 +140,9 @@ def main(argv: list[str] | None = None) -> int:
             "batch": args.batch,
             "epochs": args.epochs,
             "cv3_manifest": str(args.cv3_manifest),
+            "cv3_manifest_sha256": _sha256(args.cv3_manifest),
+            "checkpoint_selection": "fixed_epoch_last",
+            "evaluation_contract": "formal_comparison_requires_same_160_epochs_and_last_pt",
             "note": "与 M1 单因素对照：唯一差异 = P2 stride-4 检测通路；"
             "P2 头随机初始化，公共层从 yolo26s COCO 预训练迁移",
         }
@@ -142,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.pretrained:
             logger.info("从 %s 迁移公共层权重（P2 头随机初始化）", args.pretrained)
             model.load(args.pretrained)
-        results = model.train(
+        model.train(
             data=str(dataset_yaml),
             epochs=args.epochs,
             imgsz=args.imgsz,
@@ -167,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.exception("P2 训练失败: %s", error)
         return 1
     logger.info("=== P2 fold %d 完成 ===", args.fold)
-    logger.info("最佳权重: %s", output_dir / "p2_run" / "weights" / "best.pt")
+    logger.info("固定最后权重: %s", output_dir / "p2_run" / "weights" / "last.pt")
     return 0
 
 

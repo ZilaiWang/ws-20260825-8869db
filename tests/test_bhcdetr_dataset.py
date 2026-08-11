@@ -179,10 +179,7 @@ def test_json_manifest_supports_explicit_split_and_preserves_image_id(
 
 
 def test_json_fold_manifest_builds_held_out_train_and_val_views(tmp_path: Path) -> None:
-    paths = [
-        _write_sample(tmp_path, split="train", name=f"image_{index}")
-        for index in range(3)
-    ]
+    paths = [_write_sample(tmp_path, split="train", name=f"image_{index}") for index in range(3)]
     manifest = tmp_path / "folds.json"
     manifest.write_text(
         json.dumps(

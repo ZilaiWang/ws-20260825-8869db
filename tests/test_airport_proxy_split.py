@@ -45,11 +45,14 @@ def test_solver_respects_budget_coverage_and_is_deterministic() -> None:
     assert selected_a == selected_b
     assert sum(group.image_count for group in groups if group.group_id in selected_a) == 5
     for class_id in (4, 5):
-        assert sum(
-            group.class_box_counts[class_id] > 0
-            for group in groups
-            if group.group_id in selected_a
-        ) >= 2
+        assert (
+            sum(
+                group.class_box_counts[class_id] > 0
+                for group in groups
+                if group.group_id in selected_a
+            )
+            >= 2
+        )
         assert any(
             group.class_box_counts[class_id] > 0
             for group in groups

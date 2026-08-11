@@ -201,8 +201,7 @@ def main() -> None:
         (row["expected_role"], role(decisions[row["card_id"]]["label"])) for row in controls
     )
     duplicate_role_agreement = sum(
-        len({role(decisions[row["card_id"]]["label"]) for row in rows}) == 1
-        for rows in repeated
+        len({role(decisions[row["card_id"]]["label"]) for row in rows}) == 1 for rows in repeated
     )
     target_rows = [row for row in output_rows if row["is_target"] == "1"]
     target_components = Counter(row["group_id"] for row in target_rows)
@@ -262,10 +261,14 @@ def main() -> None:
         "cv_guard_negative_conflicts": len(guard_conflicts),
         "duplicate_groups": len(repeated),
         "duplicate_role_agreement": duplicate_role_agreement / len(repeated),
-        "control_confusion": {f"{a}_as_{b}": value for (a, b), value in sorted(control_counts.items())},
+        "control_confusion": {
+            f"{a}_as_{b}": value for (a, b), value in sorted(control_counts.items())
+        },
         "target_groups": len(target_components),
         "target_non_singleton_groups": sum(size > 1 for size in target_components.values()),
-        "target_nodes_in_non_singletons": sum(size for size in target_components.values() if size > 1),
+        "target_nodes_in_non_singletons": sum(
+            size for size in target_components.values() if size > 1
+        ),
         "target_core_only_embargo_recommended": sum(
             int(row["core_only_embargo_recommended"]) for row in target_rows
         ),
@@ -288,7 +291,9 @@ def main() -> None:
         },
     }
     summary_path = args.output_dir / "target_core_summary.json"
-    summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 

@@ -179,9 +179,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "bridge_bridge": sum(_integer(row, "bridge_bridge", 0) for row in selected),
         },
         "exact_pixel_count": sum(_integer(row, "exact_pixel", 0) for row in selected),
-        "two_route_count": sum(
-            _integer(row, "formal_route_support", 0) >= 2 for row in selected
-        ),
+        "two_route_count": sum(_integer(row, "formal_route_support", 0) >= 2 for row in selected),
         "retrieval_decision_sha256": sha256_file(decision_path),
         "formal_candidates_sha256": sha256_file(candidate_path),
         "calibration_pairs_sha256": sha256_file(calibration_path),

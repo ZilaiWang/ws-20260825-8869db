@@ -12,11 +12,11 @@ proposal_uid、bbox_xyxy、fold、官方状态、GT 匹配、oracle 命中。N2 
 - ``crop_xyxy``：候选框（可直接喂 ``render_crop``）；
 - ``fold``：候选所在 CV3 fold；
 - ``leakage_group_id``：source_group（防泄漏按来源组划分）；
-- 训练标签：对官方 TP 用 ``matched_gt_category``（真值细类，学生学"纠正细类"），
-  对 FP 用预测类别（学生学"保持但不强化错误"），hard_negative 用背景标签；
+- 训练标签：官方 TP 用 ``matched_gt_category``，oracle 正例用
+  ``oracle_gt_category``，仅人工确认的清晰背景使用背景标签；
 - ``view``：oracle_positive / deployable_positive / hard_negative；
 - ``is_background``：hard_negative 中明确标为背景的候选（N0-4 人工审计后才可
-  作为真实背景样本；默认仅用 FP_BG 且无 oracle hit 的）。
+  作为真实背景样本；未审核 hard negative 默认不写入训练 manifest）。
 
 防泄漏
 ------
@@ -50,6 +50,8 @@ PROPOSAL_CROP_COLUMNS: tuple[str, ...] = (
     "fold",
     "leakage_group_id",
     "class_id",
+    "detector_category_id",
+    "source_prediction_index",
     "class_name",
     "major_class",
     "crop_policy",
@@ -63,6 +65,7 @@ PROPOSAL_CROP_COLUMNS: tuple[str, ...] = (
     "score",
     "oracle_hit",
     "matched_gt_category",
+    "oracle_gt_category",
 )
 
 
@@ -128,7 +131,8 @@ def build_proposal_crop_manifest(
     evidence_manifest: Mapping[str, Any],
     formal_manifest_path: str | Path,
     include_views: Sequence[str] | None = None,
-    background_candidates: str = "fp_bg_no_oracle",
+    background_candidates: str = "manual_clear_background",
+    confirmed_background_uids: set[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """从对象证据 manifest 生成 proposal crop 记录。
 
@@ -136,8 +140,8 @@ def build_proposal_crop_manifest(
         evidence_manifest: N0-3 pred_oof_evidence.json（dict）。
         formal_manifest_path: formal crop manifest CSV（提供原图路径）。
         include_views: 包含哪些视图（默认全部三种）。
-        background_candidates: hard_negative 中哪些算背景：
-            "fp_bg_no_oracle"（默认）＝ official_status==FP_BG 且无 oracle hit。
+        background_candidates: 只支持 ``manual_clear_background``。
+        confirmed_background_uids: 人工审核为 clear_background 的 proposal_uid。
 
     Returns:
         (rows, summary)。rows 可直接写 CSV。
@@ -157,6 +161,8 @@ def build_proposal_crop_manifest(
     missing_images: set[int] = set()
     background_count = 0
     view_counts: defaultdict[str, int] = defaultdict(int)
+    unconfirmed_hard_negatives_skipped = 0
+    confirmed_background_uids = confirmed_background_uids or set()
 
     for record in records:
         image_id = _parse_int(record["image_id"], "image_id")
@@ -179,25 +185,24 @@ def build_proposal_crop_manifest(
         matched_gt_category = record.get("matched_gt_category")
         is_background = False
         if view == "hard_negative":
-            if background_candidates == "fp_bg_no_oracle":
-                is_background = (
-                    official_status == "FP_BG" and not bool(record.get("oracle_hit"))
-                )
-            else:
-                raise ValueError(
-                    f"未知 background_candidates={background_candidates!r}"
-                )
+            if background_candidates != "manual_clear_background":
+                raise ValueError(f"未知 background_candidates={background_candidates!r}")
+            is_background = str(record["proposal_uid"]) in confirmed_background_uids
             if is_background:
                 background_count += 1
+            else:
+                unconfirmed_hard_negatives_skipped += 1
+                continue
 
-        # 训练标签：TP→真值细类；FP→预测类别（保持原类别，学生可纠错）；
-        # 背景→哨兵 25。
+        # 标签必须来自 GT/oracle GT/人工背景，不能把检测器错类当真值。
         if is_background:
             class_id = BACKGROUND_CLASS_ID
         elif matched_gt_category is not None:
             class_id = _parse_int(matched_gt_category, "matched_gt_category")
+        elif record.get("oracle_hit") and record.get("oracle_gt_category") is not None:
+            class_id = _parse_int(record["oracle_gt_category"], "oracle_gt_category")
         else:
-            class_id = _parse_int(record["category_id"], "category_id")
+            raise ValueError(f"proposal {record['proposal_uid']} 缺少可信训练标签")
 
         bbox = [_parse_float(v, "bbox") for v in record["bbox_xyxy"]]
         if len(bbox) != 4:
@@ -214,6 +219,10 @@ def build_proposal_crop_manifest(
                 "fold": _parse_int(record["fold"], "fold"),
                 "leakage_group_id": str(record.get("source_group", "")),
                 "class_id": class_id,
+                "detector_category_id": _parse_int(record["category_id"], "category_id"),
+                "source_prediction_index": _parse_int(
+                    record["source_prediction_index"], "source_prediction_index"
+                ),
                 "class_name": _class_name_of(class_id),
                 "major_class": _major_class_of(class_id),
                 "crop_policy": "tight",
@@ -227,8 +236,11 @@ def build_proposal_crop_manifest(
                 "score": _parse_float(record["score"], "score"),
                 "oracle_hit": str(bool(record.get("oracle_hit"))).lower(),
                 "matched_gt_category": (
-                    str(matched_gt_category)
-                    if matched_gt_category is not None
+                    str(matched_gt_category) if matched_gt_category is not None else ""
+                ),
+                "oracle_gt_category": (
+                    str(record["oracle_gt_category"])
+                    if record.get("oracle_gt_category") is not None
                     else ""
                 ),
             }
@@ -239,6 +251,7 @@ def build_proposal_crop_manifest(
         "rows_written": len(rows),
         "missing_image_paths": len(missing_images),
         "background_candidates": background_count,
+        "unconfirmed_hard_negatives_skipped": unconfirmed_hard_negatives_skipped,
         "view_counts": dict(view_counts),
     }
     if missing_images:

@@ -84,7 +84,9 @@ def _candidate_pairs(
             for node_v in group[index + 1 :]:
                 add(node_u, node_v, "h0_pixel_equal")
     if near_duplicate_json:
-        payload = json.loads(Path(near_duplicate_json).expanduser().resolve().read_text(encoding="utf-8"))
+        payload = json.loads(
+            Path(near_duplicate_json).expanduser().resolve().read_text(encoding="utf-8")
+        )
         for group in payload.get("duplicate_groups", []):
             normalized = [f"mar20:{int(value.removeprefix('MAR20_'))}" for value in group]
             for index, node_u in enumerate(normalized):
@@ -173,9 +175,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         key=lambda item: _stable_order("blind_base", item["pair_uid"]),
     )
     eligible_sources = list(enumerate(base_cards[: max(len(base_cards) - minimum_gap, 1)]))
-    eligible_sources.sort(
-        key=lambda item: _stable_order("blind_duplicate", item[1]["pair_uid"])
-    )
+    eligible_sources.sort(key=lambda item: _stable_order("blind_duplicate", item[1]["pair_uid"]))
     duplicate_sources = eligible_sources[:duplicate_count]
     scheduled: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for source_position, duplicate in duplicate_sources:
@@ -267,7 +267,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 draw.text((x + 4, y + 5), f"{card_id} | {label}", fill="black")
         path = sheets_dir / f"calibration-sheet-{sheet_index:03d}.jpg"
         canvas.save(path, quality=92, optimize=False, progressive=False)
-        sheet_artifacts.append({"path": path.relative_to(output_dir).as_posix(), "sha256": sha256_file(path)})
+        sheet_artifacts.append(
+            {"path": path.relative_to(output_dir).as_posix(), "sha256": sha256_file(path)}
+        )
     mapping_path = output_dir / "blind_card_mapping.csv"
     with mapping_path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=list(mapping_rows[0]))

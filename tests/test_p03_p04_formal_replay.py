@@ -59,8 +59,7 @@ FIELDS = (
 )
 HISTORICAL_TEST_FIELDS = {"fold", "group_id", "leakage_group_id"}
 FORMAL_FIELDS = tuple(
-    f"historical_p02_{field}" if field in HISTORICAL_TEST_FIELDS else field
-    for field in FIELDS
+    f"historical_p02_{field}" if field in HISTORICAL_TEST_FIELDS else field for field in FIELDS
 ) + ("fold", "group_id", "leakage_group_id")
 
 
@@ -123,9 +122,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
             }
             exploratory_rows.append(base)
             formal_row = {
-                key: value
-                for key, value in base.items()
-                if key not in HISTORICAL_TEST_FIELDS
+                key: value for key, value in base.items() if key not in HISTORICAL_TEST_FIELDS
             }
             formal_row.update(
                 {
@@ -393,7 +390,9 @@ def test_pooled_diagnostics_include_fixed_tiers_major_classes_and_tu160() -> Non
     assert pooled["n_samples"] == 25
     assert len(pooled["per_class"]) == 25
     assert set(pooled["major_classes"]) == {"ship4", "aircraft20", "vehicle1"}
-    assert [len(pooled["support_tiers"][tier]["class_ids"]) for tier in ("tail", "middle", "head")] == [
+    assert [
+        len(pooled["support_tiers"][tier]["class_ids"]) for tier in ("tail", "middle", "head")
+    ] == [
         9,
         8,
         8,
@@ -555,9 +554,7 @@ def test_p03_formal_summary_cli_enforces_and_pools_exact_three_folds(
                     "epochs_completed": 30,
                     "early_stopped": False,
                     "selected_checkpoint": "final_checkpoint.pt",
-                    "selected_checkpoint_sha256": sha256_file(
-                        run / "final_checkpoint.pt"
-                    ),
+                    "selected_checkpoint_sha256": sha256_file(run / "final_checkpoint.pt"),
                     "final_metrics": {
                         "macro_recall": 1.0,
                         "macro_f1": 1.0,
@@ -705,14 +702,10 @@ def test_p04_formal_summary_cli_enforces_teacher_cache_and_train_only_contract(
                             "normalization": "train_rms",
                             "pca_dim": pca_dim,
                             "pca_fit_scope": (
-                                "train_fold_objects_all_cached_views_only"
-                                if pca_dim
-                                else None
+                                "train_fold_objects_all_cached_views_only" if pca_dim else None
                             ),
                             "train_rms": 0.5,
-                            "normalizer_fit_scope": (
-                                "train_fold_objects_all_cached_views_only"
-                            ),
+                            "normalizer_fit_scope": ("train_fold_objects_all_cached_views_only"),
                             "head_init": "p04_default",
                             "reuse_audit": {"sha256": audit_sha},
                             "n_train": 50,
@@ -725,9 +718,7 @@ def test_p04_formal_summary_cli_enforces_teacher_cache_and_train_only_contract(
                             "completed_epochs": 15,
                             "early_stopped": False,
                             "selected_checkpoint": "final_checkpoint.pt",
-                            "selected_checkpoint_sha256": sha256_file(
-                                run / "final_checkpoint.pt"
-                            ),
+                            "selected_checkpoint_sha256": sha256_file(run / "final_checkpoint.pt"),
                             "metrics": {
                                 "macro_recall": 1.0,
                                 "macro_f1": 1.0,
@@ -800,9 +791,7 @@ def test_p04_formal_summary_cli_enforces_teacher_cache_and_train_only_contract(
     assert len(summary["groups"]) == 6
     assert len(summary["pooled_oof"]) == 6
     assert {item["n_samples"] for item in summary["pooled_oof"].values()} == {75}
-    (runs / "convnext_gap-pcaNone-fold0" / "final_checkpoint.pt").write_bytes(
-        b"tampered"
-    )
+    (runs / "convnext_gap-pcaNone-fold0" / "final_checkpoint.pt").write_bytes(b"tampered")
     tampered_output = tmp_path / "p04-summary-tampered.json"
     tampered = _run_formal_summary(
         repo_root,

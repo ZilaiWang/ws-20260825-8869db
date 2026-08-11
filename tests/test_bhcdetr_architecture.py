@@ -69,14 +69,8 @@ def test_classification_output_does_not_use_localization_specific_branch() -> No
     output_classification, _ = layer(classification, localization, memory, position, None)
     output_classification.square().sum().backward()
 
-    assert any(
-        parameter.grad is not None
-        for parameter in layer.classification_branch.parameters()
-    )
-    assert all(
-        parameter.grad is None
-        for parameter in layer.localization_branch.parameters()
-    )
+    assert any(parameter.grad is not None for parameter in layer.classification_branch.parameters())
+    assert all(parameter.grad is None for parameter in layer.localization_branch.parameters())
     assert any(parameter.grad is not None for parameter in layer.self_attn.parameters())
 
 

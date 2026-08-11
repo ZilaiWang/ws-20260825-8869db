@@ -279,7 +279,7 @@ def _normalize_records(
                 "bbox_xyxy": box,
                 "category_id": category_id,
                 "class_name": category_mapping[category_id],
-                "source_index": source_index,
+                "source_index": int(item.get("source_prediction_index", source_index)),
             }
             if require_score:
                 score = float(item["score"])
@@ -297,13 +297,11 @@ def _evaluate_per_class(
     iou_threshold: float,
 ) -> tuple[int, int, int]:
     """在同一细类内匹配，并为一个大类累计 TP、FP、FN。"""
-    matches, unmatched_predictions, unmatched_ground_truths = (
-        _evaluate_per_class_with_trace(
-            gt_boxes,
-            pred_boxes,
-            class_name,
-            iou_threshold,
-        )
+    matches, unmatched_predictions, unmatched_ground_truths = _evaluate_per_class_with_trace(
+        gt_boxes,
+        pred_boxes,
+        class_name,
+        iou_threshold,
     )
     return len(matches), len(unmatched_predictions), len(unmatched_ground_truths)
 
@@ -324,11 +322,7 @@ def _evaluate_per_class_with_trace(
     unmatched_predictions: list[OfficialUnmatchedPrediction] = []
     unmatched_ground_truths: list[OfficialUnmatchedGroundTruth] = []
     for image_id in sorted(set(gt_boxes) | set(pred_boxes)):
-        gts = [
-            item
-            for item in gt_boxes.get(image_id, [])
-            if item["class_name"] == class_name
-        ]
+        gts = [item for item in gt_boxes.get(image_id, []) if item["class_name"] == class_name]
         predictions = [
             item for item in pred_boxes.get(image_id, []) if item["class_name"] == class_name
         ]
@@ -393,9 +387,8 @@ class FineClassMetrics:
     """单个细类的 TP、FP、FN 及其派生指标。
 
     官方排名口径的最小单位：大类指标 = 大类内各细类指标的简单平均。
-    空 GT 细类按 Recall=1.0 / FDR=0.0 处理，与 :class:`PerClassMetrics`
-    的空策略一致；不过 :func:`evaluate_ranking_metrics` 只把 GT 中
-    出现过的细类纳入平均，0-GT 细类不参与（见 ``details``）。
+    正式 V1.6 排名要求固定税收分类法中的 4/20/1 个细类。正式调用
+    会拒绝缺失 GT 细类的输入，因此空 GT 属性只是内部安全值。
     """
 
     category_id: int
@@ -451,12 +444,17 @@ def evaluate_ranking_metrics(
     class_names: list[str] | None = None,
     category_mapping: dict[int, str] | None = None,
     iou_thresholds: dict[str, float] | None = None,
+    *,
+    require_complete_taxonomy: bool = True,
 ) -> RankingMetrics:
     """按官方评分方案 V1.6 排名口径计算指标。
 
     匹配规则与 :func:`evaluate_predictions` 完全一致（同源 trace），差异只在
     聚合层：细类级 TP/FP/FN 先按细类算出 Recall/FDR，再在大类内简单平均。
-    参与平均的细类 = GT 中出现过的细类（0-GT 细类不参与，避免空类稀释）。
+    参与平均的细类 = ``category_mapping`` 中属于所选大类的全部
+    细类（项目正式配置即船 4、飞机 20、车辆 1）。默认要求这些细类在
+    GT 中全部出现；只有折内/子集诊断才可显式使用
+    ``require_complete_taxonomy=False``，此时仅对 GT 实际出现细类求平均。
 
     Args 与 :func:`evaluate_predictions` 相同。
     """
@@ -468,7 +466,13 @@ def evaluate_ranking_metrics(
         iou_thresholds=iou_thresholds,
     )
 
-    names = result.per_class.keys()
+    names = list(result.per_class)
+
+    mapping = (
+        {index: name for index, name in enumerate(names)}
+        if category_mapping is None
+        else {int(key): str(value) for key, value in category_mapping.items()}
+    )
 
     # GT 中出现过的细类才参与 macro 平均。
     present_fine: set[int] = set()
@@ -476,25 +480,33 @@ def evaluate_ranking_metrics(
         for item in items:
             present_fine.add(int(item["category_id"]))
 
+    configured_fine = {fine_id for fine_id, coarse_name in mapping.items() if coarse_name in names}
+    missing_fine = sorted(configured_fine - present_fine)
+    if require_complete_taxonomy and missing_fine:
+        raise ValueError(
+            "正式 V1.6 macro 评估缺失 GT 细类: "
+            f"{missing_fine}；折内/子集诊断请显式传 "
+            "require_complete_taxonomy=False"
+        )
+
     per_fine: dict[int, FineClassMetrics] = {}
     for match in trace.matches:
         key = int(match.category_id)
-        metrics = per_fine.setdefault(
-            key, FineClassMetrics(key, match.class_name)
-        )
+        metrics = per_fine.setdefault(key, FineClassMetrics(key, match.class_name))
         metrics.tp += 1
     for prediction in trace.unmatched_predictions:
         key = int(prediction.category_id)
-        metrics = per_fine.setdefault(
-            key, FineClassMetrics(key, prediction.class_name)
-        )
+        metrics = per_fine.setdefault(key, FineClassMetrics(key, prediction.class_name))
         metrics.fp += 1
     for ground_truth in trace.unmatched_ground_truths:
         key = int(ground_truth.category_id)
-        metrics = per_fine.setdefault(
-            key, FineClassMetrics(key, ground_truth.class_name)
-        )
+        metrics = per_fine.setdefault(key, FineClassMetrics(key, ground_truth.class_name))
         metrics.fn += 1
+
+    # 完整 taxonomy 下即使某类没有预测，也必须保留该细类记录。
+    if require_complete_taxonomy:
+        for fine_id in configured_fine:
+            per_fine.setdefault(fine_id, FineClassMetrics(fine_id, mapping[fine_id]))
 
     coarse_fine_ids: dict[str, list[int]] = {}
     for key, metrics in per_fine.items():
@@ -507,15 +519,17 @@ def evaluate_ranking_metrics(
         fine_ids = sorted(coarse_fine_ids.get(coarse_name, []))
         if not fine_ids:
             continue
-        participating = [fine_id for fine_id in fine_ids if fine_id in present_fine]
+        participating = (
+            fine_ids
+            if require_complete_taxonomy
+            else [fine_id for fine_id in fine_ids if fine_id in present_fine]
+        )
         if not participating:
             continue
         macro_recall = sum(per_fine[fine_id].recall for fine_id in participating) / len(
             participating
         )
-        macro_fdr = sum(per_fine[fine_id].fdr for fine_id in participating) / len(
-            participating
-        )
+        macro_fdr = sum(per_fine[fine_id].fdr for fine_id in participating) / len(participating)
         pooled = result.per_class[coarse_name]
         per_coarse[coarse_name] = CoarseMacroMetrics(
             macro_recall=macro_recall,
@@ -532,20 +546,20 @@ def evaluate_ranking_metrics(
     return RankingMetrics(
         per_fine=per_fine,
         per_coarse=per_coarse,
-        overall_recall=(
-            overall_recall_sum / overall_fine_count if overall_fine_count else 1.0
-        ),
-        overall_fdr=(
-            overall_fdr_sum / overall_fine_count if overall_fine_count else 0.0
-        ),
+        overall_recall=(overall_recall_sum / overall_fine_count if overall_fine_count else 1.0),
+        overall_fdr=(overall_fdr_sum / overall_fine_count if overall_fine_count else 0.0),
         details={
             "matching_policy": result.details["matching_policy"],
             "aggregation_policy": "official_ranking_v1_6_fine_macro_average",
-            "fine_average_policy": "present_in_gt_only",
+            "fine_average_policy": (
+                "configured_taxonomy"
+                if require_complete_taxonomy
+                else "present_in_gt_only_diagnostic"
+            ),
+            "taxonomy_complete": not missing_fine,
+            "missing_fine_ids": missing_fine,
             "empty_gt_recall_policy": result.details["empty_gt_recall_policy"],
-            "empty_prediction_fdr_policy": result.details[
-                "empty_prediction_fdr_policy"
-            ],
+            "empty_prediction_fdr_policy": result.details["empty_prediction_fdr_policy"],
             "iou_thresholds": result.details["iou_thresholds"],
         },
     )

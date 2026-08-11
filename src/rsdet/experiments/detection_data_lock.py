@@ -237,9 +237,7 @@ def _label_relative_path(
 ) -> str:
     image = Path(image_relative_path)
     if not image.parts or image.parts[0] != image_prefix:
-        raise ValueError(
-            f"image path must begin with {image_prefix!r}: {image_relative_path!r}"
-        )
+        raise ValueError(f"image path must begin with {image_prefix!r}: {image_relative_path!r}")
     label = Path(label_prefix, *image.parts[1:]).with_suffix(".txt")
     return label.as_posix()
 
@@ -303,19 +301,11 @@ def _prove_p02_formal_equivalence(
     for crop_id in sorted(p02_rows):
         historical = p02_rows[crop_id]
         formal = formal_rows[crop_id]
-        differences = [
-            key
-            for key in GT_EQUIVALENCE_FIELDS
-            if historical[key] != formal[key]
-        ]
+        differences = [key for key in GT_EQUIVALENCE_FIELDS if historical[key] != formal[key]]
         if differences:
-            raise ValueError(
-                f"P0-2/formal GT differs for crop_id={crop_id}: {differences}"
-            )
+            raise ValueError(f"P0-2/formal GT differs for crop_id={crop_id}: {differences}")
         if formal.get("source_crop_manifest_sha256") != p02_sha256:
-            raise ValueError(
-                f"formal crop does not bind P0-2 SHA for crop_id={crop_id}"
-            )
+            raise ValueError(f"formal crop does not bind P0-2 SHA for crop_id={crop_id}")
 
 
 def _parse_yolo_label(
@@ -408,9 +398,7 @@ def _match_boxes(
             if found[0] == wanted[0]
         ]
         if not candidates:
-            raise ValueError(
-                f"YOLO/formal class multiset differs for {image_relative_path}"
-            )
+            raise ValueError(f"YOLO/formal class multiset differs for {image_relative_path}")
         error, index = min(candidates)
         if error > tolerance:
             raise ValueError(
@@ -560,9 +548,7 @@ def _build_payload(
     if total_objects != dataset["object_count"]:
         raise ValueError(f"YOLO object count mismatch: {total_objects}")
     if set(class_counts) != set(range(dataset["class_count"])):
-        raise ValueError(
-            f"YOLO class coverage differs: {sorted(class_counts)}"
-        )
+        raise ValueError(f"YOLO class coverage differs: {sorted(class_counts)}")
 
     contract = {
         "cv3_manifest_sha256": cv3_contract["sha256"],
@@ -653,9 +639,7 @@ def atomic_write_new_json(path: str | Path, payload: Mapping[str, Any]) -> None:
             # could create a lock and then have it overwritten.
             os.link(temporary, target)
         except FileExistsError as error:
-            raise FileExistsError(
-                f"refusing to overwrite immutable data lock: {target}"
-            ) from error
+            raise FileExistsError(f"refusing to overwrite immutable data lock: {target}") from error
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -681,9 +665,7 @@ def verify_existing_lock(
     if expected_lock_sha256 is not None:
         wanted = _sha256(expected_lock_sha256, "expected_lock_sha256")
         if actual_lock_sha != wanted:
-            raise ValueError(
-                f"data-lock file SHA-256 mismatch: {actual_lock_sha} != {wanted}"
-            )
+            raise ValueError(f"data-lock file SHA-256 mismatch: {actual_lock_sha} != {wanted}")
     observed = json.loads(lock_path.read_text(encoding="utf-8"))
     if not isinstance(observed, dict):
         raise TypeError("data lock root must be an object")

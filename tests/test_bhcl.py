@@ -59,28 +59,20 @@ def _dynamic_level_reference(features, labels, prototypes, temperature):
                 torch.logsumexp(logits, dim=0)
                 - (class_counts[category].to(pair_logits.dtype) + 1.0).log()
             )
-        log_denominator = torch.logsumexp(
-            torch.stack(denominator_terms), dim=0
-        )
+        log_denominator = torch.logsumexp(torch.stack(denominator_terms), dim=0)
         own_category = int(labels[anchor].item())
-        positives = torch.nonzero(
-            labels == own_category, as_tuple=False
-        ).flatten()
+        positives = torch.nonzero(labels == own_category, as_tuple=False).flatten()
         positives = positives[positives != anchor]
         positive_sum = pair_logits[anchor].index_select(0, positives).sum()
         positive_sum = positive_sum + prototype_logits[anchor, own_category]
-        mean_positive = positive_sum / class_counts[own_category].to(
-            pair_logits.dtype
-        )
+        mean_positive = positive_sum / class_counts[own_category].to(pair_logits.dtype)
         losses.append(log_denominator - mean_positive)
     return torch.stack(losses).mean()
 
 
 def _dynamic_bhcl_reference(features, labels, prototypes, hierarchy, temperature):
     normalized = F.normalize(features, dim=1)
-    prototype_snapshot = F.normalize(prototypes.detach().clone(), dim=1).to(
-        normalized.dtype
-    )
+    prototype_snapshot = F.normalize(prototypes.detach().clone(), dim=1).to(normalized.dtype)
     mapping = hierarchy.to(features.device)[:, labels]
     total = normalized.sum() * 0.0
     for level, (offset, size) in enumerate(
@@ -97,9 +89,7 @@ def _dynamic_bhcl_reference(features, labels, prototypes, hierarchy, temperature
 
 
 @torch.no_grad()
-def _dynamic_prototype_update(
-    features, labels, prototypes, counts, hierarchy, epsilon
-):
+def _dynamic_prototype_update(features, labels, prototypes, counts, hierarchy, epsilon):
     normalized = F.normalize(features.detach(), dim=1)
     mapping = hierarchy.to(features.device)[:, labels]
     for level, (offset, size) in enumerate(
@@ -113,8 +103,7 @@ def _dynamic_prototype_update(
             mean = normalized[category_mask].mean(dim=0).to(prototypes.dtype)
             index = offset + category
             prototypes[index] = F.normalize(
-                (1.0 - update_factor) * prototypes[index]
-                + update_factor * mean,
+                (1.0 - update_factor) * prototypes[index] + update_factor * mean,
                 dim=0,
             )
             counts[index] += category_mask.sum().to(counts.dtype)
@@ -143,9 +132,7 @@ def test_vectorized_bhcl_matches_dynamic_reference_loss_gradient_and_bank(
         temperature=0.17,
         epsilon=0.2,
     ).to(device)
-    initial_prototypes = torch.randn(
-        criterion.prototypes.shape, generator=generator
-    ).to(device)
+    initial_prototypes = torch.randn(criterion.prototypes.shape, generator=generator).to(device)
     initial_counts = torch.arange(
         criterion.prototype_counts.numel(), dtype=torch.long, device=device
     )
@@ -194,9 +181,7 @@ def test_vectorized_bhcl_matches_dynamic_reference_loss_gradient_and_bank(
 
 
 def test_equation_8_excludes_anchor_but_keeps_i_prime_class_divisor() -> None:
-    criterion = BalancedHierarchicalContrastiveLoss(
-        2, TWO_CLASS_HIERARCHY, temperature=1.0
-    )
+    criterion = BalancedHierarchicalContrastiveLoss(2, TWO_CLASS_HIERARCHY, temperature=1.0)
     with torch.no_grad():
         criterion.prototypes.copy_(torch.eye(2))
     features = torch.eye(2, requires_grad=True)
@@ -214,9 +199,7 @@ def test_equation_8_excludes_anchor_but_keeps_i_prime_class_divisor() -> None:
 
 
 def test_equation_9_uses_other_instances_and_own_prototype_as_positives() -> None:
-    criterion = BalancedHierarchicalContrastiveLoss(
-        2, TWO_CLASS_HIERARCHY, temperature=1.0
-    )
+    criterion = BalancedHierarchicalContrastiveLoss(2, TWO_CLASS_HIERARCHY, temperature=1.0)
     with torch.no_grad():
         criterion.prototypes.copy_(torch.eye(2))
     features = torch.tensor([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
@@ -231,9 +214,7 @@ def test_equation_9_uses_other_instances_and_own_prototype_as_positives() -> Non
 
 
 def test_equation_10_uses_level_dependent_ema_and_skips_absent_nodes() -> None:
-    criterion = BalancedHierarchicalContrastiveLoss(
-        2, XH_HIERARCHY, temperature=1.0, epsilon=0.1
-    )
+    criterion = BalancedHierarchicalContrastiveLoss(2, XH_HIERARCHY, temperature=1.0, epsilon=0.1)
     coarse_ship = XH_HIERARCHY.flat_node_index(0, 0)
     fine_zero = XH_HIERARCHY.flat_node_index(1, 0)
     absent_fine = XH_HIERARCHY.flat_node_index(1, 1)
@@ -246,16 +227,10 @@ def test_equation_10_uses_level_dependent_ema_and_skips_absent_nodes() -> None:
     labels = torch.tensor([0])
     loss = criterion(features, labels)
 
-    expected_coarse = torch.nn.functional.normalize(
-        torch.tensor([0.9, 0.1]), dim=0
-    )
+    expected_coarse = torch.nn.functional.normalize(torch.tensor([0.9, 0.1]), dim=0)
     assert torch.allclose(criterion.prototypes[coarse_ship], expected_coarse)
-    assert torch.allclose(
-        criterion.prototypes[fine_zero], torch.tensor([0.0, 1.0])
-    )
-    assert torch.equal(
-        criterion.prototypes[absent_fine], torch.tensor([-1.0, 0.0])
-    )
+    assert torch.allclose(criterion.prototypes[fine_zero], torch.tensor([0.0, 1.0]))
+    assert torch.equal(criterion.prototypes[absent_fine], torch.tensor([-1.0, 0.0]))
     assert criterion.prototype_counts[coarse_ship].item() == 1
     assert criterion.prototype_counts[fine_zero].item() == 1
     assert criterion.prototype_counts[absent_fine].item() == 0

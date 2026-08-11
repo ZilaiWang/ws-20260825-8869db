@@ -4,7 +4,12 @@
 实验：V1-FULL-P2 = yolo26-p2s（Detect 四输入 P2/P3/P4/P5，stride 4/8/16/32）
 对照：M1 = yolo26s（Detect 三输入 P3/P4/P5，stride 8/16/32）
 GPU：autodl RTX 3090
-状态：`fold0 完成，假设验证成功`
+状态：`superseded_invalid_for_formal_comparison`
+
+> 本单折报告已被三折及收尾审核覆盖。历史 P2 为 60 epoch/
+> `best.pt`，而正式 M1 为 160 epoch/fixed `last.pt`；且本指标是
+> 逐 GT 候选覆盖诊断，非官方一对一 Recall/FDR。仅保留“P2 能产生
+> 部分新小车候选”的机制证据。
 
 ## 1. 实验设计（严格单因素）
 

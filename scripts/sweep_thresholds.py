@@ -44,6 +44,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--internal-recall-min", type=float, default=0.88)
     parser.add_argument("--internal-fdr-max", type=float, default=0.17)
     parser.add_argument(
+        "--allow-partial-taxonomy",
+        action="store_true",
+        help="仅用于折内/子集诊断；允许 GT 未覆盖全部 25 细类",
+    )
+    parser.add_argument(
         "--threshold-stage",
         "--prediction-stage",
         dest="threshold_stage",
@@ -66,6 +71,7 @@ def _protocol_versions(protocol: EvaluationProtocol) -> dict[str, str]:
     return {
         "contract_version": protocol.contract_version,
         "eval_version": protocol.eval_version,
+        "ranking_version": protocol.ranking_version,
     }
 
 
@@ -75,6 +81,8 @@ def _metrics_payload(point: ThresholdSweepPoint) -> dict[str, Any]:
         "detections_kept": point.detections_kept,
         "overall_recall": point.metrics.recall,
         "overall_fdr": point.metrics.fdr,
+        "overall_macro_recall": point.ranking_metrics.overall_recall,
+        "overall_macro_fdr": point.ranking_metrics.overall_fdr,
         "details": point.metrics.details,
         "per_class": {
             name: {
@@ -85,6 +93,18 @@ def _metrics_payload(point: ThresholdSweepPoint) -> dict[str, Any]:
                 "fn": metrics.fn,
             }
             for name, metrics in point.metrics.per_class.items()
+        },
+        "official_ranking": {
+            "details": point.ranking_metrics.details,
+            "per_coarse": {
+                name: {
+                    "macro_recall": item.macro_recall,
+                    "macro_fdr": item.macro_fdr,
+                    "fine_count": item.fine_count,
+                    "fine_ids": item.fine_ids,
+                }
+                for name, item in point.ranking_metrics.per_coarse.items()
+            },
         },
     }
 
@@ -112,11 +132,14 @@ def _write_sweep_csv(
     fieldnames = [
         "contract_version",
         "eval_version",
+        "ranking_version",
         "threshold_stage",
         "threshold",
         "detections_kept",
         "overall_recall",
         "overall_fdr",
+        "overall_macro_recall",
+        "overall_macro_fdr",
         "tp",
         "fp",
         "fn",
@@ -130,11 +153,14 @@ def _write_sweep_csv(
             row: dict[str, Any] = {
                 "contract_version": protocol.contract_version,
                 "eval_version": protocol.eval_version,
+                "ranking_version": protocol.ranking_version,
                 "threshold_stage": threshold_stage,
                 "threshold": f"{point.threshold:.12g}",
                 "detections_kept": point.detections_kept,
                 "overall_recall": point.metrics.recall,
                 "overall_fdr": point.metrics.fdr,
+                "overall_macro_recall": point.ranking_metrics.overall_recall,
+                "overall_macro_fdr": point.ranking_metrics.overall_fdr,
                 "tp": point.metrics.details["tp"],
                 "fp": point.metrics.details["fp"],
                 "fn": point.metrics.details["fn"],
@@ -186,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
             class_names=protocol.class_names,
             category_mapping=protocol.category_mapping,
             iou_thresholds=protocol.iou_thresholds,
+            require_complete_taxonomy=not args.allow_partial_taxonomy,
         )
         selections = select_operating_points(
             points,
@@ -231,8 +258,7 @@ def main(argv: list[str] | None = None) -> int:
                 },
             },
             "workpoints": {
-                name: _selection_payload(selection)
-                for name, selection in selections.items()
+                name: _selection_payload(selection) for name, selection in selections.items()
             },
         }
         with selected_path.open("w", encoding="utf-8") as file:
@@ -242,8 +268,7 @@ def main(argv: list[str] | None = None) -> int:
             "protocol_versions": _protocol_versions(protocol),
             "source": source,
             "workpoints": {
-                name: _selection_payload(selection)
-                for name, selection in selections.items()
+                name: _selection_payload(selection) for name, selection in selections.items()
             },
         }
         with metrics_path.open("w", encoding="utf-8") as file:

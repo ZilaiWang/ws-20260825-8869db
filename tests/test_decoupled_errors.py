@@ -25,9 +25,7 @@ _PROTOCOL_CONFIG = {
     },
     "task": {
         "class_names": ["ship", "aircraft", "vehicle"],
-        "dataset_category_mapping": {
-            str(key): value for key, value in _CATEGORY_MAPPING.items()
-        },
+        "dataset_category_mapping": {str(key): value for key, value in _CATEGORY_MAPPING.items()},
     },
     "official_evaluation": {
         "recall_min": 0.85,
@@ -61,12 +59,11 @@ class TestComputeOracleLocalization:
         gt = {1: [_gt(5, [0, 0, 10, 10], "TU-160")]}
         # 预测为 aircraft 大类下的另一个细类 4（同大类、细类错），框完全对齐。
         preds = {1: [_pred(4, 0.9, [0, 0, 10, 10])]}
-        metrics, rows = compute_oracle_localization(
-            gt, preds, protocol=PROTOCOL, threshold=0.5
-        )
+        metrics, rows = compute_oracle_localization(gt, preds, protocol=PROTOCOL, threshold=0.5)
         assert metrics.recall == 1.0
         assert len(rows) == 1
         assert rows[0]["oracle_matched"] is True
+        assert rows[0]["prediction_index"] == 0
         # 细类不同 → correct_fine False。
         assert rows[0]["correct_fine"] is False
 
@@ -74,9 +71,7 @@ class TestComputeOracleLocalization:
         """大类不同（ship vs aircraft）时 oracle 不召回。"""
         gt = {1: [_gt(0, [0, 0, 10, 10], "MS")]}
         preds = {1: [_pred(4, 0.9, [0, 0, 10, 10])]}
-        metrics, rows = compute_oracle_localization(
-            gt, preds, protocol=PROTOCOL, threshold=0.5
-        )
+        metrics, rows = compute_oracle_localization(gt, preds, protocol=PROTOCOL, threshold=0.5)
         assert metrics.recall == 0.0
         assert rows[0]["oracle_matched"] is False
 
@@ -84,17 +79,13 @@ class TestComputeOracleLocalization:
         """IoU 低于大类阈值时不匹配。"""
         gt = {1: [_gt(24, [0, 0, 100, 100], "FSC")]}
         preds = {1: [_pred(24, 0.9, [90, 90, 100, 100])]}  # IoU 远低于 0.35
-        metrics, _ = compute_oracle_localization(
-            gt, preds, protocol=PROTOCOL, threshold=0.5
-        )
+        metrics, _ = compute_oracle_localization(gt, preds, protocol=PROTOCOL, threshold=0.5)
         assert metrics.recall == 0.0
 
     def test_score_threshold_filters_low_score(self):
         gt = {1: [_gt(24, [0, 0, 10, 10], "FSC")]}
         preds = {1: [_pred(24, 0.1, [0, 0, 10, 10])]}
-        metrics, _ = compute_oracle_localization(
-            gt, preds, protocol=PROTOCOL, threshold=0.5
-        )
+        metrics, _ = compute_oracle_localization(gt, preds, protocol=PROTOCOL, threshold=0.5)
         assert metrics.recall == 0.0
 
 
@@ -121,9 +112,7 @@ class TestStratifyOracleLocalization:
             1: [_pred(24, 0.9, [0, 0, 5, 5])],
             2: [_pred(4, 0.9, [0, 0, 100, 100])],
         }
-        _, rows = compute_oracle_localization(
-            gt, preds, protocol=PROTOCOL, threshold=0.5
-        )
+        _, rows = compute_oracle_localization(gt, preds, protocol=PROTOCOL, threshold=0.5)
         stratified = stratify_oracle_localization(rows, gt)
         assert stratified["overall"]["n_objects"] == 3
         assert stratified["overall"]["matched"] == 2
@@ -155,9 +144,7 @@ class TestComputeSourceGroupBootstrap:
     def test_bootstrap_requires_two_groups(self):
         rows = [{"image_id": 1, "oracle_matched": True}]
         with pytest.raises(ValueError, match="至少 2"):
-            compute_source_group_bootstrap(
-                rows, group_of_image={1: "g1"}, iterations=10
-            )
+            compute_source_group_bootstrap(rows, group_of_image={1: "g1"}, iterations=10)
 
 
 class TestAnalyzeDecoupledErrors:

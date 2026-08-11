@@ -100,10 +100,7 @@ def _atomic_write(path: Path, data: bytes) -> None:
 def _write_json(path: Path, payload: Any) -> None:
     _atomic_write(
         path,
-        (
-            json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False)
-            + "\n"
-        ).encode("utf-8"),
+        (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=False) + "\n").encode("utf-8"),
     )
 
 
@@ -201,9 +198,7 @@ def load_formal_ground_truth(
         raise FileNotFoundError(f"formal crop manifest 不存在: {manifest}")
     actual_sha = sha256_file(manifest)
     if actual_sha != expected_sha256:
-        raise ValueError(
-            f"formal crop SHA 不匹配: expected={expected_sha256}, actual={actual_sha}"
-        )
+        raise ValueError(f"formal crop SHA 不匹配: expected={expected_sha256}, actual={actual_sha}")
     boxes: defaultdict[int, list[dict[str, Any]]] = defaultdict(list)
     objects: dict[tuple[int, int], GroundTruthObject] = {}
     seen_annotations: set[str] = set()
@@ -230,16 +225,12 @@ def load_formal_ground_truth(
             raise ValueError(f"formal crop 缺少 GT 字段: {sorted(missing)}")
         for line_number, row in enumerate(reader, 2):
             if row["manifest_version"] != FORMAL_CROP_MANIFEST_VERSION:
-                raise ValueError(
-                    f"formal crop 第 {line_number} 行 manifest_version 非法"
-                )
+                raise ValueError(f"formal crop 第 {line_number} 行 manifest_version 非法")
             image_ids.add(int(row["formal_image_id"]))
             if row["crop_policy"] != "tight":
                 continue
             if row["coordinate_semantics"] != "continuous_float_xyxy_half_open":
-                raise ValueError(
-                    f"formal crop 第 {line_number} 行坐标语义不是冻结 half-open xyxy"
-                )
+                raise ValueError(f"formal crop 第 {line_number} 行坐标语义不是冻结 half-open xyxy")
             annotation_uid = row["annotation_uid"].strip()
             if not annotation_uid or annotation_uid in seen_annotations:
                 raise ValueError(f"tight annotation_uid 为空或重复: {annotation_uid!r}")
@@ -273,13 +264,9 @@ def load_formal_ground_truth(
                 bbox_xyxy=bbox,
             )
     if len(image_ids) != expected_images:
-        raise ValueError(
-            f"formal GT 图像数错误: {len(image_ids)} != {expected_images}"
-        )
+        raise ValueError(f"formal GT 图像数错误: {len(image_ids)} != {expected_images}")
     if len(objects) != expected_annotations:
-        raise ValueError(
-            f"formal GT 对象数错误: {len(objects)} != {expected_annotations}"
-        )
+        raise ValueError(f"formal GT 对象数错误: {len(objects)} != {expected_annotations}")
     return FormalGroundTruth(
         boxes=dict(boxes),
         objects=objects,
@@ -293,9 +280,7 @@ def _artifact_record(
     name: str,
 ) -> Mapping[str, Any]:
     artifacts = metadata.get("artifacts")
-    if not isinstance(artifacts, Mapping) or not isinstance(
-        artifacts.get(name), Mapping
-    ):
+    if not isinstance(artifacts, Mapping) or not isinstance(artifacts.get(name), Mapping):
         raise ValueError(f"OOF metadata 缺少 artifacts.{name}")
     return artifacts[name]
 
@@ -378,21 +363,14 @@ def load_oof_aggregate(
     ):
         raise ValueError(f"{expected_model_key} OOF 低阈值不是 candidate_floor")
     formal = metadata.get("formal_crop_manifest")
-    if not isinstance(formal, Mapping) or formal.get("sha256") != (
-        expected_formal_crop_sha256
-    ):
+    if not isinstance(formal, Mapping) or formal.get("sha256") != (expected_formal_crop_sha256):
         raise ValueError(f"{expected_model_key} OOF 未绑定冻结 formal crop")
     fold_checkpoint_shas = metadata.get("fold_checkpoint_sha256")
-    if not isinstance(fold_checkpoint_shas, list) or len(
-        fold_checkpoint_shas
-    ) != 3:
+    if not isinstance(fold_checkpoint_shas, list) or len(fold_checkpoint_shas) != 3:
         raise ValueError(f"{expected_model_key} OOF fold checkpoint 列表非法")
-    normalized_fold_checkpoint_shas = [
-        str(value).strip().lower() for value in fold_checkpoint_shas
-    ]
+    normalized_fold_checkpoint_shas = [str(value).strip().lower() for value in fold_checkpoint_shas]
     if any(
-        len(value) != 64
-        or any(character not in "0123456789abcdef" for character in value)
+        len(value) != 64 or any(character not in "0123456789abcdef" for character in value)
         for value in normalized_fold_checkpoint_shas
     ):
         raise ValueError(f"{expected_model_key} OOF fold checkpoint SHA 非法")
@@ -420,9 +398,7 @@ def load_oof_aggregate(
         }
         missing = image_required - set(reader.fieldnames or ())
         if missing:
-            raise ValueError(
-                f"{expected_model_key} oof_images 缺字段: {sorted(missing)}"
-            )
+            raise ValueError(f"{expected_model_key} oof_images 缺字段: {sorted(missing)}")
         rows = list(reader)
     if len(rows) != expected_images:
         raise ValueError(f"{expected_model_key} oof_images 不是 {expected_images} 行")
@@ -439,14 +415,11 @@ def load_oof_aggregate(
         if prediction_count < 0 or fold not in (0, 1, 2):
             raise ValueError(f"{expected_model_key} oof_images count/fold 非法")
         if len(checkpoint_sha) != 64 or any(
-            character not in "0123456789abcdef"
-            for character in checkpoint_sha
+            character not in "0123456789abcdef" for character in checkpoint_sha
         ):
             raise ValueError(f"{expected_model_key} oof_images checkpoint SHA 非法")
         if checkpoint_sha != normalized_fold_checkpoint_shas[fold]:
-            raise ValueError(
-                f"{expected_model_key} oof_images checkpoint/fold 不一致"
-            )
+            raise ValueError(f"{expected_model_key} oof_images checkpoint/fold 不一致")
         image_ledger[image_id] = {
             "prediction_count": prediction_count,
             "fold": fold,
@@ -463,16 +436,11 @@ def load_oof_aggregate(
             score = float(record["score"])
             if score + 1e-12 < candidate_floor:
                 raise ValueError(
-                    f"{expected_model_key} image={image_id} pred={index} "
-                    "低于冻结 candidate floor"
+                    f"{expected_model_key} image={image_id} pred={index} 低于冻结 candidate floor"
                 )
-    prediction_counts = {
-        image_id: len(pred_boxes.get(image_id, ()))
-        for image_id in seen_image_ids
-    }
+    prediction_counts = {image_id: len(pred_boxes.get(image_id, ())) for image_id in seen_image_ids}
     ledger_counts = {
-        image_id: int(item["prediction_count"])
-        for image_id, item in image_ledger.items()
+        image_id: int(item["prediction_count"]) for image_id, item in image_ledger.items()
     }
     if prediction_counts != ledger_counts:
         mismatches = [
@@ -481,14 +449,10 @@ def load_oof_aggregate(
             if ledger_counts[image_id] != prediction_counts[image_id]
         ]
         raise ValueError(
-            f"{expected_model_key} oof_images prediction_count 与 JSON 不一致: "
-            f"{mismatches[:10]}"
+            f"{expected_model_key} oof_images prediction_count 与 JSON 不一致: {mismatches[:10]}"
         )
 
-    flat_predictions = [
-        (int(record["image_id"]), record)
-        for record in raw_prediction_records
-    ]
+    flat_predictions = [(int(record["image_id"]), record) for record in raw_prediction_records]
     with proposals_path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         proposal_required = {
@@ -507,16 +471,10 @@ def load_oof_aggregate(
         }
         missing = proposal_required - set(reader.fieldnames or ())
         if missing:
-            raise ValueError(
-                f"{expected_model_key} oof_proposals 缺字段: {sorted(missing)}"
-            )
+            raise ValueError(f"{expected_model_key} oof_proposals 缺字段: {sorted(missing)}")
         proposal_rows = list(reader)
     metadata_proposal_count = int(metadata.get("proposal_count", -1))
-    if not (
-        len(proposal_rows)
-        == len(flat_predictions)
-        == metadata_proposal_count
-    ):
+    if not (len(proposal_rows) == len(flat_predictions) == metadata_proposal_count):
         raise ValueError(
             f"{expected_model_key} proposal 行数不闭环: "
             f"csv={len(proposal_rows)}, json={len(flat_predictions)}, "
@@ -530,25 +488,20 @@ def load_oof_aggregate(
     ):
         proposal_uid = row["proposal_uid"].strip()
         if not proposal_uid or proposal_uid in proposal_uids:
-            raise ValueError(
-                f"{expected_model_key} oof_proposals 第 {row_number} 行 UID 重复"
-            )
+            raise ValueError(f"{expected_model_key} oof_proposals 第 {row_number} 行 UID 重复")
         proposal_uids.add(proposal_uid)
         image_id = int(row["image_id"])
         category_id = int(row["category_id"])
         fold = int(row["fold"])
         ledger = image_ledger.get(image_id)
         if ledger is None:
-            raise ValueError(
-                f"{expected_model_key} oof_proposals 第 {row_number} 行 image 未登记"
-            )
+            raise ValueError(f"{expected_model_key} oof_proposals 第 {row_number} 行 image 未登记")
         if (
             image_id != json_image_id
             or category_id != int(prediction["category_id"])
             or row["model_key"] != expected_model_key
             or fold != int(ledger["fold"])
-            or row["checkpoint_sha256"].strip().lower()
-            != ledger["checkpoint_sha256"]
+            or row["checkpoint_sha256"].strip().lower() != ledger["checkpoint_sha256"]
         ):
             raise ValueError(
                 f"{expected_model_key} oof_proposals 第 {row_number} 行身份字段 "
@@ -572,8 +525,7 @@ def load_oof_aggregate(
         # ``.10g``.  Compare against that exact serialization contract, then
         # require a strict 1e-12 absolute tolerance after parsing.
         json_values = [
-            float(f"{float(value):.10g}")
-            for value in (*prediction["bbox"], prediction["score"])
+            float(f"{float(value):.10g}") for value in (*prediction["bbox"], prediction["score"])
         ]
         if any(
             not math.isclose(csv_value, json_value, rel_tol=0.0, abs_tol=1e-12)
@@ -649,10 +601,7 @@ def build_threshold_curve(
         category_mapping=protocol.category_mapping,
         iou_thresholds=protocol.iou_thresholds,
     )
-    tp_keys = {
-        (match.image_id, match.prediction_index)
-        for match in trace.matches
-    }
+    tp_keys = {(match.image_id, match.prediction_index) for match in trace.matches}
     events: list[tuple[float, str, bool]] = []
     for image_id, records in floor_predictions.items():
         for prediction_index, record in enumerate(records):
@@ -691,12 +640,8 @@ def build_threshold_curve(
         row: dict[str, Any] = {
             "threshold": threshold,
             "detections_kept": total_pred,
-            "overall_recall": (
-                total_tp / total_ground_truth if total_ground_truth else 1.0
-            ),
-            "overall_fdr": (
-                (total_pred - total_tp) / total_pred if total_pred else 0.0
-            ),
+            "overall_recall": (total_tp / total_ground_truth if total_ground_truth else 1.0),
+            "overall_fdr": ((total_pred - total_tp) / total_pred if total_pred else 0.0),
             "tp": total_tp,
             "fp": total_pred - total_tp,
             "fn": total_ground_truth - total_tp,
@@ -829,9 +774,7 @@ def _greedy_diagnostic_pairs(
         bool,
     ],
 ) -> list[tuple[tuple[int, int], tuple[int, int], float]]:
-    edges: list[
-        tuple[float, float, int, int, int, tuple[int, int], tuple[int, int]]
-    ] = []
+    edges: list[tuple[float, float, int, int, int, tuple[int, int], tuple[int, int]]] = []
     gt_by_image: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)
     for key in ground_truths:
         gt_by_image[key[0]].append(key)
@@ -889,12 +832,10 @@ def decompose_official_errors(
         iou_thresholds=protocol.iou_thresholds,
     )
     unmatched_predictions = {
-        (item.image_id, item.prediction_index)
-        for item in trace.unmatched_predictions
+        (item.image_id, item.prediction_index) for item in trace.unmatched_predictions
     }
     unmatched_ground_truths = {
-        (item.image_id, item.ground_truth_index)
-        for item in trace.unmatched_ground_truths
+        (item.image_id, item.ground_truth_index) for item in trace.unmatched_ground_truths
     }
     fp_reason: dict[tuple[int, int], str] = {}
     fn_reason: dict[tuple[int, int], str] = {}
@@ -925,10 +866,7 @@ def decompose_official_errors(
         gt_boxes=formal_gt.boxes,
         edge_allowed=lambda prediction, gt, iou: (
             int(prediction["category_id"]) != int(gt["category_id"])
-            and iou
-            >= protocol.iou_thresholds[
-                protocol.category_mapping[int(gt["category_id"])]
-            ]
+            and iou >= protocol.iou_thresholds[protocol.category_mapping[int(gt["category_id"])]]
         ),
     )
     for pred_key, gt_key, iou in class_pairs:
@@ -946,10 +884,9 @@ def decompose_official_errors(
         gt_boxes=formal_gt.boxes,
         edge_allowed=lambda prediction, gt, iou: (
             int(prediction["category_id"]) == int(gt["category_id"])
-            and 0.0 < iou
-            < protocol.iou_thresholds[
-                protocol.category_mapping[int(gt["category_id"])]
-            ]
+            and 0.0
+            < iou
+            < protocol.iou_thresholds[protocol.category_mapping[int(gt["category_id"])]]
         ),
     )
     for pred_key, gt_key, iou in localization_pairs:
@@ -975,11 +912,7 @@ def decompose_official_errors(
         image_id, pred_index = pred_key
         prediction = filtered[image_id][pred_index]
         partner_data = partner.get(("pred", *pred_key))
-        gt_object = (
-            formal_gt.objects[(partner_data[0], partner_data[1])]
-            if partner_data
-            else None
-        )
+        gt_object = formal_gt.objects[(partner_data[0], partner_data[1])] if partner_data else None
         cases.append(
             {
                 "model_key": model_key,
@@ -989,30 +922,18 @@ def decompose_official_errors(
                 "image_id": image_id,
                 "item_uid": f"{model_key.lower()}-i{image_id}-p{pred_index:04d}",
                 "category_id": int(prediction["category_id"]),
-                "class_name": protocol.category_mapping[
-                    int(prediction["category_id"])
-                ],
+                "class_name": protocol.category_mapping[int(prediction["category_id"])],
                 "score": float(prediction["score"]),
-                "bbox_xyxy": " ".join(
-                    f"{float(value):.10g}" for value in prediction["bbox_xyxy"]
-                ),
-                "paired_item_uid": (
-                    gt_object.annotation_uid if gt_object is not None else ""
-                ),
-                "paired_category_id": (
-                    gt_object.category_id if gt_object is not None else ""
-                ),
+                "bbox_xyxy": " ".join(f"{float(value):.10g}" for value in prediction["bbox_xyxy"]),
+                "paired_item_uid": (gt_object.annotation_uid if gt_object is not None else ""),
+                "paired_category_id": (gt_object.category_id if gt_object is not None else ""),
                 "paired_iou": partner_data[2] if partner_data else "",
             }
         )
     for gt_key, reason in sorted(fn_reason.items()) if include_cases else ():
         gt_object = formal_gt.objects[gt_key]
         partner_data = partner.get(("gt", *gt_key))
-        prediction = (
-            filtered[partner_data[0]][partner_data[1]]
-            if partner_data
-            else None
-        )
+        prediction = filtered[partner_data[0]][partner_data[1]] if partner_data else None
         cases.append(
             {
                 "model_key": model_key,
@@ -1024,17 +945,13 @@ def decompose_official_errors(
                 "category_id": gt_object.category_id,
                 "class_name": gt_object.class_name,
                 "score": "",
-                "bbox_xyxy": " ".join(
-                    f"{value:.10g}" for value in gt_object.bbox_xyxy
-                ),
+                "bbox_xyxy": " ".join(f"{value:.10g}" for value in gt_object.bbox_xyxy),
                 "paired_item_uid": (
                     f"{model_key.lower()}-i{partner_data[0]}-p{partner_data[1]:04d}"
                     if partner_data
                     else ""
                 ),
-                "paired_category_id": (
-                    int(prediction["category_id"]) if prediction else ""
-                ),
+                "paired_category_id": (int(prediction["category_id"]) if prediction else ""),
                 "paired_iou": partner_data[2] if partner_data else "",
             }
         )
@@ -1096,10 +1013,7 @@ def decompose_official_errors(
 def _trace_match_map(
     trace: OfficialEvaluationTrace,
 ) -> dict[tuple[int, int], Any]:
-    return {
-        (match.image_id, match.ground_truth_index): match
-        for match in trace.matches
-    }
+    return {(match.image_id, match.ground_truth_index): match for match in trace.matches}
 
 
 def build_paired_object_outcomes(
@@ -1109,9 +1023,7 @@ def build_paired_object_outcomes(
     thresholds: Mapping[str, float],
     protocol: EvaluationProtocol,
     label: str,
-    precomputed_fn_reasons: (
-        Mapping[str, Mapping[tuple[int, int], str]] | None
-    ) = None,
+    precomputed_fn_reasons: (Mapping[str, Mapping[tuple[int, int], str]] | None) = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Compare M1/M3 on the exact same GT objects and compute recall oracle."""
 
@@ -1135,9 +1047,7 @@ def build_paired_object_outcomes(
         if precomputed_fn_reasons is not None:
             supplied = precomputed_fn_reasons.get(model_key)
             if supplied is None:
-                raise ValueError(
-                    f"precomputed FN reasons 缺少 {model_key}"
-                )
+                raise ValueError(f"precomputed FN reasons 缺少 {model_key}")
             fn_reasons[model_key] = dict(supplied)
         else:
             _, _, fn_reason = decompose_official_errors(
@@ -1183,9 +1093,7 @@ def build_paired_object_outcomes(
                 "group_id": gt_object.group_id,
                 "category_id": gt_object.category_id,
                 "class_name": gt_object.class_name,
-                "gt_bbox_xyxy": " ".join(
-                    f"{value:.10g}" for value in gt_object.bbox_xyxy
-                ),
+                "gt_bbox_xyxy": " ".join(f"{value:.10g}" for value in gt_object.bbox_xyxy),
                 "M1_threshold": float(thresholds["M1"]),
                 "M1_matched": m1_hit,
                 "M1_score": m1_match.score if m1_match else "",
@@ -1201,9 +1109,7 @@ def build_paired_object_outcomes(
             }
         )
     for model_key in EXPECTED_MODEL_KEYS:
-        if sum(bool(row[f"{model_key}_matched"]) for row in rows) != official_tp[
-            model_key
-        ]:
+        if sum(bool(row[f"{model_key}_matched"]) for row in rows) != official_tp[model_key]:
             raise RuntimeError(f"{model_key} object pairing 与官方 TP 不一致")
 
     summaries: dict[str, Any] = {}
@@ -1303,9 +1209,7 @@ def run_formal_oof_analysis(
             aggregate_dir,
             expected_model_key=model_key,
             expected_manifest_sha256=str(config["cv3_manifest_sha256"]),
-            expected_formal_crop_sha256=str(
-                config["formal_crop_manifest_sha256"]
-            ),
+            expected_formal_crop_sha256=str(config["formal_crop_manifest_sha256"]),
             expected_images=int(config["expected_images"]),
             candidate_floor=float(config["candidate_floor"]),
         )
@@ -1385,14 +1289,12 @@ def run_formal_oof_analysis(
             model_key=model_key,
             include_cases=False,
         )
-        selected_summary, selected_cases, selected_fn_reason = (
-            decompose_official_errors(
-                formal_gt,
-                predictions[model_key],
-                threshold=float(workpoint["threshold"]),
-                protocol=protocol,
-                model_key=model_key,
-            )
+        selected_summary, selected_cases, selected_fn_reason = decompose_official_errors(
+            formal_gt,
+            predictions[model_key],
+            threshold=float(workpoint["threshold"]),
+            protocol=protocol,
+            model_key=model_key,
         )
         floor_fn_reasons[model_key] = floor_fn_reason
         selected_fn_reasons[model_key] = selected_fn_reason
@@ -1410,19 +1312,13 @@ def run_formal_oof_analysis(
             fieldnames=error_fields,
         )
         model_outputs[model_key] = {
-            "aggregate_metadata_sha256": aggregates[model_key][
-                "metadata_sha256"
-            ],
+            "aggregate_metadata_sha256": aggregates[model_key]["metadata_sha256"],
             "predictions_sha256": aggregates[model_key]["predictions_sha256"],
             "candidate_floor": floor_summary["official_metrics"],
             "exploratory_workpoint": workpoint,
             "curve_parity": parity,
-            "aggregate_cross_file_audit": aggregates[model_key][
-                "aggregate_cross_file_audit"
-            ],
-            "relocated_artifacts": aggregates[model_key][
-                "relocated_artifacts"
-            ],
+            "aggregate_cross_file_audit": aggregates[model_key]["aggregate_cross_file_audit"],
+            "relocated_artifacts": aggregates[model_key]["relocated_artifacts"],
         }
 
     paired_fields = [
@@ -1450,8 +1346,7 @@ def run_formal_oof_analysis(
     paired_dir = destination / "paired"
     paired_dir.mkdir()
     candidate_thresholds = {
-        model_key: float(config["candidate_floor"])
-        for model_key in EXPECTED_MODEL_KEYS
+        model_key: float(config["candidate_floor"]) for model_key in EXPECTED_MODEL_KEYS
     }
     candidate_rows, candidate_summary = build_paired_object_outcomes(
         formal_gt,
@@ -1462,8 +1357,7 @@ def run_formal_oof_analysis(
         precomputed_fn_reasons=floor_fn_reasons,
     )
     selected_thresholds = {
-        model_key: float(workpoints[model_key]["threshold"])
-        for model_key in EXPECTED_MODEL_KEYS
+        model_key: float(workpoints[model_key]["threshold"]) for model_key in EXPECTED_MODEL_KEYS
     }
     selected_rows, selected_summary = build_paired_object_outcomes(
         formal_gt,
@@ -1506,28 +1400,14 @@ def run_formal_oof_analysis(
         "inputs": {
             "analysis_config": str(Path(config_path).expanduser().resolve()),
             "analysis_config_sha256": config["config_sha256"],
-            "project_config": str(
-                Path(project_config_path).expanduser().resolve()
-            ),
+            "project_config": str(Path(project_config_path).expanduser().resolve()),
             "project_config_sha256": sha256_file(project_config_path),
-            "formal_crop_manifest": str(
-                Path(formal_crop_manifest_path).expanduser().resolve()
-            ),
-            "formal_crop_manifest_sha256": sha256_file(
-                formal_crop_manifest_path
-            ),
-            "M1_aggregate_metadata_sha256": aggregates["M1"][
-                "metadata_sha256"
-            ],
-            "M3_aggregate_metadata_sha256": aggregates["M3"][
-                "metadata_sha256"
-            ],
-            "M1_predictions_sha256": aggregates["M1"][
-                "predictions_sha256"
-            ],
-            "M3_predictions_sha256": aggregates["M3"][
-                "predictions_sha256"
-            ],
+            "formal_crop_manifest": str(Path(formal_crop_manifest_path).expanduser().resolve()),
+            "formal_crop_manifest_sha256": sha256_file(formal_crop_manifest_path),
+            "M1_aggregate_metadata_sha256": aggregates["M1"]["metadata_sha256"],
+            "M3_aggregate_metadata_sha256": aggregates["M3"]["metadata_sha256"],
+            "M1_predictions_sha256": aggregates["M1"]["predictions_sha256"],
+            "M3_predictions_sha256": aggregates["M3"]["predictions_sha256"],
         },
         "counts": {
             "images": len(formal_gt.image_ids),

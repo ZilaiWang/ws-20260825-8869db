@@ -108,9 +108,7 @@ def _formal_object_contract(
             )
     if len(result) != int(audit["object_count"]):
         raise ValueError("formal tight 对象数与输入审计不一致")
-    fold_counts = [
-        sum(contract[0] == fold for contract in result.values()) for fold in range(3)
-    ]
+    fold_counts = [sum(contract[0] == fold for contract in result.values()) for fold in range(3)]
     if fold_counts != list(audit["tight_fold_object_counts"]):
         raise ValueError("formal tight fold 对象数与输入审计不一致")
     return result
@@ -136,9 +134,7 @@ def _validate_fold_predictions(
     scores = np.asarray(logits)
     if scores.shape != (len(rows), 25) or truth.shape != (len(rows),):
         raise ValueError(f"{run} logits/labels/predictions 行数或维度不一致")
-    expected_uids = {
-        uid for uid, contract in expected_objects.items() if contract[0] == fold
-    }
+    expected_uids = {uid for uid, contract in expected_objects.items() if contract[0] == fold}
     actual_uids = [row["annotation_uid"].strip() for row in rows]
     if len(actual_uids) != len(set(actual_uids)) or set(actual_uids) != expected_uids:
         raise ValueError(f"{run} OOF UID 不完整、重复或跨折")
@@ -168,9 +164,7 @@ def _validate_reported_metrics(
         "macro_recall": recomputed["macro_recall"],
         "macro_f1": recomputed["macro_f1"],
         "accuracy": recomputed["accuracy"],
-        "aircraft20_macro_recall": recomputed["subgroups"]["aircraft20"][
-            "macro_recall"
-        ],
+        "aircraft20_macro_recall": recomputed["subgroups"]["aircraft20"]["macro_recall"],
     }
     mismatches = {
         key: {"reported": reported.get(key), "recomputed": value}
@@ -206,10 +200,7 @@ def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
     temporary = Path(temporary_name)
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            handle.write(
-                json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False)
-                + "\n"
-            )
+            handle.write(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
         try:
@@ -253,10 +244,9 @@ def _p03(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
         ):
             raise ValueError(f"P03 ImageNet 权重 SHA 不匹配: {path.parent}")
         parameters = meta.get("model_parameters") or {}
-        if (
-            int(parameters.get("total_parameters", -1)) <= 0
-            or parameters.get("trainable_parameters") != parameters.get("total_parameters")
-        ):
+        if int(parameters.get("total_parameters", -1)) <= 0 or parameters.get(
+            "trainable_parameters"
+        ) != parameters.get("total_parameters"):
             raise ValueError(f"P03 formal 不是全参数微调: {path.parent}")
         fold = int(condition["fold"])
         if int(summary["n_val"]) != int(audit["tight_fold_object_counts"][fold]):
@@ -270,14 +260,10 @@ def _p03(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
             or int(summary.get("epochs_completed", -1)) != 30
             or summary.get("selected_checkpoint") != "final_checkpoint.pt"
         ):
-            raise ValueError(
-                f"P03 fold{fold} 使用了 held-out 选 best/早停，而非固定 epoch"
-            )
+            raise ValueError(f"P03 fold{fold} 使用了 held-out 选 best/早停，而非固定 epoch")
         selected_checkpoint = path.parent / "final_checkpoint.pt"
-        if (
-            not selected_checkpoint.is_file()
-            or sha256_file(selected_checkpoint)
-            != summary.get("selected_checkpoint_sha256")
+        if not selected_checkpoint.is_file() or sha256_file(selected_checkpoint) != summary.get(
+            "selected_checkpoint_sha256"
         ):
             raise ValueError(f"P03 fold{fold} final checkpoint 缺失或 SHA 不一致")
         resolved_path = path.parent / "resolved_config.yaml"
@@ -365,9 +351,7 @@ def _p03(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
 
 def _p04(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
     groups: defaultdict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
-    oof: defaultdict[
-        tuple[str, int | None], list[tuple[int, np.ndarray, np.ndarray]]
-    ] = (
+    oof: defaultdict[tuple[str, int | None], list[tuple[int, np.ndarray, np.ndarray]]] = (
         defaultdict(list)
     )
     expected_objects = _formal_object_contract(audit)
@@ -395,14 +379,10 @@ def _p04(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
             or int(summary.get("completed_epochs", -1)) != 15
             or summary.get("selected_checkpoint") != "final_checkpoint.pt"
         ):
-            raise ValueError(
-                f"P04 formal 使用了 held-out 选 best/早停: {path.parent}"
-            )
+            raise ValueError(f"P04 formal 使用了 held-out 选 best/早停: {path.parent}")
         selected_checkpoint = path.parent / "final_checkpoint.pt"
-        if (
-            not selected_checkpoint.is_file()
-            or sha256_file(selected_checkpoint)
-            != summary.get("selected_checkpoint_sha256")
+        if not selected_checkpoint.is_file() or sha256_file(selected_checkpoint) != summary.get(
+            "selected_checkpoint_sha256"
         ):
             raise ValueError(f"P04 final checkpoint 缺失或 SHA 不一致: {path.parent}")
         if summary.get("manifest_sha256") != audit["formal_manifest_sha256"]:
@@ -420,17 +400,13 @@ def _p04(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
         admitted_cache = matching_caches[0]
         expected_native_dim = P04_NATIVE_DIMENSIONS[condition[0]]
         actual_native_dim = (
-            admitted_cache.get("cache_audit", {})
-            .get("feature_dimensions", {})
-            .get(condition[0])
+            admitted_cache.get("cache_audit", {}).get("feature_dimensions", {}).get(condition[0])
         )
         if (
             condition[0] not in admitted_cache.get("feature_names", ())
             or actual_native_dim != expected_native_dim
         ):
-            raise ValueError(
-                f"P04 teacher/feature/native dimension 合同不匹配: {path.parent}"
-            )
+            raise ValueError(f"P04 teacher/feature/native dimension 合同不匹配: {path.parent}")
         expected_output_dim = condition[1] or expected_native_dim
         if int(summary.get("feature_dimension", -1)) != expected_output_dim:
             raise ValueError(f"P04 probe 输出维度不匹配: {path.parent}")
@@ -513,9 +489,7 @@ def _p04(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
         keyed,
         metric_names=("macro_recall", "macro_f1", "accuracy", "aircraft20_macro_recall"),
     )
-    aggregate_by_condition = {
-        (row["condition"][0], row["condition"][1]): row for row in aggregate
-    }
+    aggregate_by_condition = {(row["condition"][0], row["condition"][1]): row for row in aggregate}
     pooled: dict[str, Any] = {}
     for condition, fold_values in sorted(oof.items(), key=lambda item: str(item[0])):
         fold_values.sort(key=lambda item: item[0])
@@ -550,12 +524,8 @@ def _p04(root: Path, audit: dict[str, Any]) -> dict[str, Any]:
         "scientific_scope": "frozen_teacher_representation_probe_not_detection",
         "groups": aggregate,
         "pooled_oof": pooled,
-        "native_macro_recall_ranking": sorted(
-            native.items(), key=lambda item: (-item[1], item[0])
-        ),
-        "pca384_macro_recall_ranking": sorted(
-            pca384.items(), key=lambda item: (-item[1], item[0])
-        ),
+        "native_macro_recall_ranking": sorted(native.items(), key=lambda item: (-item[1], item[0])),
+        "pca384_macro_recall_ranking": sorted(pca384.items(), key=lambda item: (-item[1], item[0])),
         "decision_rule": {
             "primary": "native and PCA384 three-fold macro recall with paired OOF review",
             "cleandift_admission": (

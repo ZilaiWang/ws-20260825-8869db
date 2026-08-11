@@ -132,7 +132,9 @@ def _match_cv3_sample(
     normalized = source_relative_path.replace("\\", "/")
     if normalized in by_path:
         return by_path[normalized]
-    matches = [sample for path, sample in by_path.items() if Path(path).name == Path(normalized).name]
+    matches = [
+        sample for path, sample in by_path.items() if Path(path).name == Path(normalized).name
+    ]
     if len(matches) != 1:
         raise ValueError(f"source_relative_path 无法唯一匹配 CV3: {source_relative_path}")
     return matches[0]
@@ -152,9 +154,7 @@ def audit_formal_crop_manifest(
     cv3_path = Path(cv3_manifest).expanduser().resolve()
     cv3_sha = sha256_file(cv3_path)
     if cv3_sha != expected_cv3_sha256:
-        raise ValueError(
-            f"CV3 SHA256 不匹配: expected={expected_cv3_sha256}, actual={cv3_sha}"
-        )
+        raise ValueError(f"CV3 SHA256 不匹配: expected={expected_cv3_sha256}, actual={cv3_sha}")
     cv3 = json.loads(cv3_path.read_text(encoding="utf-8"))
     by_path = _cv3_by_path(cv3, expected_sample_count=expected_cv3_sample_count)
 
@@ -215,8 +215,7 @@ def audit_formal_crop_manifest(
         raise ValueError(f"formal manifest 改变不可变字段: {dict(immutable_mismatches)}")
     if historical_mismatches:
         raise ValueError(
-            "formal manifest 的 historical_p02_* 与来源不一致: "
-            f"{dict(historical_mismatches)}"
+            f"formal manifest 的 historical_p02_* 与来源不一致: {dict(historical_mismatches)}"
         )
     if versions != {FORMAL_CROP_VERSION}:
         raise ValueError(f"formal manifest_version 非法: {sorted(versions)}")
@@ -320,9 +319,7 @@ def audit_cache_reuse(
         view_sets: defaultdict[str, set[str]] = defaultdict(set)
         unknown = 0
         mismatch = 0
-        for uid, crop_id, input_hash, view_id in zip(
-            uids, crops, input_hashes, views, strict=True
-        ):
+        for uid, crop_id, input_hash, view_id in zip(uids, crops, input_hashes, views, strict=True):
             if uid not in canonical_by_uid:
                 unknown += 1
                 continue
@@ -457,9 +454,7 @@ def pooled_classification_metrics(
             "macro_recall": float(
                 np.mean([float(row["recall"]) for row in rows if row["recall"] is not None])
             ),
-            "macro_f1": float(
-                np.mean([float(row["f1"]) for row in rows if row["f1"] is not None])
-            ),
+            "macro_f1": float(np.mean([float(row["f1"]) for row in rows if row["f1"] is not None])),
         }
 
     return {

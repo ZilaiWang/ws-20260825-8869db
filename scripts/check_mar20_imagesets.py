@@ -43,8 +43,10 @@ def main() -> int:
     test_ids = read_ids(args.imagesets / "test.txt")
     print(f"官方 train.txt: {len(train_ids)} 行   test.txt: {len(test_ids)} 行")
     print(f"合计 {len(train_ids) + len(test_ids)}（论文为 1331 + 2511 = 3842）")
-    print(f"重复行: train {len(train_ids) - len(set(train_ids))}, "
-          f"test {len(test_ids) - len(set(test_ids))}")
+    print(
+        f"重复行: train {len(train_ids) - len(set(train_ids))}, "
+        f"test {len(test_ids) - len(set(test_ids))}"
+    )
     print(f"两侧交集: {len(set(train_ids) & set(test_ids))} （应为 0）\n")
 
     # 我们手上的 MAR20 编号
@@ -85,9 +87,10 @@ def main() -> int:
                 covered += 1
                 for class_id in ours[number]:
                     seen[class_id] += 1
-        names = ", ".join(
-            f"{FINE_NAMES[c]}×{n}" for c, n in seen.most_common(5)
-        ) or "(本段图像不在我们的数据里)"
+        names = (
+            ", ".join(f"{FINE_NAMES[c]}×{n}" for c, n in seen.most_common(5))
+            or "(本段图像不在我们的数据里)"
+        )
         print(f"{len(run):>4} 个（我们有 {covered:>3} 张）: {names}")
     return 0
 

@@ -11,11 +11,14 @@
 - `configs/bhcdetr.smoke.yaml` 软件链路冒烟配置
 - 官方评分方案 V1.6 排名口径聚合 `evaluate_ranking_metrics`：大类指标 = 大类内
   细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即 FSC），
-  0-GT 细类不参与平均；`evaluate.py` 默认输出 `official_ranking` 块
+  正式模式固定覆盖配置中的完整 25 类；`evaluate.py` 默认输出 `official_ranking` 块
+- `ranking_version=official_ranking_v1_6`、partial-taxonomy 诊断开关和不完整队伍排名保护
 - `leaderboard.csv` 增加 `*_macro_*` 列并登记 M1 正式工作点（双口径基线）
 - `contract_v1` / `official_eval_v1` 协议版本及其评估产物传播
 - 全局置信度阈值扫描、官方/内部/Recall 上限三个固定工作点
 - `reports/experiments/leaderboard.csv` 正式实验总表
+- 基于正式错误分解与本地开源论文清单的 YOLO 改进优先级、实验顺序和停止条件
+- Gitee Release 中的正式 M1 OOF 证据包与关机恢复审计包登记
 - 最小跨成员集成契约：模型可先用原生框架训练并交付 COCO prediction JSON
 - 框架无关的 `InferenceSample`、预测校验、COCO 序列化和批量推理编排
 - `validate_predictions.py` 预测交付校验入口
@@ -34,6 +37,8 @@
 
 ### Changed
 
+- 在创新阶段前对 `scripts/`、`src/`和 `tests/` 执行全仓 Ruff 格式化与静态清理；
+  不改变模型参数或实验结论
 - README、实验协议、项目状态与团队任务文档对齐评分方案 V1.6：所有正式实验
   同时报告 pooled（门槛校验）与官方 macro（排名优化）双口径；内部目标
   （FDR≤0.17 等）以官方 macro 口径计
@@ -51,6 +56,10 @@
 
 ### Fixed
 
+- 修复 N0 对象证据将 oracle 命中错误传播给同图同预测类候选的问题；
+  新合同使用 `source_prediction_index` 做候选级对齐
+- 修复 N2 的 oracle 标签、未审核背景、score 碰撞对齐、模式语义和 held-out 选模泄漏
+- 修复 V1.6 macro 在缺类子集上被误当成正式 4/20/1 排名值的问题
 - 修复同一大类内错误细类仍被计为 TP 的问题；现按官方 QA 先细类匹配再汇总
 - 修复车辆细类误用 0.50 IoU 的问题
 - 修复评估脚本无法读取标准 COCO prediction list 的问题

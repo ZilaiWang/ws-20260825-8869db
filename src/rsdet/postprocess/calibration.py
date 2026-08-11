@@ -9,7 +9,12 @@ from dataclasses import dataclass
 from decimal import ROUND_FLOOR, Decimal
 from typing import Any
 
-from rsdet.evaluation.official_metric import OverallMetrics, evaluate_predictions
+from rsdet.evaluation.official_metric import (
+    OverallMetrics,
+    RankingMetrics,
+    evaluate_predictions,
+    evaluate_ranking_metrics,
+)
 
 
 @dataclass(frozen=True)
@@ -19,6 +24,7 @@ class ThresholdSweepPoint:
     threshold: float
     detections_kept: int
     metrics: OverallMetrics
+    ranking_metrics: RankingMetrics
 
 
 @dataclass(frozen=True)
@@ -46,11 +52,10 @@ def build_threshold_grid(start: float, stop: float, step: float) -> list[float]:
     start_decimal = Decimal(str(start))
     stop_decimal = Decimal(str(stop))
     step_decimal = Decimal(str(step))
-    count = int(
-        ((stop_decimal - start_decimal) / step_decimal).to_integral_value(
-            rounding=ROUND_FLOOR
-        )
-    ) + 1
+    count = (
+        int(((stop_decimal - start_decimal) / step_decimal).to_integral_value(rounding=ROUND_FLOOR))
+        + 1
+    )
     if count > 10_001:
         raise ValueError("阈值点超过 10001 个，请增大 step")
     return [float(start_decimal + index * step_decimal) for index in range(count)]
@@ -83,6 +88,7 @@ def sweep_global_thresholds(
     class_names: list[str],
     category_mapping: dict[int, str],
     iou_thresholds: dict[str, float],
+    require_complete_taxonomy: bool = True,
 ) -> list[ThresholdSweepPoint]:
     """在一组全局阈值上调用官方评估器。"""
     if not thresholds:
@@ -98,11 +104,20 @@ def sweep_global_thresholds(
             category_mapping=category_mapping,
             iou_thresholds=iou_thresholds,
         )
+        ranking = evaluate_ranking_metrics(
+            gt_boxes,
+            filtered,
+            class_names=class_names,
+            category_mapping=category_mapping,
+            iou_thresholds=iou_thresholds,
+            require_complete_taxonomy=require_complete_taxonomy,
+        )
         points.append(
             ThresholdSweepPoint(
                 threshold=threshold,
                 detections_kept=sum(len(items) for items in filtered.values()),
                 metrics=result,
+                ranking_metrics=ranking,
             )
         )
     return points
@@ -134,29 +149,35 @@ def select_operating_points(
         if not math.isfinite(value) or not 0.0 <= value <= 1.0:
             raise ValueError(f"{name} 必须是 [0, 1] 内的有限数")
 
-    def best_under_fdr(fdr_max: float) -> ThresholdSweepPoint:
-        feasible = [point for point in points if point.metrics.fdr <= fdr_max]
+    def best_under_fdr(fdr_max: float, *, use_macro: bool) -> ThresholdSweepPoint:
+        def recall(point: ThresholdSweepPoint) -> float:
+            return point.ranking_metrics.overall_recall if use_macro else point.metrics.recall
+
+        def fdr(point: ThresholdSweepPoint) -> float:
+            return point.ranking_metrics.overall_fdr if use_macro else point.metrics.fdr
+
+        feasible = [point for point in points if fdr(point) <= fdr_max]
         candidates = feasible or points
         if feasible:
             return max(
                 candidates,
                 key=lambda point: (
-                    point.metrics.recall,
-                    -point.metrics.fdr,
+                    recall(point),
+                    -fdr(point),
                     point.threshold,
                 ),
             )
         return max(
             candidates,
             key=lambda point: (
-                -point.metrics.fdr,
-                point.metrics.recall,
+                -fdr(point),
+                recall(point),
                 point.threshold,
             ),
         )
 
-    official = best_under_fdr(official_fdr_max)
-    internal = best_under_fdr(internal_fdr_max)
+    official = best_under_fdr(official_fdr_max, use_macro=False)
+    internal = best_under_fdr(internal_fdr_max, use_macro=True)
     recall_ceiling = max(
         points,
         key=lambda point: (
@@ -178,8 +199,8 @@ def select_operating_points(
             point=internal,
             policy="FDR 不超过内部上限时 Recall 最高；再按 FDR 低、阈值高选择",
             passed=(
-                internal.metrics.recall >= internal_recall_min
-                and internal.metrics.fdr <= internal_fdr_max
+                internal.ranking_metrics.overall_recall >= internal_recall_min
+                and internal.ranking_metrics.overall_fdr <= internal_fdr_max
             ),
         ),
         "recall_ceiling": OperatingPointSelection(

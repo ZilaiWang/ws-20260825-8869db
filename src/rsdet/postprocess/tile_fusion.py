@@ -116,11 +116,7 @@ def fuse_tile_predictions(
                 f"tile_predictions[{index}].image_id={prediction.image_id} does not match "
                 f"tiles[{index}].tile_id={tile.tile_id}"
             )
-        if not (
-            len(prediction.boxes_xyxy)
-            == len(prediction.scores)
-            == len(prediction.labels)
-        ):
+        if not (len(prediction.boxes_xyxy) == len(prediction.scores) == len(prediction.labels)):
             raise ValueError(
                 f"tile_predictions[{index}] boxes, scores, and labels must have equal lengths"
             )
@@ -133,10 +129,7 @@ def fuse_tile_predictions(
             numeric_label = _validated_label(label, location=f"{location}.label")
             try:
                 restored = tile_to_full(box, tile.x_offset, tile.y_offset)
-                clipped = [
-                    float(value)
-                    for value in clip_bbox(restored, image_width, image_height)
-                ]
+                clipped = [float(value) for value in clip_bbox(restored, image_width, image_height)]
             except (TypeError, ValueError) as error:
                 raise ValueError(f"{location}.box is invalid: {error}") from error
             if clipped[2] <= clipped[0] or clipped[3] <= clipped[1]:

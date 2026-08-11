@@ -41,9 +41,7 @@ def main(argv: list[str] | None = None) -> int:
             replacements["__OFFICIAL_YOLO26S_PRETRAINED_PATH__"] = weight
             replacements["__OFFICIAL_RTDETR_L_PRETRAINED_PATH__"] = weight
         if args.checkpoint is not None:
-            replacements["__FOLD_LAST_CHECKPOINT__"] = str(
-                args.checkpoint.resolve()
-            )
+            replacements["__FOLD_LAST_CHECKPOINT__"] = str(args.checkpoint.resolve())
         for token, value in replacements.items():
             text = text.replace(token, value)
         unresolved = sorted(set(TOKEN_RE.findall(text)))

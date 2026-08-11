@@ -1,7 +1,10 @@
 # 延期、待解锁与停止实验台账
 
-更新日期：2026-07-25  
-状态：`current_after_M1_formal_OOF`
+更新日期：2026-08-10
+状态：`current_pre_innovation_closure`
+
+当前状态和数字先读
+[`PRE_INNOVATION_CLOSURE_20260810.md`](PRE_INNOVATION_CLOSURE_20260810.md)。
 
 正式 CV3 已完成，过去“等待 B 划分”的项目已重新分类。当前所有正式
 实验固定引用：
@@ -28,15 +31,16 @@ M1 结果之后的实际执行顺序统一见
 | P0-2-FORMAL | crop manifest 重挂 fold | `implemented_local_pass` | 服务器复现 F00 | 已确定性得到 formal crop SHA `a3bed44f…4128` |
 | CV3-DETECTION-DATA-LOCK | 正式图像/标签/GT 字节锁 | `implemented_local_pass` | F00 后服务器复现 D00 | 锁定 4,481 图像、4,481 标签、20,933 GT；锁 SHA `03a8d8b5…e77a` |
 | CV3-MODEL-ASSET-ENV | M1/M3/E 共用环境与官方权重锁 | `implemented_ready_for_server` | 在同一服务器创建一次不可变锁 | 精确冻结 Python/CUDA/Ultralytics、完整 distribution inventory、两个权重 URL/size/SHA |
-| P03-FORMAL | tight-224 ConvNeXt 正式上限 | `unblocked_high_priority` | 三折 GPU 运行与真实 OOF crop 分析 | M1 显示 `FN_CLS=1115/1734`，只跑 natural、seed 42、三折 canonical |
-| P04-FORMAL | 正式教师比较 | `unblocked_high_priority` | cache 复用门禁与 18 个 probe | 复用 raw feature cache，跑 ConvNeXt / DINOv2-B / CleanDIFT map0 |
+| P03-FORMAL | tight-224 ConvNeXt 正式上限 | `complete` | 无 | CV3 macro Recall 0.9287，作为理想 GT-crop 上限 |
+| P04-FORMAL | 正式教师比较 | `complete` | 无 | DINOv2-B 0.8294 > ConvNeXt 0.7815 > CleanDIFT 0.7036 |
 | C-M1-CV3-OOF | YOLO26-s 正式主检测器 | `complete_formal_with_power_interruption_resume_amendment` | 无 | 4,481 图唯一 OOF、55,548 候选、aggregate 四件套与官方描述性分析均完成 |
 | D-M3-CV3-OOF | RT-DETR-L 异构检测器 | `implemented_ready_for_server` | 三折训练和低阈值预测 | 按冻结 foundation 配置跑三折 |
 | E-10K-BASE | 10K 工程闭环 | `implemented_ready_for_server` | 可用 checkpoint 与 10K 图像 | 先跑工程与分段计时，最终模型后复测 |
 | OOF-AUDIT | 正式预测完整性/官方评估 | `M1_complete_waiting_optional_M3` | M3 paired 分析可选 | M1 官方指标、逐折稳定性和计数守恒错误分解已完成 |
-| THRESHOLD-FORMAL | 正式阈值 | `descriptive_complete_crossfit_pending` | cross-fit 与类别校准 | 同 OOF 全局阈值 0.051 只作探索；fold 0/2 FDR 未过 0.20 |
+| THRESHOLD-FORMAL | 正式阈值 | `crossfit_pooled_and_macro_complete` | 未来变体的 cross-fit 校准 | 当前 cross-fit pooled Recall 0.9176/FDR 0.1990；V1.6 macro 已补算；fold 0/2 仍超线 |
 | M1-M3-PAIRED | 异构互补分析 | `implemented_waiting_both_OOF` | M1 与 M3 同协议 OOF | 已实现 TASK-01：paired TP/FN、IoU、FP 交并和 oracle-union |
-| P05-HARDNEG | 真实背景拒识 | `admitted_ready_for_crossfit_design` | OOF 样本人工审计与 cross-fit 实现 | 工作点 `FP_BG=3303/4671`，先核验语义再训练轻量拒识器 |
+| P05-HARDNEG / N2 | 真实背景拒识 | `v1_invalid_v2_optional` | N0-4 v2 人工确认 clear background | 不得将未标 hard negative 自动当背景；详见 N2 v2 修复报告 |
+| P2-MAINLINE1 | vehicle 近阈值特征增强 | `formal_claim_invalid_mechanism_retained` | 若重启，与 M1 同 160 epoch/fixed-last/full OOF/V1.6 | 当前只保留特征响应机制证据 |
 | P06-REAL | 真实框修正 | `deferred_low_localization_evidence` | 新的边界/尺寸分解反证 | 工作点仅 `FN_LOC=66/1734`，近期不占 GPU |
 | P06-DIFF | bbox residual diffusion | `stopped_no_real_admission` | P06-REAL 出现稳定且仍未解决的定位收益空间 | 不能绕过确定性强基线与真实错误门禁 |
 | COMBINED-ABLATION | 二阶段组合消融 | `waiting_modules` | 已入选的 P05/P06 模块 | base / +P05 / +P06 / 两者 |
@@ -185,5 +189,6 @@ M3 若完成，也必须形成并单独审计自己的四件套，不能与 M1 �
 - `stopped` 项默认不恢复；
 - 每次状态变化记录日期、manifest SHA、代码 commit、任务单、checkpoint
   SHA 和验收报告；
-- 服务器资产位置与回传包另见
-  [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)。
+- 跨成员大文件只认 Gitee Release/附件与 SHA256，见
+  [`ARTIFACT_RELEASE_REGISTER.csv`](ARTIFACT_RELEASE_REGISTER.csv)；
+  [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv) 仅是历史路径快照。

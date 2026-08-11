@@ -38,6 +38,8 @@ vanilla DETR，而论文实验使用 OrientedFormer/RHINO 与旋转框。因此�
 因此所有正式实验同时报告两种口径：pooled（`overall_recall/overall_fdr`，
 门槛校验）与官方排名口径（`official_ranking` 块，`evaluate.py` 默认输出）；
 团队内部目标（如官方口径 FDR≤0.17）一律以官方排名口径为准。
+正式 V1.6 macro 固定使用完整 25 细类税表；缺类 fold/子集只能用
+`--allow-partial-taxonomy` 作诊断，不可填入官方 leaderboard。
 
 预测按分数降序贪心匹配，只有相同细类 ID 才能匹配；每个 GT 最多匹配一次，
 重复框计为 FP。匹配后按舰船、飞机、车辆汇总指标，最终提交保留 25 个细类 ID 的
@@ -56,10 +58,10 @@ COCO detection JSON。
 - 协作契约和官方评估已冻结版本；类别映射、IoU 阈值和版本号均以 [`configs/project.yaml`](configs/project.yaml) 为唯一配置源。
 - 官方评分方案 V1.6（2026-08-04）明确排名口径为"大类内细类指标简单平均"；评估器已支持双口径输出（pooled + `official_ranking` 块），M1 双口径基线见 [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](reports/experiments/M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)。
 - 全局阈值扫描和三个固定工作点已可用；正式实验统一登记到 [`reports/experiments/leaderboard.csv`](reports/experiments/leaderboard.csv)。
-- 正式 CV3 v2 的公共输入、检测数据字节锁、P03/P04 复验、M1/M3 OOF、
-  模型资产锁与 10K 工程代码/任务单已实现，尚待服务器运行；执行顺序与
-  证据边界统一见
-  [`CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md`](reports/experiments/CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md)。
+- 正式 CV3 v2、M1 fixed-last OOF、N0 和 P03/P04 正式复验已完成。当前可信
+  数字、作废项、V1.6 口径与创新准入统一见
+  [`PRE_INNOVATION_CLOSURE_20260810.md`](reports/experiments/PRE_INNOVATION_CLOSURE_20260810.md)。
+  M3 异构 OOF 和 10K 正式时延作为独立成员支线继续。
 
 当前项目状态、分工、P 系列结论和待解锁实验统一从
 [`docs/hub/README.md`](docs/hub/README.md) 进入。旧计划和历史讨论不得替代该状态导航。

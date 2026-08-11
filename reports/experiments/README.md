@@ -9,11 +9,17 @@
 
 跨实验状态统一查看：
 
+- [`PRE_INNOVATION_CLOSURE_20260810.md`](PRE_INNOVATION_CLOSURE_20260810.md)：创新阶段立项的当前权威入口，统一官方 V1.6 口径、可信数字、作废项和实验准入；
 - [`NEXT_STAGE_TEAM_INNOVATION_EXECUTION_MASTER_v1.md`](NEXT_STAGE_TEAM_INNOVATION_EXECUTION_MASTER_v1.md)：下一阶段 A—E 共同创新的待启用总纲；在 D/M3、E/10K 和 A 的 N0 前置收尾完成前状态为 draft，不覆盖当前执行合同；
 - [`NEXT_STAGE_AFTER_M1_FORMAL_OOF_MASTER_v1.md`](NEXT_STAGE_AFTER_M1_FORMAL_OOF_MASTER_v1.md)：拿到正确 YOLO26-s 正式 OOF 后的当前执行总纲；覆盖证据补齐、P03/P04 正式复验、真实背景拒识、对象学生、M3 与 10K 的新顺序；
 - [`CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md`](CV3_FORMAL_EXPERIMENT_EXECUTION_MASTER_v1.md)：正式 CV3 后 P03/P04、M1/M3 OOF 与 10K 的统一执行总纲；
 - [`DEFERRED_WORK_REGISTER.md`](DEFERRED_WORK_REGISTER.md)：待解锁、暂缓和停止项目；
-- [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：服务器 cache、checkpoint 和回传包；
+- [`ARTIFACT_RELEASE_REGISTER.csv`](ARTIFACT_RELEASE_REGISTER.csv)：可跨成员使用的 Gitee
+  Release/附件、SHA256、权重血缘和用途（当前权威登记）；
+- [`YOLO_INNOVATION_DIRECTIONS_20260811.md`](YOLO_INNOVATION_DIRECTIONS_20260811.md)：
+  依据当前错误分解和本地论文清单形成的 YOLO 改进优先级、单变量实验顺序与停止条件；
+- [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
+  不再作跨成员交付依据；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；
 - [`M1_CV3_OOF_TRAINING_RETURN_AUDIT_v1.md`](M1_CV3_OOF_TRAINING_RETURN_AUDIT_v1.md)：误用 YOLOv8-s 的首批历史诊断审计，已由 v2 取代；
 - [`docs/hub/30_p_series/README.md`](../../docs/hub/30_p_series/README.md)：P0-1 至 P07 总结。

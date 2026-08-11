@@ -62,7 +62,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     repos = root / "repos"
     sd15 = root / "models" / "stable-diffusion-v1-5"
     revision_file = sd15 / ".p04_hf_revision"
-    if not revision_file.is_file() or revision_file.read_text(encoding="utf-8").strip() != SD15_REVISION:
+    if (
+        not revision_file.is_file()
+        or revision_file.read_text(encoding="utf-8").strip() != SD15_REVISION
+    ):
         raise ValueError("SD1.5 snapshot revision 记录缺失或不匹配")
     required_sd_files = (
         "model_index.json",
@@ -84,12 +87,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "convnext_tiny": _file(
             weights / "convnext_tiny-983f1562.pth", expected_sha=CONVNEXT_TINY_SHA256
         ),
-        "dinov2_vits14": _file(
-            weights / "dinov2_vits14_pretrain.pth", expected_size=DINO_S_SIZE
-        ),
-        "dinov2_vitb14": _file(
-            weights / "dinov2_vitb14_pretrain.pth", expected_size=DINO_B_SIZE
-        ),
+        "dinov2_vits14": _file(weights / "dinov2_vits14_pretrain.pth", expected_size=DINO_S_SIZE),
+        "dinov2_vitb14": _file(weights / "dinov2_vitb14_pretrain.pth", expected_size=DINO_B_SIZE),
         "cleandift_sd15": _file(
             weights / "cleandift_sd15_unet.safetensors",
             expected_sha=CLEANDIFT_SD15_SHA256,
@@ -98,11 +97,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     sd_inventory: list[dict[str, Any]] = []
     for path in sorted(sd15.rglob("*")):
         relative = path.relative_to(sd15)
-        if (
-            path.is_file()
-            and path.name != ".p04_hf_revision"
-            and ".cache" not in relative.parts
-        ):
+        if path.is_file() and path.name != ".p04_hf_revision" and ".cache" not in relative.parts:
             sd_inventory.append(
                 {
                     "relative_path": relative.as_posix(),

@@ -179,14 +179,21 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     logger.info("=== A 主线 1 车辆后处理审计 ===")
-    logger.info("车辆 GT: %d | 匹配 %d (Recall %.4f) | 低分被滤 %d | 无候选 %d",
-                len(vehicle_gt), len(matched), summary["work_recall"],
-                len(low_score), len(no_candidate))
+    logger.info(
+        "车辆 GT: %d | 匹配 %d (Recall %.4f) | 低分被滤 %d | 无候选 %d",
+        len(vehicle_gt),
+        len(matched),
+        summary["work_recall"],
+        len(low_score),
+        len(no_candidate),
+    )
     logger.info("无候选来源组数: %d", len(summary["no_candidate_groups"]))
     logger.info("无候选 fold: %s", summary["no_candidate_folds"])
     logger.info("无候选 edge_risk: %s", summary["no_candidate_edge_risk"])
     logger.info("无候选图候选总数分布: %s", summary["no_candidate_total_cands_dist"])
-    logger.info("无候选图中候选≥500(max_det饱和代理): %d", summary["no_candidate_maxdet_saturation_proxy"])
+    logger.info(
+        "无候选图中候选≥500(max_det饱和代理): %d", summary["no_candidate_maxdet_saturation_proxy"]
+    )
     logger.info("无候选图 top-score<0.05: %d", summary["no_candidate_top_score_lt_005"])
     logger.info("已保存: %s", output_dir / "vehicle_audit_result.json")
     return 0

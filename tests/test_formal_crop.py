@@ -201,12 +201,8 @@ def test_rehang_preserves_crop_identity_and_uses_only_formal_assignment(
     assert audit["pixels_read"] == 0
     assert audit["geometry_recomputed"] is False
     assert audit["historical_assignment_fields_preserved"] is True
-    assert [row["crop_id"] for row in formal_rows] == [
-        row["crop_id"] for row in source_rows
-    ]
-    assert [row["crop_x0"] for row in formal_rows] == [
-        row["crop_x0"] for row in source_rows
-    ]
+    assert [row["crop_id"] for row in formal_rows] == [row["crop_id"] for row in source_rows]
+    assert [row["crop_x0"] for row in formal_rows] == [row["crop_x0"] for row in source_rows]
     assert "historical_p02_fold" in formal_rows[0]
     assert "historical_p02_group_id" in formal_rows[0]
     assert "main_split" not in formal_rows[0]

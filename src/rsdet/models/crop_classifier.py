@@ -10,9 +10,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-CONVNEXT_TINY_WEIGHT_SHA256 = (
-    "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d"
-)
+CONVNEXT_TINY_WEIGHT_SHA256 = "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d"
 
 
 def sha256_file(path: str | Path) -> str:
@@ -81,5 +79,7 @@ def parameter_summary(model: Any) -> dict[str, int]:
     """返回总参数和可训练参数。"""
 
     total = sum(parameter.numel() for parameter in model.parameters())
-    trainable = sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+    trainable = sum(
+        parameter.numel() for parameter in model.parameters() if parameter.requires_grad
+    )
     return {"total_parameters": int(total), "trainable_parameters": int(trainable)}
