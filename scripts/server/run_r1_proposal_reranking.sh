@@ -40,7 +40,7 @@ mkdir -p "${RUN_ROOT}/prepare" "${RUN_ROOT}/smoke" "${RUN_ROOT}/logits" "${RUN_R
 echo "running_preflight" > "${STATUS_PATH}"
 
 cd "${PROJECT_ROOT}"
-export PYTHONPATH="${PROJECT_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONPATH="${PROJECT_ROOT}/src:${PROJECT_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
 
 sha256sum --check "${CODE_LOCK}"
 "${PYTHON_BIN}" -m pytest -q tests/test_proposal_reranking.py tests/test_yolo_calibration.py
