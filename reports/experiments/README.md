@@ -22,6 +22,8 @@
   M1 严格外层 cross-fit C0-C3 校准结果，C2 类别先验分支准入；
 - [`Y2_Y3_FORMAL_IMPLEMENTATION_20260811.md`](Y2_Y3_FORMAL_IMPLEMENTATION_20260811.md)：
   真正 s 级 P2 正式三折合同、历史 P2 命名问题、以及受 Y2 决策门控的单对 IBS 质量实验；
+- [`Y2_FAST_SCREEN_RESULT_20260811.md`](Y2_FAST_SCREEN_RESULT_20260811.md)：
+  Y2 完整 P2 的 fold0 配对快筛、官方匹配结果和停止结论；Y2 正式三折、Y3 与 P2-Lite 均不启动；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
   不再作跨成员交付依据；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；

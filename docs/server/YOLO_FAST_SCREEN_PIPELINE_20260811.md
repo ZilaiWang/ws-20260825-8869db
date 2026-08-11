@@ -30,6 +30,11 @@ S1 的控制组 `M1S` 只需首次生成，后续在训练合同、fold、seed�
 - `close_mosaic=5`，对应正式 160 epoch 合同的最后 12.5% 关闭比例；
 - 推理均为 conf=0.001、IoU=0.70、max_det=500 的 held-out fold 推理。
 
+执行结果（2026-08-11）：fold0 输出 `stop_candidate`。Y2S 相对 M1S 的 overall Recall
+下降 0.0584、macro Recall 下降 0.1019、vehicle Recall 下降 0.1579；conf=0.001 的
+vehicle Recall 和无候选数均无改善。故不执行 fold1、正式 Y2 或 Y3。权威分析见
+`reports/experiments/Y2_FAST_SCREEN_RESULT_20260811.md`。
+
 快筛比较两类证据：
 
 1. 各自同折探索工作点的官方 Recall/FDR、宏平均 Recall/FDR；

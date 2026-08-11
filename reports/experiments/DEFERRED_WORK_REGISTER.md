@@ -40,7 +40,7 @@ M1 结果之后的实际执行顺序统一见
 | THRESHOLD-FORMAL | 正式阈值 | `crossfit_pooled_and_macro_complete` | 未来变体的 cross-fit 校准 | 当前 cross-fit pooled Recall 0.9176/FDR 0.1990；V1.6 macro 已补算；fold 0/2 仍超线 |
 | M1-M3-PAIRED | 异构互补分析 | `implemented_waiting_both_OOF` | M1 与 M3 同协议 OOF | 已实现 TASK-01：paired TP/FN、IoU、FP 交并和 oracle-union |
 | P05-HARDNEG / N2 | 真实背景拒识 | `v1_invalid_v2_optional` | N0-4 v2 人工确认 clear background | 不得将未标 hard negative 自动当背景；详见 N2 v2 修复报告 |
-| P2-MAINLINE1 | vehicle 近阈值特征增强 | `formal_claim_invalid_mechanism_retained` | 若重启，与 M1 同 160 epoch/fixed-last/full OOF/V1.6 | 当前只保留特征响应机制证据 |
+| P2-MAINLINE1 | vehicle 近阈值特征增强 | `stopped_after_paired_fast_screen` | 仅有新的独立机制证据时才重新立项 | s 级完整 P2 在 fold0 配对快筛中未改善候选下限且显著降低可用工作点 Recall；Y2 正式三折、Y3 与 P2-Lite 不启动 |
 | P06-REAL | 真实框修正 | `deferred_low_localization_evidence` | 新的边界/尺寸分解反证 | 工作点仅 `FN_LOC=66/1734`，近期不占 GPU |
 | P06-DIFF | bbox residual diffusion | `stopped_no_real_admission` | P06-REAL 出现稳定且仍未解决的定位收益空间 | 不能绕过确定性强基线与真实错误门禁 |
 | COMBINED-ABLATION | 二阶段组合消融 | `waiting_modules` | 已入选的 P05/P06 模块 | base / +P05 / +P06 / 两者 |
