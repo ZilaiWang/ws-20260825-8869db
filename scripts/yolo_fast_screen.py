@@ -340,30 +340,39 @@ def train(args: argparse.Namespace) -> int:
     return 0
 
 
-def _prediction_records(result: Any, image_id: int) -> list[dict[str, Any]]:
+def _clip_prediction_box(box: Sequence[float], *, width: int, height: int) -> list[float] | None:
+    x0, y0 = max(0.0, float(box[0])), max(0.0, float(box[1]))
+    x1, y1 = min(float(width), float(box[2])), min(float(height), float(box[3]))
+    if x1 <= x0 or y1 <= y0:
+        return None
+    return [x0, y0, x1 - x0, y1 - y0]
+
+
+def _prediction_records(result: Any, image_id: int) -> tuple[list[dict[str, Any]], int]:
     boxes = result.boxes
     if boxes is None or len(boxes) == 0:
-        return []
+        return [], 0
     output = []
+    filtered_degenerate = 0
     for box, score, label in zip(
         boxes.xyxy.detach().cpu().tolist(),
         boxes.conf.detach().cpu().tolist(),
         boxes.cls.detach().cpu().tolist(),
     ):
         height, width = result.orig_shape
-        x0, y0 = max(0.0, float(box[0])), max(0.0, float(box[1]))
-        x1, y1 = min(float(width), float(box[2])), min(float(height), float(box[3]))
-        if x1 <= x0 or y1 <= y0:
-            raise ValueError("推理产生非法框")
+        clipped = _clip_prediction_box(box, width=width, height=height)
+        if clipped is None:
+            filtered_degenerate += 1
+            continue
         output.append(
             {
                 "image_id": image_id,
                 "category_id": int(label),
-                "bbox": [x0, y0, x1 - x0, y1 - y0],
+                "bbox": clipped,
                 "score": float(score),
             }
         )
-    return output
+    return output, filtered_degenerate
 
 
 def infer(args: argparse.Namespace) -> int:
@@ -414,6 +423,7 @@ def infer(args: argparse.Namespace) -> int:
     _audit_architecture(model, key, check_parameter_count=False)
     predictions: list[dict[str, Any]] = []
     per_batch = []
+    filtered_degenerate_count = 0
     started = time.time()
     batch_size = int(config["batch_size"])
     for offset in range(0, len(val_records), batch_size):
@@ -436,7 +446,9 @@ def infer(args: argparse.Namespace) -> int:
             with Image.open(item["image_path"]) as image:
                 if tuple(result.orig_shape) != image.size[::-1]:
                     raise ValueError("推理图像尺寸不一致")
-            predictions.extend(_prediction_records(result, int(item["image_id"])))
+            records, filtered = _prediction_records(result, int(item["image_id"]))
+            predictions.extend(records)
+            filtered_degenerate_count += filtered
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(predictions, separators=(",", ":")) + "\n")
     atomic_write_json(
@@ -449,6 +461,7 @@ def infer(args: argparse.Namespace) -> int:
             "held_out_fold": fold,
             "images": len(val_records),
             "proposal_count": len(predictions),
+            "filtered_degenerate_count": filtered_degenerate_count,
             "elapsed_seconds": time.time() - started,
             "batch_seconds": per_batch,
             "checkpoint_sha256": sha256_file(checkpoint),

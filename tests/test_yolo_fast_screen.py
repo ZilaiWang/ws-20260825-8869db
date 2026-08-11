@@ -1,4 +1,15 @@
-from scripts.yolo_fast_screen import build_screen_decision
+from scripts.yolo_fast_screen import _clip_prediction_box, build_screen_decision
+
+
+def test_clip_prediction_box_filters_degenerate_after_image_clipping():
+    assert _clip_prediction_box([-5, 2, -1, 8], width=100, height=100) is None
+    assert _clip_prediction_box([2, 101, 8, 110], width=100, height=100) is None
+    assert _clip_prediction_box([-5, 2, 8, 110], width=100, height=100) == [
+        0.0,
+        2.0,
+        8.0,
+        98.0,
+    ]
 
 
 def _metrics(**overrides):
