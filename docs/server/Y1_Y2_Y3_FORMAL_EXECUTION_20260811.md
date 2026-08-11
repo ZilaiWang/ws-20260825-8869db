@@ -3,7 +3,8 @@
 ## 1. 执行顺序
 
 1. Y1：本地 CPU 严格 cross-fit 校准，已完成；
-2. Y2：真正的 `yolo26s-p2.yaml` 三折 160 epoch/fixed-last 正式 OOF；
+2. Y2：先执行 `YOLO_FAST_SCREEN_PIPELINE_20260811.md` 的配对快筛；仅快筛入围后，
+   才运行真正的 `yolo26s-p2.yaml` 三折 160 epoch/fixed-last 正式 OOF；
 3. Y3：只在 `Y2-P2-DECISION.json` 准入后，训练 P2 颈部单对 IBS 采样变体。
 
 Y2 和 Y3 不允许同时启动。Y3 入口会机器校验 Y2 决策；未准入时必须停止，不训练。

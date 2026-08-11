@@ -1,0 +1,18 @@
+screening_contract: "yolo_fast_screen_v1"
+candidate_key: "__CANDIDATE_KEY__"
+model:
+  family: "yolo"
+  checkpoint: "__FOLD_LAST_CHECKPOINT__"
+  imgsz: 1024
+  confidence: 0.001
+  iou: 0.70
+  max_detections: 500
+  half: true
+  agnostic_nms: false
+device: "cuda:0"
+batch_size: 8
+input:
+  data_root: "__DATA_ROOT__"
+  manifest: "__FOLD_SPLIT_VIEW__"
+  split: "val"
+output_json: "__FOLD_OUTPUT_DIR__/predictions_low.json"

@@ -23,6 +23,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--fold-output-dir", type=Path, required=True)
     parser.add_argument("--pretrained-weight", type=Path, default=None)
     parser.add_argument("--checkpoint", type=Path, default=None)
+    parser.add_argument("--candidate-key", default=None)
     return parser.parse_args(argv)
 
 
@@ -42,6 +43,11 @@ def main(argv: list[str] | None = None) -> int:
             replacements["__OFFICIAL_RTDETR_L_PRETRAINED_PATH__"] = weight
         if args.checkpoint is not None:
             replacements["__FOLD_LAST_CHECKPOINT__"] = str(args.checkpoint.resolve())
+        if args.candidate_key is not None:
+            candidate_key = str(args.candidate_key).strip().upper()
+            if not candidate_key or not candidate_key.replace("-", "").isalnum():
+                raise ValueError("candidate-key 必须是安全的非空标识")
+            replacements["__CANDIDATE_KEY__"] = candidate_key
         for token, value in replacements.items():
             text = text.replace(token, value)
         unresolved = sorted(set(TOKEN_RE.findall(text)))
