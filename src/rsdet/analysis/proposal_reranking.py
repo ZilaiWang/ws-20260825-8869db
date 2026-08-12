@@ -63,6 +63,7 @@ class RerankVariant:
     min_top_probability: float = 0.0
     min_margin: float = 0.0
     fusion_alpha: float = 0.0
+    target_coarse: str | None = None
 
 
 def _coarse_ids(category_id: int) -> tuple[int, ...]:
@@ -316,7 +317,20 @@ def apply_variant(
 
     predictions: dict[int, list[dict[str, Any]]] = {int(image_id): [] for image_id in image_ids}
     relabelled = gated_out = 0
+    bypassed = 0
     for record in records:
+        if variant.target_coarse is not None and coarse_name(record.category_id) != variant.target_coarse:
+            predictions[record.image_id].append(
+                {
+                    "image_id": record.image_id,
+                    "category_id": record.category_id,
+                    "score": record.detector_score,
+                    "bbox_xyxy": list(record.bbox_xyxy),
+                    "proposal_uid": record.proposal_uid,
+                }
+            )
+            bypassed += 1
+            continue
         probability = probabilities[record.proposal_uid]
         selected, top, margin = _candidate_category_and_margin(probability, record.category_id)
         category_id = record.category_id
@@ -345,7 +359,10 @@ def apply_variant(
                 "proposal_uid": record.proposal_uid,
             }
         )
-    return predictions, {"relabelled": relabelled, "gated_out": gated_out}
+    audit = {"relabelled": relabelled, "gated_out": gated_out}
+    if variant.target_coarse is not None:
+        audit["bypassed"] = bypassed
+    return predictions, audit
 
 
 def _metric_payload(metrics: Any, ranking: Any) -> dict[str, Any]:

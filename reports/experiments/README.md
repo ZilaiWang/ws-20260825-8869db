@@ -26,6 +26,8 @@
   Y2 完整 P2 的 fold0 配对快筛、官方匹配结果和停止结论；Y2 正式三折、Y3 与 P2-Lite 均不启动；
 - [`R1_PROPOSAL_RERANKING_RESULT_20260811.md`](R1_PROPOSAL_RERANKING_RESULT_20260811.md)：
   P03-F 对 M1 全部 OOF proposal 的 outer cross-fit 重排；确认 aircraft 细类纠错信号，拒绝当前全类别统一策略并放行 aircraft-only proposal-domain refinement；
+- [`R1_AIRCRAFT_REFINEMENT_PLAN_20260812.md`](R1_AIRCRAFT_REFINEMENT_PLAN_20260812.md)：
+  aircraft-only 提议域固定短微调、正确教师选择性锚定蒸馏与 D4 概率集成的 2×2 因子实验；ship/vehicle 结构性旁路；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
   不再作跨成员交付依据；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；
