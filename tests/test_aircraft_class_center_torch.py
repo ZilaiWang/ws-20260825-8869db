@@ -12,6 +12,7 @@ torch = pytest.importorskip("torch")
 from torch import nn  # noqa: E402
 
 from scripts.r1_aircraft_refinement import (  # noqa: E402
+    _build_attribute_heads,
     _ClassCenterMemory,
     _convnext_features_and_logits,
 )
@@ -58,3 +59,19 @@ def test_class_center_loss_is_finite_and_centers_remain_normalized() -> None:
     torch.testing.assert_close(
         memory.centers.norm(dim=1), torch.ones(4), rtol=1e-5, atol=1e-5
     )
+
+
+def test_training_only_attribute_heads_have_expected_shapes() -> None:
+    taxonomy = {
+        "dimensions": {
+            "engine_count": {"values": ["one", "two", "four"]},
+            "propulsion": {"values": ["jet", "turboprop"]},
+        }
+    }
+    heads = _build_attribute_heads(torch, taxonomy, feature_dim=4)
+    features = torch.randn(5, 4, requires_grad=True)
+    outputs = {name: head(features) for name, head in heads.items()}
+    assert outputs["engine_count"].shape == (5, 3)
+    assert outputs["propulsion"].shape == (5, 2)
+    sum(value.sum() for value in outputs.values()).backward()
+    assert torch.isfinite(features.grad).all()

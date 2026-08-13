@@ -17,6 +17,11 @@ import numpy as np
 import yaml
 from PIL import Image
 
+from rsdet.analysis.aircraft_attributes import (
+    attribute_target_table,
+    audit_aircraft_attribute_taxonomy,
+    load_aircraft_attribute_taxonomy,
+)
 from rsdet.analysis.aircraft_refinement import (
     AIRCRAFT_CLASS_IDS,
     R11_CONTRACT_VERSION,
@@ -242,6 +247,19 @@ class _ClassCenterMemory:
         self.centers = centers.detach()
 
 
+def _build_attribute_heads(torch: Any, taxonomy: Mapping[str, Any], feature_dim: int) -> Any:
+    """Build training-only categorical heads for physical attributes."""
+
+    if feature_dim <= 0:
+        raise ValueError("attribute feature_dim 必须为正数")
+    return torch.nn.ModuleDict(
+        {
+            dimension: torch.nn.Linear(feature_dim, len(specification["values"]))
+            for dimension, specification in taxonomy["dimensions"].items()
+        }
+    )
+
+
 def _load_p03_model(
     checkpoint_path: Path,
     weights_path: Path,
@@ -342,6 +360,18 @@ def _audit(args: argparse.Namespace, config: dict[str, Any]) -> int:
             "cross_coarse_relabel_allowed": False,
         },
     }
+    attribute_config = config.get("attribute_taxonomy")
+    if attribute_config is not None:
+        taxonomy_path = Path(attribute_config["path"])
+        actual_sha = sha256_file(taxonomy_path)
+        if actual_sha != attribute_config["sha256"]:
+            raise ValueError(f"aircraft attribute taxonomy SHA 不匹配: {actual_sha}")
+        taxonomy = load_aircraft_attribute_taxonomy(taxonomy_path)
+        payload["attribute_taxonomy"] = {
+            "path": str(taxonomy_path),
+            "sha256": actual_sha,
+            "audit": audit_aircraft_attribute_taxonomy(taxonomy),
+        }
     expected = config["inputs"]["expected_counts"]
     if row_audit["row_count"] != int(expected["training_aircraft_rows"]):
         raise ValueError("aircraft training row 数不匹配")
@@ -392,6 +422,9 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             parameter.requires_grad = False
     student.to(device)
     center_memory = None
+    attribute_heads = None
+    attribute_taxonomy = None
+    attribute_tables = None
     if args.method == "class_center":
         center_config = config["training"]["class_center"]
         classifier_weight = student.classifier[-1].weight[
@@ -403,6 +436,21 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             margin=float(center_config["margin"]),
             negative_weight=float(center_config["negative_weight"]),
         )
+    if args.method == "structured_attribute":
+        attribute_config = config["attribute_taxonomy"]
+        taxonomy_path = Path(attribute_config["path"])
+        actual_sha = sha256_file(taxonomy_path)
+        if actual_sha != attribute_config["sha256"]:
+            raise ValueError(f"aircraft attribute taxonomy SHA 不匹配: {actual_sha}")
+        attribute_taxonomy = load_aircraft_attribute_taxonomy(taxonomy_path)
+        feature_dim = int(student.classifier[-1].in_features)
+        attribute_heads = _build_attribute_heads(torch, attribute_taxonomy, feature_dim).to(
+            device
+        )
+        attribute_tables = {
+            dimension: torch.tensor(values, dtype=torch.long, device=device)
+            for dimension, values in attribute_target_table(attribute_taxonomy).items()
+        }
     dataset = _TrainDataset(train_rows, args.data_root.expanduser())
     generator = torch.Generator().manual_seed(int(config["training"]["seed"]) + args.fold)
     loader = torch.utils.data.DataLoader(
@@ -416,7 +464,10 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
         persistent_workers=False,
     )
     training = config["training"]
-    head_ids = {id(item) for item in student.classifier.parameters()}
+    head_parameters = list(student.classifier.parameters())
+    if attribute_heads is not None:
+        head_parameters.extend(attribute_heads.parameters())
+    head_ids = {id(item) for item in head_parameters}
     optimizer = torch.optim.AdamW(
         [
             {
@@ -424,7 +475,7 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
                 "lr": float(training["backbone_lr"]),
             },
             {
-                "params": list(student.classifier.parameters()),
+                "params": head_parameters,
                 "lr": float(training["head_lr"]),
             },
         ],
@@ -456,12 +507,17 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             "correct": 0,
             "anchor": 0,
         }
+        if attribute_heads is not None:
+            for dimension in attribute_heads:
+                totals[f"attribute_{dimension}_loss"] = 0.0
+                totals[f"attribute_{dimension}_correct"] = 0
         for images, labels, _ in loader:
             images = images.to(device, non_blocking=True)
             labels20 = labels.to(device, non_blocking=True) - AIRCRAFT_CLASS_IDS[0]
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=device.type == "cuda"):
-                if center_memory is None:
+                needs_features = center_memory is not None or attribute_heads is not None
+                if not needs_features:
                     features = None
                     logits = student(images)
                 else:
@@ -502,10 +558,47 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
                     center, center_diagnostics = center_memory.loss(features, labels20)
                     ramp = epoch / max(epochs, 1)
                     center_weight = float(training["class_center"]["loss_weight"]) * ramp
-                loss = ce + kd_weight * kd + center_weight * center
+                attribute = logits20.new_zeros(())
+                attribute_diagnostics: dict[str, tuple[float, int]] = {}
+                attribute_weight = 0.0
+                if attribute_heads is not None:
+                    if features is None or attribute_tables is None:
+                        raise RuntimeError("structured attribute features/targets 未生成")
+                    attribute_losses = []
+                    for dimension, head in attribute_heads.items():
+                        targets = attribute_tables[dimension][labels20]
+                        attribute_logits = head(features)
+                        dimension_loss = functional.cross_entropy(
+                            attribute_logits,
+                            targets,
+                            label_smoothing=float(
+                                training["structured_attribute"]["label_smoothing"]
+                            ),
+                        )
+                        attribute_losses.append(dimension_loss)
+                        attribute_diagnostics[dimension] = (
+                            float(dimension_loss.detach()),
+                            int(attribute_logits.argmax(dim=1).eq(targets).sum()),
+                        )
+                    attribute = torch.stack(attribute_losses).mean()
+                    ramp = epoch / max(epochs, 1)
+                    attribute_weight = (
+                        float(training["structured_attribute"]["loss_weight"]) * ramp
+                    )
+                loss = (
+                    ce
+                    + kd_weight * kd
+                    + center_weight * center
+                    + attribute_weight * attribute
+                )
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(student.parameters(), float(training["grad_clip_norm"]))
+            trainable_parameters = list(student.parameters())
+            if attribute_heads is not None:
+                trainable_parameters.extend(attribute_heads.parameters())
+            torch.nn.utils.clip_grad_norm_(
+                trainable_parameters, float(training["grad_clip_norm"])
+            )
             scaler.step(optimizer)
             scaler.update()
             if center_memory is not None:
@@ -519,6 +612,9 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             totals["center"] += float(center.detach()) * count
             for key, value in center_diagnostics.items():
                 totals[key] += value * count
+            for dimension, (dimension_loss, dimension_correct) in attribute_diagnostics.items():
+                totals[f"attribute_{dimension}_loss"] += dimension_loss * count
+                totals[f"attribute_{dimension}_correct"] += dimension_correct
             totals["correct"] += int(logits20.argmax(dim=1).eq(labels20).sum())
             totals["anchor"] += anchor_count
         row = {
@@ -537,6 +633,18 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             "backbone_lr": optimizer.param_groups[0]["lr"],
             "head_lr": optimizer.param_groups[1]["lr"],
         }
+        if attribute_heads is not None:
+            row["train_attribute"] = sum(
+                totals[f"attribute_{dimension}_loss"] for dimension in attribute_heads
+            ) / (totals["samples"] * len(attribute_heads))
+            row["attribute_metrics"] = {
+                dimension: {
+                    "loss": totals[f"attribute_{dimension}_loss"] / totals["samples"],
+                    "accuracy": totals[f"attribute_{dimension}_correct"]
+                    / totals["samples"],
+                }
+                for dimension in attribute_heads
+            }
         history.append(row)
         print(json.dumps(row, ensure_ascii=False), flush=True)
     resolved = {
@@ -555,6 +663,17 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
         "training_only_class_center": (
             dict(config["training"]["class_center"])
             if args.method == "class_center"
+            else None
+        ),
+        "training_only_structured_attributes": (
+            {
+                "taxonomy_path": str(config["attribute_taxonomy"]["path"]),
+                "taxonomy_sha256": str(config["attribute_taxonomy"]["sha256"]),
+                "training": dict(config["training"]["structured_attribute"]),
+                "audit": audit_aircraft_attribute_taxonomy(attribute_taxonomy),
+                "auxiliary_heads_serialized": False,
+            }
+            if attribute_taxonomy is not None
             else None
         ),
         "aircraft_class_ids": list(AIRCRAFT_CLASS_IDS),
@@ -720,6 +839,16 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
                 "class_center_d4": (args.center_bundle_dir, "d4"),
             }
         )
+    if args.attribute_bundle_dir is not None:
+        conditions.update(
+            {
+                "structured_attribute_identity": (
+                    args.attribute_bundle_dir,
+                    "identity",
+                ),
+                "structured_attribute_d4": (args.attribute_bundle_dir, "d4"),
+            }
+        )
     requested_conditions = config.get("conditions", {}).get("evaluate")
     if requested_conditions is not None:
         unknown = set(requested_conditions) - set(conditions)
@@ -858,7 +987,9 @@ def parser() -> argparse.ArgumentParser:
     train.add_argument("--p03-checkpoint", type=Path, required=True)
     train.add_argument("--fold", type=int, choices=(0, 1, 2), required=True)
     train.add_argument(
-        "--method", choices=("ce", "selective_anchor_kd", "class_center"), required=True
+        "--method",
+        choices=("ce", "selective_anchor_kd", "class_center", "structured_attribute"),
+        required=True,
     )
     train.add_argument("--output-dir", type=Path, required=True)
     train.add_argument("--device", default="cuda")
@@ -873,7 +1004,7 @@ def parser() -> argparse.ArgumentParser:
     infer.add_argument("--fold", type=int, choices=(0, 1, 2), required=True)
     infer.add_argument(
         "--method",
-        choices=("p03", "ce", "selective_anchor_kd", "class_center"),
+        choices=("p03", "ce", "selective_anchor_kd", "class_center", "structured_attribute"),
         required=True,
     )
     infer.add_argument("--output-dir", type=Path, required=True)
@@ -888,6 +1019,7 @@ def parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--ce-bundle-dir", type=Path, required=True)
     evaluate.add_argument("--kd-bundle-dir", type=Path, required=True)
     evaluate.add_argument("--center-bundle-dir", type=Path)
+    evaluate.add_argument("--attribute-bundle-dir", type=Path)
     evaluate.add_argument("--aggregate-dir", type=Path, required=True)
     evaluate.add_argument("--formal-crop-manifest", type=Path, required=True)
     evaluate.add_argument("--y1-calibration-result", type=Path, required=True)
