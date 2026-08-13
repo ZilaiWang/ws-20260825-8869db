@@ -28,6 +28,12 @@
   P03-F 对 M1 全部 OOF proposal 的 outer cross-fit 重排；确认 aircraft 细类纠错信号，拒绝当前全类别统一策略并放行 aircraft-only proposal-domain refinement；
 - [`R1_AIRCRAFT_REFINEMENT_PLAN_20260812.md`](R1_AIRCRAFT_REFINEMENT_PLAN_20260812.md)：
   aircraft-only 提议域固定短微调、正确教师选择性锚定蒸馏与 D4 概率集成的 2×2 因子实验；ship/vehicle 结构性旁路；
+- [`R1_AIRCRAFT_REFINEMENT_RESULT_20260814.md`](R1_AIRCRAFT_REFINEMENT_RESULT_20260814.md)：
+  六条件正式结果；CE proposal-domain adaptation + D4 为最强条件，停止现有同视图 KD，并放行类中心与困难对象 D4 成本压缩；
+- [`R1_AIRCRAFT_CLASS_CENTER_PLAN_20260814.md`](R1_AIRCRAFT_CLASS_CENTER_PLAN_20260814.md)：
+  以 CE identity 为公平参考的训练期类中心角度约束单因素实验；部署模型结构不变；
+- [`N0_FP_BG_VISUAL_REVIEW_PACKAGE_20260814.md`](N0_FP_BG_VISUAL_REVIEW_PACKAGE_20260814.md)：
+  324 条 FP_BG 的盲化三视图审阅包；在人工白名单形成前背景拒识继续禁用；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
   不再作跨成员交付依据；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；
