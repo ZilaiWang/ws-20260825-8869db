@@ -119,7 +119,8 @@ assert audit["status"] == "pass"
 assert audit["training"]["row_count"] == 17948
 assert audit["inference"]["aircraft_proposals"] == 32062
 assert decision["status"] == "complete"
-assert decision["primary_condition"] == "class_center_d4"
+assert decision["reference_condition"] == "ce_identity"
+assert decision["primary_condition"] == "class_center_identity"
 assert decision["maximum_bypass_delta"] <= 1e-12
 for fold in range(3):
     runtime = json.loads(

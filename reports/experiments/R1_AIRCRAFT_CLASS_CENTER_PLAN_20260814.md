@@ -46,9 +46,9 @@ L=L_{CE}+\lambda\frac{e}{E}
 
 1. 三折各训练一次，不做 held-out early stopping；
 2. 每折输出 identity 与 D4 概率；
-3. cross-fit 只评 `p03_identity / class_center_identity / class_center_d4`；
-4. 主比较为 `class_center_d4 vs p03_identity`，同时用既有 R1-1 CE 结果判断
-   类中心是否比普通 proposal adaptation 有独立价值；
+3. cross-fit 只评 `ce_identity / class_center_identity / class_center_d4`；
+4. 主比较为 `class_center_identity vs ce_identity`，严格隔离类中心损失的增量；
+   D4 只作为正交附加读数；
 5. 全部结果仍属于同一正式 OOF 上的迭代开发，不授予最终正式准入。
 
 ## 4. 验收与停止

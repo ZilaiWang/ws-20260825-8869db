@@ -70,10 +70,10 @@ search:
   probability_semantics: p_fine_class_given_detector_aircraft_route
 
 conditions:
-  reference: p03_identity
-  primary: class_center_d4
+  reference: ce_identity
+  primary: class_center_identity
   evaluate:
-    - p03_identity
+    - ce_identity
     - class_center_identity
     - class_center_d4
 
