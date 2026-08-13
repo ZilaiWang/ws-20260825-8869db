@@ -32,6 +32,8 @@
   六条件正式结果；CE proposal-domain adaptation + D4 为最强条件，停止现有同视图 KD，并放行类中心与困难对象 D4 成本压缩；
 - [`R1_AIRCRAFT_CLASS_CENTER_PLAN_20260814.md`](R1_AIRCRAFT_CLASS_CENTER_PLAN_20260814.md)：
   以 CE identity 为公平参考的训练期类中心角度约束单因素实验；部署模型结构不变；
+- [`R1_AIRCRAFT_CLASS_CENTER_RESULT_20260814.md`](R1_AIRCRAFT_CLASS_CENTER_RESULT_20260814.md)：
+  identity 主条件与 full D4 横向比较均未优于 CE 工作点；停止训练域动态类中心；
 - [`R1_AIRCRAFT_STRUCTURED_ATTRIBUTE_PLAN_20260814.md`](R1_AIRCRAFT_STRUCTURED_ATTRIBUTE_PLAN_20260814.md)：
   以五个俯视可见物理属性辅助 proposal-domain 微调；属性头仅用于训练，单因素比较
   CE identity，并额外检查能否与 full D4 叠加；
