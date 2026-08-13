@@ -11,6 +11,23 @@ ExpertDet 报告训练期属性监督在 PSP.Plane 上可独立改善基线，SL
 分解为互斥的物理属性维度。本实验只抽取二者共同且适合本项目的最小思想：从 ConvNeXt
 的 768 维对象特征同时预测五个 class-level 物理属性，推理时删除全部辅助头。
 
+这一路线还经过了现有错误对齐。将 R1-1 CE bundle 与 N2-v2 正提议按
+`fold + image_id + bbox` 回连，得到 17,907 个 held-out 正提议：identity 分类错误 807 个，
+D4 后为 683 个。identity 最大的几组定向混淆为：
+
+| GT → prediction | 数量 | 当前属性是否区分 | 主要维度 |
+|---|---:|---|---|
+| TU-160 → TU-22 | 115 | 是 | engine_count |
+| SU-35 → SU-34 | 72 | 是 | mission_role |
+| KC-135 → E-8 | 66 | 是 | mission_role |
+| FA-18 → SU-35 | 59 | 否 | 当前已知盲区 |
+| SU-34 → SU-35 | 49 | 是 | mission_role |
+| E-8 → KC-135 | 37 | 是 | mission_role |
+| F-15 → F-16 | 28 | 是 | engine/wing/tail |
+
+因此属性监督覆盖了主要错误质量，而不是从论文中任意抽取模块。该诊断只用于立项，不
+代替正式官方匹配评价。
+
 ## 2. 冻结属性字典
 
 文件：`configs/metadata/aircraft_physical_attributes_v1.yaml`。
@@ -35,6 +52,10 @@ CE。只增加训练期线性属性头：
 
 属性头使用每维独立 categorical CE，维度等权。它们不写入 checkpoint；正式 checkpoint
 仍只包含原 ConvNeXt-T 25 类模型，因此参数量、推理接口和时延与 CE 完全相同。
+
+服务器同环境 smoke 已通过：五维属性训练准确率为 96.8%--97.8%，平均属性损失
+0.283，`0.10 × loss` 相当于主 CE 的约 8.4%；正式五轮采用线性 ramp，首轮实际权重仅
+0.02，避免随机初始化辅助头在开始阶段冲击已收敛的 P03 表征。
 
 ## 4. 单变量比较
 
