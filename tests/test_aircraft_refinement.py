@@ -10,6 +10,7 @@ import pytest
 
 from rsdet.analysis.aircraft_refinement import (
     AIRCRAFT_CLASS_IDS,
+    adaptive_d4_probabilities,
     aircraft_conditional_probabilities,
     audit_aircraft_training_rows,
     build_aircraft_variants,
@@ -133,3 +134,40 @@ def test_bundle_requires_exact_aircraft_uid_coverage(tmp_path: Path) -> None:
     identity, d4 = load_aircraft_bundle(tmp_path, records)
     assert set(identity) == {"p0", "p1", "p2"}
     assert d4["p0"][4] == pytest.approx(1.0)
+
+
+def test_adaptive_d4_only_expands_low_confidence_aircraft(tmp_path: Path) -> None:
+    records = [_record(f"p{fold}", 4, fold) for fold in (0, 1, 2)]
+    base_dir = tmp_path / "base"
+    bundle_dir = tmp_path / "bundle"
+    base_dir.mkdir()
+    bundle_dir.mkdir()
+    for fold in (0, 1, 2):
+        all_uids = np.asarray([f"p{item}" for item in (0, 1, 2)], dtype="<U2")
+        all_logits = np.zeros((3, 25), dtype=np.float32)
+        np.savez_compressed(
+            base_dir / f"fold_{fold}_logits.npz",
+            proposal_uids=all_uids[fold : fold + 1],
+            logits=all_logits[fold : fold + 1],
+        )
+        identity = np.zeros((1, 25), dtype=np.float32)
+        identity[0, 4] = 8.0 if fold == 0 else 0.1
+        d4 = np.zeros((1, 20), dtype=np.float32)
+        d4[0, 1] = 1.0
+        np.savez_compressed(
+            bundle_dir / f"fold_{fold}_aircraft_bundle.npz",
+            proposal_uids=np.asarray([f"p{fold}"], dtype="<U2"),
+            identity_logits=identity,
+            d4_probabilities=d4,
+        )
+    probabilities, audit = adaptive_d4_probabilities(
+        records,
+        base_dir,
+        bundle_dir,
+        maximum_identity_probability=0.8,
+    )
+    assert probabilities["p0"].argmax() == 4
+    assert probabilities["p1"].argmax() == 5
+    assert probabilities["p2"].argmax() == 5
+    assert audit["d4_proposal_count"] == 2
+    assert audit["view_compute_ratio_vs_full_d4"] == pytest.approx(17 / 24)

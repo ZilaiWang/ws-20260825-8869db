@@ -227,10 +227,56 @@ def condition_probabilities(
     return probabilities
 
 
+def adaptive_d4_probabilities(
+    records: Sequence[ProposalRecord],
+    base_logits_dir: str | Path,
+    bundle_dir: str | Path,
+    *,
+    maximum_identity_probability: float,
+) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+    """Use D4 only when the identity prediction is not sufficiently confident."""
+
+    if not 0.0 < maximum_identity_probability < 1.0:
+        raise ValueError("adaptive D4 probability threshold 必须位于 (0, 1)")
+    base_logits = load_logits(base_logits_dir, records)
+    identity_logits, d4 = load_aircraft_bundle(bundle_dir, records)
+    probabilities = aircraft_conditional_probabilities(base_logits)
+    identity = aircraft_conditional_probabilities(identity_logits)
+    fold_by_uid = {
+        item.proposal_uid: item.fold
+        for item in records
+        if item.category_id in AIRCRAFT_CLASS_IDS
+    }
+    per_fold = {fold: {"aircraft": 0, "d4": 0} for fold in (0, 1, 2)}
+    for uid, identity_probability in identity.items():
+        fold = fold_by_uid[uid]
+        use_d4 = (
+            float(identity_probability[list(AIRCRAFT_CLASS_IDS)].max())
+            < maximum_identity_probability
+        )
+        probabilities[uid] = d4[uid] if use_d4 else identity_probability
+        per_fold[fold]["aircraft"] += 1
+        per_fold[fold]["d4"] += int(use_d4)
+    d4_count = sum(item["d4"] for item in per_fold.values())
+    aircraft_count = sum(item["aircraft"] for item in per_fold.values())
+    full_view_equivalents = aircraft_count + 7 * d4_count
+    audit = {
+        "maximum_identity_probability": maximum_identity_probability,
+        "aircraft_proposal_count": aircraft_count,
+        "d4_proposal_count": d4_count,
+        "d4_fraction": d4_count / aircraft_count,
+        "view_equivalents": full_view_equivalents,
+        "view_compute_ratio_vs_full_d4": full_view_equivalents / (8 * aircraft_count),
+        "per_fold": per_fold,
+    }
+    return probabilities, audit
+
+
 __all__ = [
     "AIRCRAFT_CLASS_IDS",
     "R11_CONTRACT_VERSION",
     "aircraft_conditional_probabilities",
+    "adaptive_d4_probabilities",
     "audit_aircraft_training_rows",
     "build_aircraft_variants",
     "condition_probabilities",

@@ -32,6 +32,8 @@
   六条件正式结果；CE proposal-domain adaptation + D4 为最强条件，停止现有同视图 KD，并放行类中心与困难对象 D4 成本压缩；
 - [`R1_AIRCRAFT_CLASS_CENTER_PLAN_20260814.md`](R1_AIRCRAFT_CLASS_CENTER_PLAN_20260814.md)：
   以 CE identity 为公平参考的训练期类中心角度约束单因素实验；部署模型结构不变；
+- [`R1_ADAPTIVE_D4_RESULT_20260814.md`](R1_ADAPTIVE_D4_RESULT_20260814.md)：
+  单视图置信度门控只用 38.3% 的 D4 视图计算，但无法保留 full D4 的正式收益；停止继续搜门控阈值；
 - [`N0_FP_BG_VISUAL_REVIEW_PACKAGE_20260814.md`](N0_FP_BG_VISUAL_REVIEW_PACKAGE_20260814.md)：
   324 条 FP_BG 的盲化三视图审阅包；在人工白名单形成前背景拒识继续禁用；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
