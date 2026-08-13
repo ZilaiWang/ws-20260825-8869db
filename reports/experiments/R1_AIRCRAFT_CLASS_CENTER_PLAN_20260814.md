@@ -37,7 +37,7 @@ L=L_{CE}+\lambda\frac{e}{E}
 
 - `loss_weight=0.10`；
 - `momentum=0.90`；
-- `margin=0.10`；
+- `margin=0.90`（使预训练特征中真正靠近边界的样本产生 push 梯度）；
 - `negative_weight=1.0`。
 
 中心只在训练期存在，checkpoint 和部署模型仍是原 ConvNeXt-T 25 类状态字典。

@@ -44,7 +44,7 @@ training:
   class_center:
     loss_weight: 0.10
     momentum: 0.90
-    margin: 0.10
+    margin: 0.90
     negative_weight: 1.0
   augmentation: uniform_random_D4
   sampling: natural
