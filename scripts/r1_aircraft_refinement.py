@@ -154,6 +154,94 @@ class _InferenceDataset:
         return torch.stack(views, dim=0), record.proposal_uid
 
 
+def _convnext_features_and_logits(model: Any, images: Any) -> tuple[Any, Any]:
+    """Expose ConvNeXt penultimate features without changing its state dict.
+
+    Torchvision ConvNeXt keeps normalization and flattening in ``classifier``.
+    Calling those layers explicitly preserves bitwise-equivalent logits while
+    making the 768-D feature available to a training-only auxiliary loss.
+    """
+
+    if len(model.classifier) != 3:
+        raise ValueError("unexpected torchvision ConvNeXt classifier layout")
+    feature_map = model.features(images)
+    pooled = model.avgpool(feature_map)
+    features = model.classifier[0](pooled)
+    features = model.classifier[1](features)
+    logits = model.classifier[2](features)
+    return features, logits
+
+
+class _ClassCenterMemory:
+    """EMA class prototypes for an ECC-inspired angular margin loss.
+
+    Centers are initialized from the already trained classifier weights and
+    updated from detached training features.  They are never serialized into
+    the deployed model and therefore add no inference parameter or latency.
+    """
+
+    def __init__(
+        self,
+        classifier_weight: Any,
+        *,
+        momentum: float,
+        margin: float,
+        negative_weight: float,
+    ) -> None:
+        import torch.nn.functional as functional
+
+        if not 0.0 <= momentum < 1.0:
+            raise ValueError("class center momentum 必须在 [0, 1) 内")
+        if margin < 0.0 or negative_weight < 0.0:
+            raise ValueError("class center margin/negative_weight 必须非负")
+        self.centers = functional.normalize(classifier_weight.detach().float(), dim=1)
+        self.momentum = momentum
+        self.margin = margin
+        self.negative_weight = negative_weight
+
+    def loss(self, features: Any, labels: Any) -> tuple[Any, dict[str, float]]:
+        import torch
+        import torch.nn.functional as functional
+
+        normalized = functional.normalize(features.float(), dim=1)
+        centers = self.centers.to(device=normalized.device)
+        similarities = normalized @ centers.transpose(0, 1)
+        indices = torch.arange(len(labels), device=labels.device)
+        positive = similarities[indices, labels]
+        negatives = similarities.masked_fill(
+            functional.one_hot(labels, num_classes=centers.shape[0]).bool(),
+            float("-inf"),
+        )
+        hardest_negative = negatives.max(dim=1).values
+        pull = (1.0 - positive).mean()
+        push = functional.relu(self.margin + hardest_negative - positive).mean()
+        total = pull + self.negative_weight * push
+        diagnostics = {
+            "center_pull": float(pull.detach()),
+            "center_push": float(push.detach()),
+            "positive_cosine": float(positive.detach().mean()),
+            "hardest_negative_cosine": float(hardest_negative.detach().mean()),
+        }
+        return total.to(dtype=features.dtype), diagnostics
+
+    def update(self, features: Any, labels: Any) -> None:
+        import torch.nn.functional as functional
+
+        normalized = functional.normalize(features.detach().float(), dim=1)
+        centers = self.centers.to(device=normalized.device)
+        for class_id in labels.unique(sorted=True).tolist():
+            mask = labels.eq(int(class_id))
+            batch_center = functional.normalize(
+                normalized[mask].mean(dim=0, keepdim=True), dim=1
+            ).squeeze(0)
+            centers[int(class_id)] = functional.normalize(
+                self.momentum * centers[int(class_id)]
+                + (1.0 - self.momentum) * batch_center,
+                dim=0,
+            )
+        self.centers = centers.detach()
+
+
 def _load_p03_model(
     checkpoint_path: Path,
     weights_path: Path,
@@ -303,6 +391,18 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
         for parameter in teacher.parameters():
             parameter.requires_grad = False
     student.to(device)
+    center_memory = None
+    if args.method == "class_center":
+        center_config = config["training"]["class_center"]
+        classifier_weight = student.classifier[-1].weight[
+            AIRCRAFT_CLASS_IDS[0] : AIRCRAFT_CLASS_IDS[-1] + 1
+        ]
+        center_memory = _ClassCenterMemory(
+            classifier_weight,
+            momentum=float(center_config["momentum"]),
+            margin=float(center_config["margin"]),
+            negative_weight=float(center_config["negative_weight"]),
+        )
     dataset = _TrainDataset(train_rows, args.data_root.expanduser())
     generator = torch.Generator().manual_seed(int(config["training"]["seed"]) + args.fold)
     loader = torch.utils.data.DataLoader(
@@ -343,13 +443,30 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
         torch.cuda.reset_peak_memory_stats(device)
     for epoch in range(1, epochs + 1):
         student.train()
-        totals = {"samples": 0, "loss": 0.0, "ce": 0.0, "kd": 0.0, "correct": 0, "anchor": 0}
+        totals = {
+            "samples": 0,
+            "loss": 0.0,
+            "ce": 0.0,
+            "kd": 0.0,
+            "center": 0.0,
+            "center_pull": 0.0,
+            "center_push": 0.0,
+            "positive_cosine": 0.0,
+            "hardest_negative_cosine": 0.0,
+            "correct": 0,
+            "anchor": 0,
+        }
         for images, labels, _ in loader:
             images = images.to(device, non_blocking=True)
             labels20 = labels.to(device, non_blocking=True) - AIRCRAFT_CLASS_IDS[0]
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=device.type == "cuda"):
-                logits20 = student(images)[:, AIRCRAFT_CLASS_IDS[0] : AIRCRAFT_CLASS_IDS[-1] + 1]
+                if center_memory is None:
+                    features = None
+                    logits = student(images)
+                else:
+                    features, logits = _convnext_features_and_logits(student, images)
+                logits20 = logits[:, AIRCRAFT_CLASS_IDS[0] : AIRCRAFT_CLASS_IDS[-1] + 1]
                 ce = functional.cross_entropy(
                     logits20,
                     labels20,
@@ -371,18 +488,37 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
                             reduction="none",
                         ).sum(dim=1)
                         kd = per_sample[anchor_mask].mean() * (temperature**2)
-                loss = ce + kd_weight * kd
+                center = logits20.new_zeros(())
+                center_diagnostics = {
+                    "center_pull": 0.0,
+                    "center_push": 0.0,
+                    "positive_cosine": 0.0,
+                    "hardest_negative_cosine": 0.0,
+                }
+                center_weight = 0.0
+                if center_memory is not None:
+                    if features is None:
+                        raise RuntimeError("class center features 未生成")
+                    center, center_diagnostics = center_memory.loss(features, labels20)
+                    ramp = epoch / max(epochs, 1)
+                    center_weight = float(training["class_center"]["loss_weight"]) * ramp
+                loss = ce + kd_weight * kd + center_weight * center
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(student.parameters(), float(training["grad_clip_norm"]))
             scaler.step(optimizer)
             scaler.update()
+            if center_memory is not None:
+                center_memory.update(features, labels20)
             scheduler.step()
             count = int(labels20.numel())
             totals["samples"] += count
             totals["loss"] += float(loss.detach()) * count
             totals["ce"] += float(ce.detach()) * count
             totals["kd"] += float(kd.detach()) * count
+            totals["center"] += float(center.detach()) * count
+            for key, value in center_diagnostics.items():
+                totals[key] += value * count
             totals["correct"] += int(logits20.argmax(dim=1).eq(labels20).sum())
             totals["anchor"] += anchor_count
         row = {
@@ -390,6 +526,12 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             "train_loss": totals["loss"] / totals["samples"],
             "train_ce": totals["ce"] / totals["samples"],
             "train_kd": totals["kd"] / totals["samples"],
+            "train_center": totals["center"] / totals["samples"],
+            "center_pull": totals["center_pull"] / totals["samples"],
+            "center_push": totals["center_push"] / totals["samples"],
+            "positive_cosine": totals["positive_cosine"] / totals["samples"],
+            "hardest_negative_cosine": totals["hardest_negative_cosine"]
+            / totals["samples"],
             "train_accuracy": totals["correct"] / totals["samples"],
             "teacher_correct_anchor_fraction": totals["anchor"] / totals["samples"],
             "backbone_lr": optimizer.param_groups[0]["lr"],
@@ -410,6 +552,11 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
         "heldout_rows_loaded_or_evaluated": False,
         "checkpoint_selection": "fixed_epoch_last_no_heldout_evaluation",
         "augmentation": "uniform_random_D4",
+        "training_only_class_center": (
+            dict(config["training"]["class_center"])
+            if args.method == "class_center"
+            else None
+        ),
         "aircraft_class_ids": list(AIRCRAFT_CLASS_IDS),
     }
     checkpoint_path = destination / "final_checkpoint.pt"
@@ -566,6 +713,19 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
         "selective_anchor_kd_identity": (args.kd_bundle_dir, "identity"),
         "selective_anchor_kd_d4": (args.kd_bundle_dir, "d4"),
     }
+    if args.center_bundle_dir is not None:
+        conditions.update(
+            {
+                "class_center_identity": (args.center_bundle_dir, "identity"),
+                "class_center_d4": (args.center_bundle_dir, "d4"),
+            }
+        )
+    requested_conditions = config.get("conditions", {}).get("evaluate")
+    if requested_conditions is not None:
+        unknown = set(requested_conditions) - set(conditions)
+        if unknown:
+            raise ValueError(f"未知 evaluation conditions: {sorted(unknown)}")
+        conditions = {name: conditions[name] for name in requested_conditions}
     project = load_config(config["project_config"])
     protocol = parse_evaluation_protocol(project)
     y1_path = args.y1_calibration_result
@@ -609,8 +769,12 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
         expected_images=int(config["inputs"]["expected_images"]),
         expected_annotations=int(config["inputs"]["expected_annotations"]),
     )
-    baseline_name = "p03_identity"
-    primary_name = "selective_anchor_kd_d4"
+    baseline_name = str(config["conditions"]["reference"])
+    primary_name = str(config["conditions"]["primary"])
+    if baseline_name not in results or primary_name not in results:
+        raise ValueError(
+            f"reference/primary condition 未执行: {baseline_name}, {primary_name}"
+        )
     baseline_metrics = results[baseline_name]["merged"]["C2_frozen_after_r1"]
     primary_metrics = results[primary_name]["merged"]["C2_frozen_after_r1"]
     c2_outputs = {
@@ -669,9 +833,9 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
         "maximum_bypass_delta": maximum_bypass_delta,
         "paired_transition_primary_vs_reference": transition,
         "next_action": (
-            "retain_selective_anchor_kd_d4_for_final_system_confirmation"
+            f"retain_{primary_name}_for_final_system_confirmation"
             if primary_pass
-            else "retain_best_zero_training_aircraft_condition_and_stop_proposal_finetune"
+            else "retain_reference_and_stop_current_refinement_method"
         ),
     }
     _json(destination / "condition_summary.json", summary_conditions)
@@ -693,7 +857,9 @@ def parser() -> argparse.ArgumentParser:
     train.add_argument("--weights", type=Path, required=True)
     train.add_argument("--p03-checkpoint", type=Path, required=True)
     train.add_argument("--fold", type=int, choices=(0, 1, 2), required=True)
-    train.add_argument("--method", choices=("ce", "selective_anchor_kd"), required=True)
+    train.add_argument(
+        "--method", choices=("ce", "selective_anchor_kd", "class_center"), required=True
+    )
     train.add_argument("--output-dir", type=Path, required=True)
     train.add_argument("--device", default="cuda")
     train.add_argument("--batch-size", type=int)
@@ -705,7 +871,11 @@ def parser() -> argparse.ArgumentParser:
     infer.add_argument("--weights", type=Path, required=True)
     infer.add_argument("--checkpoint", type=Path, required=True)
     infer.add_argument("--fold", type=int, choices=(0, 1, 2), required=True)
-    infer.add_argument("--method", choices=("p03", "ce", "selective_anchor_kd"), required=True)
+    infer.add_argument(
+        "--method",
+        choices=("p03", "ce", "selective_anchor_kd", "class_center"),
+        required=True,
+    )
     infer.add_argument("--output-dir", type=Path, required=True)
     infer.add_argument("--device", default="cuda")
     infer.add_argument("--batch-size", type=int)
@@ -717,6 +887,7 @@ def parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--p03-bundle-dir", type=Path, required=True)
     evaluate.add_argument("--ce-bundle-dir", type=Path, required=True)
     evaluate.add_argument("--kd-bundle-dir", type=Path, required=True)
+    evaluate.add_argument("--center-bundle-dir", type=Path)
     evaluate.add_argument("--aggregate-dir", type=Path, required=True)
     evaluate.add_argument("--formal-crop-manifest", type=Path, required=True)
     evaluate.add_argument("--y1-calibration-result", type=Path, required=True)
