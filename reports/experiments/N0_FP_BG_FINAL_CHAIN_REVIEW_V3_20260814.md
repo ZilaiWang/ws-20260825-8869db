@@ -45,6 +45,12 @@ v3 从冻结的 `CE+D4+C2+aircraft post-NMS@0.50` 预测重新执行守恒
 
 ## 4. 产物索引
 
+- Gitee Release 安全审阅包：
+  `https://gitee.com/zilai-wang/xh-202625/releases/download/v0.2-r1-evidence/N0-FP-BG-AUDIT-R1-6-V3-review-package.tar.gz`
+- Gitee Release SHA256：
+  `https://gitee.com/zilai-wang/xh-202625/releases/download/v0.2-r1-evidence/N0-FP-BG-AUDIT-R1-6-V3-review-package.tar.gz.sha256`
+- 审阅包 SHA256：
+  `57f7056e63e956046d851d026a8c49a93cfbd261d05b6a6b3bf2a993a3b13d4f`
 - 冻结配置：`configs/experiments/n0_fp_bg_review_r1_6_v3.yaml`
 - 最终链证据构建：`scripts/build_final_chain_fp_bg_manifest.py`
 - 分层抽样：`scripts/n0_4_fp_bg_audit.py`
@@ -53,3 +59,5 @@ v3 从冻结的 `CE+D4+C2+aircraft post-NMS@0.50` 预测重新执行守恒
 - 盲审目录：`outputs/N0-FP-BG-AUDIT-R1-6-V3/review-blind/`
 - 待填表：`outputs/N0-FP-BG-AUDIT-R1-6-V3/review-blind/manual_review_decisions.csv`
 
+Release 附件只包含盲化卡片、contact sheets、待填决策表和公开审阅说明，
+不包含 `sealed_card_mapping.csv`、`audit_samples.csv` 或候选身份表。

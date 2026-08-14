@@ -1,6 +1,13 @@
 # N0-4 v3 FP_BG 盲审标注指南
 
-审阅对象为 `outputs/N0-FP-BG-AUDIT-R1-6-V3/review-blind/` 中的 322 张卡。
+安全审阅包下载地址：
+
+`https://gitee.com/zilai-wang/xh-202625/releases/download/v0.2-r1-evidence/N0-FP-BG-AUDIT-R1-6-V3-review-package.tar.gz`
+
+SHA256：
+`57f7056e63e956046d851d026a8c49a93cfbd261d05b6a6b3bf2a993a3b13d4f`
+
+解压后审阅 `review-blind/` 中的 322 张卡。
 红框是待审预测，绿框是数据中已知 GT。每张卡从左到右为全图、4 倍
 上下文和 1.35 倍紧裁剪。
 
