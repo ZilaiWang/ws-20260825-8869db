@@ -4,6 +4,9 @@
 
 `waiting_for_manual_review`。自动背景准入仍为 `false`。
 
+正式审阅任务：Gitee Issue `IK8V54`
+`https://gitee.com/zilai-wang/xh-202625/issues/IK8V54`
+
 旧包基于 N0 早期候选链，270 个唯一审阅对象中仅 196 个（72.6%）在
 R1-6 输出中仍有坐标级对应。因此旧卡片不用于最终背景白名单。
 
