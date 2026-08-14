@@ -37,10 +37,26 @@
 - [`R1_AIRCRAFT_STRUCTURED_ATTRIBUTE_PLAN_20260814.md`](R1_AIRCRAFT_STRUCTURED_ATTRIBUTE_PLAN_20260814.md)：
   以五个俯视可见物理属性辅助 proposal-domain 微调；属性头仅用于训练，单因素比较
   CE identity，并额外检查能否与 full D4 叠加；
+- [`R1_AIRCRAFT_STRUCTURED_ATTRIBUTE_RESULT_20260814.md`](R1_AIRCRAFT_STRUCTURED_ATTRIBUTE_RESULT_20260814.md)：
+  属性头仅造成极小预测置换且损害飞机 macro Recall；停止类别派生属性辅助监督，转向
+  同对象离散旋转视图一致性；
+- [`R1_POST_RERANK_NMS_RESULT_20260814.md`](R1_POST_RERANK_NMS_RESULT_20260814.md)：
+  在 CE+D4 飞机对象头和冻结 C2 之后，仅对 20 个飞机细类用官方 IoU=0.50
+  补做确定性同类 NMS；保持 TP/FN 和所有 Recall 完全不变，减少 847 FP，
+  pooled/macro FDR 分别下降 0.03295/0.04518；保留为完整流水线候选；
+- [`R1_AIRCRAFT_VIEW_CONSISTENCY_RESULT_20260814.md`](R1_AIRCRAFT_VIEW_CONSISTENCY_RESULT_20260814.md)：
+  双 D4 视图对称 KL 短微调的三折结果；identity 净增 78 TP，full D4 净增
+  50 TP，但后者增加 32 FP；
+- [`R1_VIEW_CONSISTENCY_COMPOSITE_RESULT_20260814.md`](R1_VIEW_CONSISTENCY_COMPOSITE_RESULT_20260814.md)：
+  consistency+D4+NMS 形成高召回 Pareto 备选，固定 50/50 概率融合失败；
+  主工作点继续保留低 FDR 的 R1-6；
 - [`R1_ADAPTIVE_D4_RESULT_20260814.md`](R1_ADAPTIVE_D4_RESULT_20260814.md)：
   单视图置信度门控只用 38.3% 的 D4 视图计算，但无法保留 full D4 的正式收益；停止继续搜门控阈值；
 - [`N0_FP_BG_VISUAL_REVIEW_PACKAGE_20260814.md`](N0_FP_BG_VISUAL_REVIEW_PACKAGE_20260814.md)：
   324 条 FP_BG 的盲化三视图审阅包；在人工白名单形成前背景拒识继续禁用；
+- [`N0_FP_BG_FINAL_CHAIN_REVIEW_V3_20260814.md`](N0_FP_BG_FINAL_CHAIN_REVIEW_V3_20260814.md)：
+  按 R1-6 最终候选链重建的 322 张盲审卡、修正后的原卡/重复卡一致性门禁
+  与背景白名单编译器；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
   不再作跨成员交付依据；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；

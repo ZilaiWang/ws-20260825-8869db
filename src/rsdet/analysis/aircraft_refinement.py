@@ -17,6 +17,7 @@ import numpy as np
 from rsdet.analysis.proposal_reranking import (
     ProposalRecord,
     RerankVariant,
+    apply_variant,
     load_logits,
 )
 
@@ -132,6 +133,67 @@ def build_aircraft_variants(config: Mapping[str, Any]) -> list[RerankVariant]:
     if len({item.name for item in variants}) != len(variants):
         raise ValueError("R1-1 variant 名称重复")
     return variants
+
+
+def reconstruct_selected_crossfit_predictions(
+    records: Sequence[ProposalRecord],
+    probabilities: Mapping[str, np.ndarray],
+    variants: Sequence[RerankVariant],
+    selected_variant_by_fold: Mapping[int, str],
+    *,
+    image_folds: Mapping[int, int],
+) -> dict[int, list[dict[str, Any]]]:
+    """Rebuild held-out predictions from an already frozen R1 selection.
+
+    This helper deliberately performs no threshold or variant search.  It is
+    used for post-hoc diagnostics after ``run_reranking_crossfit`` has frozen
+    one variant on the two non-held-out folds.  Keeping reconstruction
+    separate prevents a diagnostic report from silently re-tuning on the
+    evaluated fold.
+    """
+
+    normalized_selection = {
+        int(fold): str(name) for fold, name in selected_variant_by_fold.items()
+    }
+    if set(normalized_selection) != {0, 1, 2}:
+        raise ValueError("selected_variant_by_fold 必须恰好覆盖三折")
+    variant_by_name = {variant.name: variant for variant in variants}
+    if len(variant_by_name) != len(variants):
+        raise ValueError("aircraft variant 名称重复")
+    unknown = set(normalized_selection.values()) - set(variant_by_name)
+    if unknown:
+        raise ValueError(f"冻结结果引用未知 variant: {sorted(unknown)}")
+
+    normalized_image_folds = {
+        int(image_id): int(fold) for image_id, fold in image_folds.items()
+    }
+    if not normalized_image_folds or set(normalized_image_folds.values()) != {0, 1, 2}:
+        raise ValueError("image_folds 必须覆盖三折")
+    all_images = tuple(sorted(normalized_image_folds))
+    transformed = {
+        name: apply_variant(
+            records,
+            probabilities,
+            variant_by_name[name],
+            image_ids=all_images,
+        )[0]
+        for name in sorted(set(normalized_selection.values()))
+    }
+    fold_by_image: dict[int, int] = {}
+    for record in records:
+        previous = fold_by_image.setdefault(int(record.image_id), int(record.fold))
+        if previous != int(record.fold):
+            raise ValueError(f"image_id={record.image_id} 跨 fold")
+    for image_id, fold in fold_by_image.items():
+        if normalized_image_folds.get(image_id) != fold:
+            raise ValueError(f"image_id={image_id} proposal/image ledger fold 不一致")
+
+    output: dict[int, list[dict[str, Any]]] = {}
+    for image_id in all_images:
+        fold = normalized_image_folds[image_id]
+        name = normalized_selection[fold]
+        output[image_id] = list(transformed[name].get(image_id, ()))
+    return output
 
 
 def aircraft_conditional_probabilities(
@@ -282,4 +344,5 @@ __all__ = [
     "condition_probabilities",
     "load_aircraft_bundle",
     "load_aircraft_training_rows",
+    "reconstruct_selected_crossfit_predictions",
 ]

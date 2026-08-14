@@ -126,17 +126,42 @@ class _ImageCache:
 
 
 class _TrainDataset:
-    def __init__(self, rows: Sequence[Mapping[str, str]], data_root: Path) -> None:
+    def __init__(
+        self,
+        rows: Sequence[Mapping[str, str]],
+        data_root: Path,
+        *,
+        paired_d4_views: bool = False,
+    ) -> None:
         self.rows = tuple(rows)
         self.cache = _ImageCache(data_root)
+        self.paired_d4_views = paired_d4_views
 
     def __len__(self) -> int:
         return len(self.rows)
 
     def __getitem__(self, index: int) -> tuple[Any, int, str]:
+        import torch
+
         row = self.rows[index]
         source = self.cache.get(row["source_relative_path"])
         crop = render_crop(source, _parse_xyxy(row["crop_xyxy"]), 224)
+        if self.paired_d4_views:
+            # Draw two distinct elements of the exact D4 view set.  Both views
+            # are rendered from the same canonical crop, so interpolation is
+            # never chained and the pair remains label preserving.
+            view_a, view_b = random.sample(tuple(D4_VIEW_IDS), k=2)
+            return (
+                torch.stack(
+                    [
+                        _normalize(apply_d4_view(crop, view_a)),
+                        _normalize(apply_d4_view(crop, view_b)),
+                    ],
+                    dim=0,
+                ),
+                int(row["class_id"]),
+                row["proposal_uid"],
+            )
         crop = apply_d4_view(crop, random.choice(D4_VIEW_IDS))
         return _normalize(crop), int(row["class_id"]), row["proposal_uid"]
 
@@ -258,6 +283,24 @@ def _build_attribute_heads(torch: Any, taxonomy: Mapping[str, Any], feature_dim:
             for dimension, specification in taxonomy["dimensions"].items()
         }
     )
+
+
+def _symmetric_view_consistency(logits_a: Any, logits_b: Any, *, temperature: float) -> Any:
+    """Symmetric KL on categorical predictions for two label-preserving views."""
+
+    import torch.nn.functional as functional
+
+    if logits_a.shape != logits_b.shape or logits_a.ndim != 2:
+        raise ValueError("paired D4 logits shape 非法")
+    if temperature <= 0.0:
+        raise ValueError("view consistency temperature 必须为正数")
+    log_a = functional.log_softmax(logits_a / temperature, dim=1)
+    log_b = functional.log_softmax(logits_b / temperature, dim=1)
+    prob_a = log_a.exp()
+    prob_b = log_b.exp()
+    kl_ab = functional.kl_div(log_a, prob_b, reduction="batchmean")
+    kl_ba = functional.kl_div(log_b, prob_a, reduction="batchmean")
+    return 0.5 * (kl_ab + kl_ba) * (temperature**2)
 
 
 def _load_p03_model(
@@ -451,7 +494,12 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             dimension: torch.tensor(values, dtype=torch.long, device=device)
             for dimension, values in attribute_target_table(attribute_taxonomy).items()
         }
-    dataset = _TrainDataset(train_rows, args.data_root.expanduser())
+    paired_d4_views = args.method == "view_consistency"
+    dataset = _TrainDataset(
+        train_rows,
+        args.data_root.expanduser(),
+        paired_d4_views=paired_d4_views,
+    )
     generator = torch.Generator().manual_seed(int(config["training"]["seed"]) + args.fold)
     loader = torch.utils.data.DataLoader(
         dataset,
@@ -506,6 +554,7 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             "hardest_negative_cosine": 0.0,
             "correct": 0,
             "anchor": 0,
+            "view_consistency": 0.0,
         }
         if attribute_heads is not None:
             for dimension in attribute_heads:
@@ -516,6 +565,14 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             labels20 = labels.to(device, non_blocking=True) - AIRCRAFT_CLASS_IDS[0]
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=device.type == "cuda"):
+                paired_logits20 = None
+                if paired_d4_views:
+                    if images.ndim != 5 or images.shape[1] != 2:
+                        raise RuntimeError("view consistency batch 必须为 Bx2xCxHxW")
+                    batch_size = images.shape[0]
+                    images = images.reshape(
+                        batch_size * 2, *images.shape[2:]
+                    )
                 needs_features = center_memory is not None or attribute_heads is not None
                 if not needs_features:
                     features = None
@@ -523,11 +580,28 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
                 else:
                     features, logits = _convnext_features_and_logits(student, images)
                 logits20 = logits[:, AIRCRAFT_CLASS_IDS[0] : AIRCRAFT_CLASS_IDS[-1] + 1]
-                ce = functional.cross_entropy(
-                    logits20,
-                    labels20,
-                    label_smoothing=label_smoothing,
-                )
+                if paired_d4_views:
+                    paired_logits20 = logits20.reshape(len(labels20), 2, -1)
+                    ce = functional.cross_entropy(
+                        logits20,
+                        labels20.repeat_interleave(2),
+                        label_smoothing=label_smoothing,
+                    )
+                    consistency_config = training["view_consistency"]
+                    view_consistency = _symmetric_view_consistency(
+                        paired_logits20[:, 0, :],
+                        paired_logits20[:, 1, :],
+                        temperature=float(consistency_config["temperature"]),
+                    )
+                    prediction_logits20 = paired_logits20.mean(dim=1)
+                else:
+                    ce = functional.cross_entropy(
+                        logits20,
+                        labels20,
+                        label_smoothing=label_smoothing,
+                    )
+                    view_consistency = logits20.new_zeros(())
+                    prediction_logits20 = logits20
                 kd = logits20.new_zeros(())
                 anchor_count = 0
                 if teacher is not None:
@@ -590,6 +664,12 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
                     + kd_weight * kd
                     + center_weight * center
                     + attribute_weight * attribute
+                    + (
+                        float(training["view_consistency"]["loss_weight"])
+                        * view_consistency
+                        if paired_d4_views
+                        else 0.0
+                    )
                 )
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
@@ -610,12 +690,15 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             totals["ce"] += float(ce.detach()) * count
             totals["kd"] += float(kd.detach()) * count
             totals["center"] += float(center.detach()) * count
+            totals["view_consistency"] += float(view_consistency.detach()) * count
             for key, value in center_diagnostics.items():
                 totals[key] += value * count
             for dimension, (dimension_loss, dimension_correct) in attribute_diagnostics.items():
                 totals[f"attribute_{dimension}_loss"] += dimension_loss * count
                 totals[f"attribute_{dimension}_correct"] += dimension_correct
-            totals["correct"] += int(logits20.argmax(dim=1).eq(labels20).sum())
+            totals["correct"] += int(
+                prediction_logits20.argmax(dim=1).eq(labels20).sum()
+            )
             totals["anchor"] += anchor_count
         row = {
             "epoch": epoch,
@@ -623,6 +706,7 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
             "train_ce": totals["ce"] / totals["samples"],
             "train_kd": totals["kd"] / totals["samples"],
             "train_center": totals["center"] / totals["samples"],
+            "train_view_consistency": totals["view_consistency"] / totals["samples"],
             "center_pull": totals["center_pull"] / totals["samples"],
             "center_push": totals["center_push"] / totals["samples"],
             "positive_cosine": totals["positive_cosine"] / totals["samples"],
@@ -659,7 +743,11 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
         "training_rows": len(train_rows),
         "heldout_rows_loaded_or_evaluated": False,
         "checkpoint_selection": "fixed_epoch_last_no_heldout_evaluation",
-        "augmentation": "uniform_random_D4",
+        "augmentation": (
+            "two_distinct_uniform_random_D4_views"
+            if paired_d4_views
+            else "uniform_random_D4"
+        ),
         "training_only_class_center": (
             dict(config["training"]["class_center"])
             if args.method == "class_center"
@@ -674,6 +762,11 @@ def _train(args: argparse.Namespace, config: dict[str, Any]) -> int:
                 "auxiliary_heads_serialized": False,
             }
             if attribute_taxonomy is not None
+            else None
+        ),
+        "training_only_view_consistency": (
+            dict(config["training"]["view_consistency"])
+            if paired_d4_views
             else None
         ),
         "aircraft_class_ids": list(AIRCRAFT_CLASS_IDS),
@@ -849,6 +942,26 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
                 "structured_attribute_d4": (args.attribute_bundle_dir, "d4"),
             }
         )
+    if args.consistency_bundle_dir is not None:
+        conditions.update(
+            {
+                "view_consistency_identity": (
+                    args.consistency_bundle_dir,
+                    "identity",
+                ),
+                "view_consistency_d4": (args.consistency_bundle_dir, "d4"),
+            }
+        )
+    if args.ensemble_bundle_dir is not None:
+        conditions.update(
+            {
+                "equal_ensemble_identity": (
+                    args.ensemble_bundle_dir,
+                    "identity",
+                ),
+                "equal_ensemble_d4": (args.ensemble_bundle_dir, "d4"),
+            }
+        )
     requested_conditions = config.get("conditions", {}).get("evaluate")
     if requested_conditions is not None:
         unknown = set(requested_conditions) - set(conditions)
@@ -938,6 +1051,9 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
         and aircraft_delta["macro_recall"] >= -float(gates["aircraft_macro_recall_tolerance"])
         and aircraft_delta["macro_fdr"] <= float(gates["aircraft_macro_fdr_tolerance"])
         and transition["net_tp"] >= 0
+        and aircraft_delta["macro_recall"]
+        >= float(gates.get("minimum_aircraft_macro_recall_gain", -1.0e9))
+        and transition["net_tp"] >= int(gates.get("minimum_net_tp", 0))
         and maximum_bypass_delta <= 1e-12
     )
     summary_conditions = {
@@ -967,6 +1083,50 @@ def _evaluate(args: argparse.Namespace, config: dict[str, Any]) -> int:
             else "retain_reference_and_stop_current_refinement_method"
         ),
     }
+    secondary_name = config.get("conditions", {}).get("secondary")
+    secondary_reference_name = config.get("conditions", {}).get("secondary_reference")
+    if secondary_name is not None or secondary_reference_name is not None:
+        if secondary_name not in results or secondary_reference_name not in results:
+            raise ValueError("secondary/secondary_reference condition 未执行")
+        secondary_metrics = results[secondary_name]["merged"]["C2_frozen_after_r1"]
+        secondary_reference_metrics = results[secondary_reference_name]["merged"][
+            "C2_frozen_after_r1"
+        ]
+        secondary_transition = paired_transition(
+            gt,
+            c2_outputs[secondary_reference_name],
+            c2_outputs[secondary_name],
+            protocol,
+        )
+        secondary_aircraft_delta = {
+            metric: float(secondary_metrics["per_coarse"]["aircraft"][metric])
+            - float(secondary_reference_metrics["per_coarse"]["aircraft"][metric])
+            for metric in ("macro_recall", "macro_fdr", "pooled_recall", "pooled_fdr")
+        }
+        secondary_pass = bool(
+            secondary_aircraft_delta["macro_recall"]
+            >= -float(gates.get("secondary_aircraft_macro_recall_tolerance", 1.0e9))
+            and secondary_aircraft_delta["macro_fdr"]
+            <= float(gates.get("secondary_aircraft_macro_fdr_tolerance", 1.0e9))
+        )
+        decision.update(
+            {
+                "secondary_condition": secondary_name,
+                "secondary_reference_condition": secondary_reference_name,
+                "secondary_gate_passed": secondary_pass,
+                "delta_secondary_vs_reference": _delta(
+                    secondary_metrics, secondary_reference_metrics
+                ),
+                "secondary_aircraft_delta": secondary_aircraft_delta,
+                "paired_transition_secondary_vs_reference": secondary_transition,
+                "overall_admission_gate_passed": bool(primary_pass and secondary_pass),
+                "next_action": (
+                    f"retain_{primary_name}_for_final_system_confirmation"
+                    if primary_pass and secondary_pass
+                    else "retain_reference_and_stop_current_refinement_method"
+                ),
+            }
+        )
     _json(destination / "condition_summary.json", summary_conditions)
     _json(destination / "decision.json", decision)
     return 0
@@ -988,7 +1148,13 @@ def parser() -> argparse.ArgumentParser:
     train.add_argument("--fold", type=int, choices=(0, 1, 2), required=True)
     train.add_argument(
         "--method",
-        choices=("ce", "selective_anchor_kd", "class_center", "structured_attribute"),
+        choices=(
+            "ce",
+            "selective_anchor_kd",
+            "class_center",
+            "structured_attribute",
+            "view_consistency",
+        ),
         required=True,
     )
     train.add_argument("--output-dir", type=Path, required=True)
@@ -1004,7 +1170,14 @@ def parser() -> argparse.ArgumentParser:
     infer.add_argument("--fold", type=int, choices=(0, 1, 2), required=True)
     infer.add_argument(
         "--method",
-        choices=("p03", "ce", "selective_anchor_kd", "class_center", "structured_attribute"),
+        choices=(
+            "p03",
+            "ce",
+            "selective_anchor_kd",
+            "class_center",
+            "structured_attribute",
+            "view_consistency",
+        ),
         required=True,
     )
     infer.add_argument("--output-dir", type=Path, required=True)
@@ -1020,6 +1193,8 @@ def parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--kd-bundle-dir", type=Path, required=True)
     evaluate.add_argument("--center-bundle-dir", type=Path)
     evaluate.add_argument("--attribute-bundle-dir", type=Path)
+    evaluate.add_argument("--consistency-bundle-dir", type=Path)
+    evaluate.add_argument("--ensemble-bundle-dir", type=Path)
     evaluate.add_argument("--aggregate-dir", type=Path, required=True)
     evaluate.add_argument("--formal-crop-manifest", type=Path, required=True)
     evaluate.add_argument("--y1-calibration-result", type=Path, required=True)

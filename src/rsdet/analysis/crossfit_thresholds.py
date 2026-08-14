@@ -28,11 +28,13 @@ from __future__ import annotations
 
 import json
 import math
+from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping
 
 from rsdet.evaluation.official_metric import (
     OverallMetrics,
+    PerClassMetrics,
     RankingMetrics,
     evaluate_predictions_with_trace,
     evaluate_ranking_metrics,
@@ -290,19 +292,114 @@ def scan_global_threshold(
         (best_threshold, best_metrics, curve)。
         curve 每项: ``{threshold, recall, fdr, tp, fp, fn, gate_passed}``。
     """
+    thresholds: list[float] = []
+    threshold = threshold_start
+    while threshold <= threshold_stop + 1e-12:
+        thresholds.append(threshold)
+        threshold += threshold_step
+    if not thresholds:
+        raise ValueError("全局阈值网格为空")
+
+    floor_predictions = _filter_by_score(predictions, thresholds[0])
+    floor_metrics, trace = evaluate_predictions_with_trace(
+        dict(gt_boxes),
+        floor_predictions,
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+    )
+    matched_prediction_keys = {
+        (item.image_id, item.prediction_index) for item in trace.matches
+    }
+    events: list[tuple[float, str, bool]] = []
+    for image_id, records in floor_predictions.items():
+        for prediction_index, record in enumerate(records):
+            category_id = int(record["category_id"])
+            events.append(
+                (
+                    float(record["score"]),
+                    protocol.category_mapping[category_id],
+                    (image_id, prediction_index) in matched_prediction_keys,
+                )
+            )
+    if len(events) != len(trace.matches) + len(trace.unmatched_predictions):
+        raise RuntimeError("official trace 未覆盖全部 score-prefix 事件")
+    events.sort(key=lambda item: item[0], reverse=True)
+    gt_counts = Counter(
+        protocol.category_mapping[int(record["category_id"])]
+        for records in gt_boxes.values()
+        for record in records
+    )
+    total_gt = sum(gt_counts.values())
+    tp_counts: Counter[str] = Counter()
+    prediction_counts: Counter[str] = Counter()
+    cursor = 0
+    metrics_descending: dict[float, OverallMetrics] = {}
+    for value in reversed(thresholds):
+        while cursor < len(events) and events[cursor][0] >= value:
+            _, class_name, is_true_positive = events[cursor]
+            prediction_counts[class_name] += 1
+            tp_counts[class_name] += int(is_true_positive)
+            cursor += 1
+        per_class = {
+            class_name: PerClassMetrics(
+                tp=tp_counts[class_name],
+                fp=prediction_counts[class_name] - tp_counts[class_name],
+                fn=gt_counts[class_name] - tp_counts[class_name],
+            )
+            for class_name in protocol.class_names
+        }
+        total_tp = sum(item.tp for item in per_class.values())
+        total_fp = sum(item.fp for item in per_class.values())
+        total_fn = total_gt - total_tp
+        metrics_descending[value] = OverallMetrics(
+            recall=total_tp / total_gt if total_gt else 1.0,
+            fdr=total_fp / (total_tp + total_fp) if total_tp + total_fp else 0.0,
+            per_class=per_class,
+            details={
+                "tp": total_tp,
+                "fp": total_fp,
+                "fn": total_fn,
+                "total_gt": total_gt,
+                "total_pred": total_tp + total_fp,
+                "matching_policy": "same_fine_category_id",
+                "aggregation_policy": "fine_match_then_coarse_and_overall",
+                "iou_thresholds": dict(protocol.iou_thresholds),
+                "empty_gt_recall_policy": 1.0,
+                "empty_prediction_fdr_policy": 0.0,
+            },
+        )
+
+    # Prefix semantics are exact, but keep direct official evaluations at
+    # low/middle/high thresholds as a permanent implementation gate.
+    parity_indices = {0, len(thresholds) // 2, len(thresholds) - 1}
+    for index in sorted(parity_indices):
+        value = thresholds[index]
+        direct = evaluate_workpoint(
+            gt_boxes,
+            predictions,
+            threshold=value,
+            protocol=protocol,
+        )
+        derived = metrics_descending[value]
+        if (
+            direct.details["tp"] != derived.details["tp"]
+            or direct.details["fp"] != derived.details["fp"]
+            or direct.details["fn"] != derived.details["fn"]
+            or not math.isclose(direct.recall, derived.recall, abs_tol=1e-15)
+            or not math.isclose(direct.fdr, derived.fdr, abs_tol=1e-15)
+        ):
+            raise RuntimeError(f"score-prefix 阈值曲线与官方匹配不一致: {value}")
+    if floor_metrics.details["tp"] != metrics_descending[thresholds[0]].details["tp"]:
+        raise RuntimeError("candidate-floor score-prefix parity 失败")
+
     curve: list[dict[str, Any]] = []
     best_threshold = threshold_start
     best_metrics: OverallMetrics | None = None
     best_recall = -math.inf
 
-    threshold = threshold_start
-    while threshold <= threshold_stop + 1e-12:
-        metrics = evaluate_workpoint(
-            gt_boxes,
-            predictions,
-            threshold=threshold,
-            protocol=protocol,
-        )
+    for threshold in thresholds:
+        metrics = metrics_descending[threshold]
         gate_passed = metrics.recall >= internal_recall_min and metrics.fdr <= internal_fdr_max
         curve.append(
             {
@@ -330,8 +427,6 @@ def scan_global_threshold(
             best_threshold = threshold
             best_metrics = metrics
             best_recall = metrics.recall
-        threshold += threshold_step
-
     assert best_metrics is not None
     return best_threshold, best_metrics, curve
 

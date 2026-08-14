@@ -169,6 +169,44 @@ class TestScanGlobalThreshold:
         assert metrics.recall == 0.0
         assert threshold == 0.01  # 保持所有预测，Recall 已为 0
 
+    def test_score_prefix_curve_matches_direct_official_evaluation(self):
+        gt = {
+            1: [_gt(1, 4, [0, 0, 10, 10]), _gt(1, 24, [20, 20, 30, 30])],
+            2: [_gt(2, 0, [0, 0, 10, 10])],
+        }
+        preds = {
+            1: [
+                _pred(1, 4, 0.95, [0, 0, 10, 10]),
+                _pred(1, 4, 0.75, [0, 0, 10, 10]),  # duplicate FP
+                _pred(1, 24, 0.55, [20, 20, 30, 30]),
+                _pred(1, 24, 0.15, [40, 40, 50, 50]),
+            ],
+            2: [
+                _pred(2, 4, 0.85, [0, 0, 10, 10]),  # wrong fine/coarse
+                _pred(2, 0, 0.35, [0, 0, 10, 10]),
+            ],
+        }
+        _, _, curve = scan_global_threshold(
+            gt,
+            preds,
+            protocol=PROTOCOL,
+            threshold_start=0.05,
+            threshold_stop=0.95,
+            threshold_step=0.10,
+        )
+        for row in curve:
+            direct = evaluate_workpoint(
+                gt,
+                preds,
+                threshold=float(row["threshold"]),
+                protocol=PROTOCOL,
+            )
+            assert row["tp"] == direct.details["tp"]
+            assert row["fp"] == direct.details["fp"]
+            assert row["fn"] == direct.details["fn"]
+            assert row["recall"] == pytest.approx(direct.recall, abs=1e-15)
+            assert row["fdr"] == pytest.approx(direct.fdr, abs=1e-15)
+
 
 class TestEvaluateWorkpoint:
     def test_basic_workpoint(self):

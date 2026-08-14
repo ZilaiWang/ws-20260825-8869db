@@ -1,0 +1,68 @@
+contract_version: r1_post_rerank_nms_v1
+experiment_id: R1-7-VIEW-CONSISTENCY-POST-NMS
+project_config: configs/project.yaml
+
+inputs:
+  base_experiment_config: configs/experiments/r1_aircraft_refinement_v1.yaml
+  condition_result: outputs/R1-5-AIRCRAFT-VIEW-CONSISTENCY/evaluation/view_consistency_d4_result.json
+  condition_result_sha256: 7c85970daf8b6ccf1b58993ae7299d4d3b6185901675542b57195702c8b355c5
+  condition_name: view_consistency_d4
+  view: d4
+  inference_manifest: outputs/R1-0-P03-TEACHER-M1-OOF/prepare/proposal_inference_manifest.csv
+  inference_manifest_sha256: 48747c3bba75ec5226e52fff5b488bb92eaa17d9722e377ec393a9cadeafdab0
+  base_logits_dir: outputs/R1-0-P03-TEACHER-M1-OOF/logits
+  bundle_dir: outputs/R1-5-AIRCRAFT-VIEW-CONSISTENCY/bundles/view_consistency
+  bundle_sha256:
+    "0": 3575988e848643d9cef0b94aafa8d1492fbff89817a7e39596ebb6d42ed6a2a3
+    "1": 6860e70f9791aa2a56c5f611de15480856fbeb7a382a9a00bb05b7fe121491b9
+    "2": 6ea6d90b0fac2813bb3623975a64158d4736526e98c65f8bbcf939e3edacb345
+  aggregate_dir: outputs/M1-CV3-OOF-return-no-checkpoints-extracted-20260725/M1-CV3-OOF-aggregate
+  aggregate_sha256:
+    oof_metadata.json: 53b35f2cff801ce23d9bd211ead9a0ef896e3a01f974b5da060fd2a4ac4bf4c6
+    oof_images.csv: fc2aa7ca947f71d841700b656ece5e90f3112746e0c3f592a78a231d958a750c
+    oof_proposals.csv: abc93445693d05ba5454388900c634a63f52e58bdf56713e56e36f9ce249d2e0
+    predictions_oof_low.json: 5b1cb0581a3951056ccd831eafddbb2c824939078ce2216b02c993558a3fe934
+  formal_crop_manifest: outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  y1_calibration_result: outputs/Y1-CROSSFIT-CALIBRATION-V1/calibration_result.json
+  y1_calibration_result_sha256: 8b9e7a8618b77d167a40bdc2eaf01a9463e9cf8489fdfca7aed1b0059b7b3c12
+  expected_images: 4481
+  expected_annotations: 20933
+
+postprocess:
+  scope: per_image_same_aircraft_fine_category_after_object_reranking_and_frozen_C2
+  target_category_ids: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+  algorithm: deterministic_greedy_nms
+  suppress_when: iou_strictly_greater_than_threshold
+  fixed_deployment_iou_threshold: 0.5
+  fixed_threshold_rationale: official_aircraft_matching_iou
+  iou_thresholds: [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
+  selection: fixed_official_threshold_with_outer_crossfit_sensitivity_audit
+  selection_objective: min_macro_fdr_subject_to_bounded_pooled_recall_drop
+  maximum_selection_pooled_recall_drop: 0.001
+  tie_break: lower_macro_fdr_then_higher_pooled_recall_then_higher_iou_threshold
+
+decision_gates:
+  official_recall_min: 0.85
+  official_fdr_max: 0.20
+  maximum_pooled_recall_drop: 0.001
+  maximum_macro_recall_drop: 0.0015
+  minimum_pooled_fdr_reduction: 0.01
+  minimum_macro_fdr_reduction: 0.01
+  minimum_fp_dup_reduction_fraction: 0.50
+  require_exact_ship_vehicle_parity: true
+  require_crossfit_confirmation_of_fixed_threshold: true
+
+scientific_scope:
+  level: iterative_oof_development
+  formal_admission_before_run: false
+  primary_hypothesis: >-
+    Apply the already admitted aircraft-only post-rerank NMS mechanism to the
+    independent view-consistency classifier candidate.  This paired composite
+    test decides whether its extra true positives survive after duplicate
+    suppression and whether the extra false positives are removed.
+  exclusions:
+    - no retraining or parameter changes after observing R1-5
+    - no NMS threshold retuning; fixed aircraft official IoU 0.50
+    - no cross-category suppression
+    - no claim of independent test-set validation

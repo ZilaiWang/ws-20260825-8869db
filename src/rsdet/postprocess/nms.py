@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 
 def _validated_box(box: Sequence[float], *, name: str) -> tuple[float, float, float, float]:
@@ -92,6 +93,88 @@ def nms(
     return keep
 
 
+def class_aware_nms_predictions(
+    predictions: Mapping[int, Sequence[Mapping[str, Any]]],
+    iou_threshold: float,
+    *,
+    category_ids: Sequence[int] | None = None,
+) -> dict[int, list[dict[str, Any]]]:
+    """Apply deterministic NMS independently per image and fine category.
+
+    This operation is intended for a *post-reranking* stage: an upstream model
+    may have changed ``category_id`` after detector NMS, invalidating the
+    detector's original class-aware suppression result.  Cross-category boxes
+    are deliberately never compared.  When ``category_ids`` is provided,
+    categories outside that allowlist bypass suppression exactly.  Records
+    within a retained image are returned in descending score order, with their
+    original position as the deterministic tie-breaker.
+
+    The function copies output records and never mutates its input.  Empty
+    image lists are retained so callers can preserve an explicit image ledger.
+    """
+
+    try:
+        threshold = float(iou_threshold)
+    except (TypeError, ValueError) as error:
+        raise ValueError("iou_threshold must be numeric") from error
+    if not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+        raise ValueError("iou_threshold must be finite and within [0, 1]")
+    target_categories = (
+        None if category_ids is None else frozenset(int(value) for value in category_ids)
+    )
+
+    output: dict[int, list[dict[str, Any]]] = {}
+    for raw_image_id, raw_records in predictions.items():
+        image_id = int(raw_image_id)
+        records = list(raw_records)
+        groups: dict[int, list[int]] = {}
+        scores: list[float] = []
+        boxes: list[tuple[float, float, float, float]] = []
+        for index, record in enumerate(records):
+            if (
+                "category_id" not in record
+                or "score" not in record
+                or "bbox_xyxy" not in record
+            ):
+                raise ValueError(
+                    f"image_id={image_id} prediction[{index}] missing required field"
+                )
+            try:
+                category_id = int(record["category_id"])
+                score = float(record["score"])
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    f"image_id={image_id} prediction[{index}] category/score invalid"
+                ) from error
+            if not math.isfinite(score):
+                raise ValueError(
+                    f"image_id={image_id} prediction[{index}] score must be finite"
+                )
+            box = _validated_box(
+                record["bbox_xyxy"],
+                name=f"predictions[{image_id}][{index}].bbox_xyxy",
+            )
+            groups.setdefault(category_id, []).append(index)
+            scores.append(score)
+            boxes.append(box)
+
+        kept: list[int] = []
+        for category_id in sorted(groups):
+            indices = groups[category_id]
+            if target_categories is not None and category_id not in target_categories:
+                kept.extend(indices)
+                continue
+            local_keep = nms(
+                [boxes[index] for index in indices],
+                [scores[index] for index in indices],
+                threshold,
+            )
+            kept.extend(indices[local_index] for local_index in local_keep)
+        kept.sort(key=lambda index: (-scores[index], index))
+        output[image_id] = [dict(records[index]) for index in kept]
+    return output
+
+
 def compute_iou(box_a: Sequence[float], box_b: Sequence[float]) -> float:
     """Compute IoU for two valid, positive-area ``xyxy`` boxes."""
     return _iou_validated(
@@ -100,4 +183,4 @@ def compute_iou(box_a: Sequence[float], box_b: Sequence[float]) -> float:
     )
 
 
-__all__ = ["compute_iou", "nms"]
+__all__ = ["class_aware_nms_predictions", "compute_iou", "nms"]

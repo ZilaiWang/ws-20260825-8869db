@@ -15,6 +15,7 @@ from scripts.r1_aircraft_refinement import (  # noqa: E402
     _build_attribute_heads,
     _ClassCenterMemory,
     _convnext_features_and_logits,
+    _symmetric_view_consistency,
 )
 
 
@@ -75,3 +76,23 @@ def test_training_only_attribute_heads_have_expected_shapes() -> None:
     assert outputs["propulsion"].shape == (5, 2)
     sum(value.sum() for value in outputs.values()).backward()
     assert torch.isfinite(features.grad).all()
+
+
+def test_symmetric_view_consistency_is_zero_only_for_matching_distributions() -> None:
+    logits_a = torch.tensor([[4.0, 1.0, -2.0]], requires_grad=True)
+    logits_b = torch.tensor([[1.0, 4.0, -2.0]], requires_grad=True)
+    identical = _symmetric_view_consistency(
+        logits_a,
+        logits_a,
+        temperature=1.0,
+    )
+    different = _symmetric_view_consistency(
+        logits_a,
+        logits_b,
+        temperature=1.0,
+    )
+    assert identical.item() == pytest.approx(0.0, abs=1e-7)
+    assert different.item() > 0.0
+    different.backward()
+    assert torch.isfinite(logits_a.grad).all()
+    assert torch.isfinite(logits_b.grad).all()

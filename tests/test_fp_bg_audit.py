@@ -187,13 +187,13 @@ class TestJsonOutput:
 class TestAuditSummary:
     def test_counts_and_consistency(self):
         rows = [
-            {"label": LABEL_CLEAR_BACKGROUND, "repeat_of": "p1"},
-            {"label": LABEL_CLEAR_BACKGROUND, "repeat_of": "p1"},
-            {"label": LABEL_PLAUSIBLE_UNLABELED, "repeat_of": "p2"},
-            {"label": LABEL_DUPLICATE, "repeat_of": "p2"},
-            {"label": LABEL_INVALID_CROP, "repeat_of": ""},
-            {"label": LABEL_POOR_LOCALIZATION, "repeat_of": ""},
-            {"label": "", "repeat_of": ""},
+            {"proposal_uid": "p1", "label": LABEL_CLEAR_BACKGROUND, "repeat_of": ""},
+            {"proposal_uid": "p1", "label": LABEL_CLEAR_BACKGROUND, "repeat_of": "p1"},
+            {"proposal_uid": "p2", "label": LABEL_PLAUSIBLE_UNLABELED, "repeat_of": ""},
+            {"proposal_uid": "p2", "label": LABEL_DUPLICATE, "repeat_of": "p2"},
+            {"proposal_uid": "p3", "label": LABEL_INVALID_CROP, "repeat_of": ""},
+            {"proposal_uid": "p4", "label": LABEL_POOR_LOCALIZATION, "repeat_of": ""},
+            {"proposal_uid": "p5", "label": "", "repeat_of": ""},
         ]
         result = compute_audit_summary(rows)
         assert result["labeled"] == 6
@@ -201,7 +201,18 @@ class TestAuditSummary:
         assert result["label_counts"][LABEL_CLEAR_BACKGROUND] == 2
         assert result["repeat_pairs_total"] == 2
         assert result["repeat_pairs_consistent"] == 1
+        assert result["repeat_pairs_incomplete"] == 0
         assert result["repeat_consistency_rate"] == 0.5
+
+    def test_repeat_without_primary_label_is_incomplete(self):
+        rows = [
+            {"proposal_uid": "p1", "label": "", "repeat_of": ""},
+            {"proposal_uid": "p1", "label": LABEL_CLEAR_BACKGROUND, "repeat_of": "p1"},
+        ]
+        result = compute_audit_summary(rows)
+        assert result["repeat_pairs_total"] == 1
+        assert result["repeat_pairs_incomplete"] == 1
+        assert result["repeat_consistency_rate"] == 0.0
 
     def test_admissible_labels(self):
         assert LABEL_CLEAR_BACKGROUND in ADMISSIBLE_BACKGROUND_LABELS

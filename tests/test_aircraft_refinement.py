@@ -16,6 +16,7 @@ from rsdet.analysis.aircraft_refinement import (
     build_aircraft_variants,
     load_aircraft_bundle,
     load_aircraft_training_rows,
+    reconstruct_selected_crossfit_predictions,
 )
 from rsdet.analysis.proposal_reranking import ProposalRecord, apply_variant
 
@@ -171,3 +172,31 @@ def test_adaptive_d4_only_expands_low_confidence_aircraft(tmp_path: Path) -> Non
     assert probabilities["p2"].argmax() == 5
     assert audit["d4_proposal_count"] == 2
     assert audit["view_compute_ratio_vs_full_d4"] == pytest.approx(17 / 24)
+
+
+def test_reconstruct_selected_crossfit_uses_only_heldout_fold_choice() -> None:
+    records = [_record(f"p{fold}", 4, fold) for fold in (0, 1, 2)]
+    probabilities = {}
+    for record in records:
+        value = np.zeros(25, dtype=np.float64)
+        value[5] = 1.0
+        probabilities[record.proposal_uid] = value
+    variants = build_aircraft_variants(
+        {
+            "min_top_probabilities": [0.5],
+            "min_margins": [0.1],
+            "fusion_alphas": [0.2],
+            "gated_fusion_alpha": 0.2,
+        }
+    )
+    predictions = reconstruct_selected_crossfit_predictions(
+        records,
+        probabilities,
+        variants,
+        {0: "D0_detector", 1: "A1_hard", 2: "D0_detector"},
+        image_folds={1: 0, 2: 1, 3: 2, 4: 1},
+    )
+    assert predictions[1][0]["category_id"] == 4
+    assert predictions[2][0]["category_id"] == 5
+    assert predictions[3][0]["category_id"] == 4
+    assert predictions[4] == []

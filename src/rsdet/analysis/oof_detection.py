@@ -629,7 +629,7 @@ def build_threshold_curve(
     cursor = 0
     rows_desc: list[dict[str, Any]] = []
     for threshold in sorted(ordered_thresholds, reverse=True):
-        while cursor < len(events) and events[cursor][0] + 1e-15 >= threshold:
+        while cursor < len(events) and events[cursor][0] >= threshold:
             _, class_name, is_tp = events[cursor]
             pred_counts[class_name] += 1
             tp_counts[class_name] += int(is_tp)

@@ -338,17 +338,31 @@ def compute_audit_summary(
     label_counts: Counter[str] = Counter(row["label"] for row in labeled_rows if row.get("label"))
     unlabeled = sum(1 for row in labeled_rows if not row.get("label"))
 
+    # A repeat-control row carries ``repeat_of=<proposal_uid>`` while its
+    # corresponding primary row has an empty ``repeat_of``.  Grouping only
+    # repeat-control rows would make a single control look perfectly
+    # consistent without ever comparing it with the primary review.  Use the
+    # proposal identity for both sides of the pair.
+    repeat_proposals = {
+        str(row.get("repeat_of", "")).strip()
+        for row in labeled_rows
+        if str(row.get("repeat_of", "")).strip()
+    }
     repeat_pairs: dict[str, list[str]] = defaultdict(list)
     for row in labeled_rows:
-        repeat_of = row.get("repeat_of")
-        if repeat_of and row.get("label"):
-            repeat_pairs[repeat_of].append(row["label"])
+        proposal_uid = str(row.get("proposal_uid", "")).strip()
+        if proposal_uid in repeat_proposals and row.get("label"):
+            repeat_pairs[proposal_uid].append(str(row["label"]))
 
     consistent = 0
     total_pairs = 0
-    for labels in repeat_pairs.values():
+    incomplete_repeat_pairs = 0
+    for proposal_uid in sorted(repeat_proposals):
+        labels = repeat_pairs.get(proposal_uid, [])
         total_pairs += 1
-        if len(set(labels)) == 1:
+        if len(labels) < 2:
+            incomplete_repeat_pairs += 1
+        elif len(set(labels)) == 1:
             consistent += 1
 
     return {
@@ -357,5 +371,6 @@ def compute_audit_summary(
         "label_counts": dict(label_counts),
         "repeat_pairs_total": total_pairs,
         "repeat_pairs_consistent": consistent,
+        "repeat_pairs_incomplete": incomplete_repeat_pairs,
         "repeat_consistency_rate": (consistent / total_pairs if total_pairs else None),
     }
