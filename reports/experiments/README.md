@@ -62,6 +62,9 @@
   与背景白名单编译器；
 - [`SERVER_ARTIFACT_REGISTER.csv`](SERVER_ARTIFACT_REGISTER.csv)：历史服务器路径快照，
   不再作跨成员交付依据；
+- [`../members/B/B_STAGE_FINAL_REPORT_v1.md`](../members/B/B_STAGE_FINAL_REPORT_v1.md)：
+  三粗来源族与尺寸分位重排的 cross-fit 固定逐图预算负向消融；不代表逐机场
+  代理组校准结论，规则已停止；
 - [`M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md`](M1_CV3_OOF_FORMAL_RESULT_AND_RECOVERY_AUDIT_v2.md)：正确 YOLO26-s 正式三折 OOF、关机续跑、官方指标、错误分解与后续准入的当前唯一入口；
 - [`M1_CV3_OOF_TRAINING_RETURN_AUDIT_v1.md`](M1_CV3_OOF_TRAINING_RETURN_AUDIT_v1.md)：误用 YOLOv8-s 的首批历史诊断审计，已由 v2 取代；
 - [`docs/hub/30_p_series/README.md`](../../docs/hub/30_p_series/README.md)：P0-1 至 P07 总结。

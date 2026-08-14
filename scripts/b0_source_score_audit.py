@@ -170,9 +170,7 @@ def main() -> int:
             "does_not_select_deployment_threshold": True,
             "does_not_change_predictions": True,
         },
-        "summary_files": {
-            name: f"{name}_summary.json" for name in summaries
-        },
+        "summary_files": {name: f"{name}_summary.json" for name in summaries},
     }
     (output / "b0_metadata.json").write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

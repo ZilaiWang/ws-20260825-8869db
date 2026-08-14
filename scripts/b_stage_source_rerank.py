@@ -131,23 +131,47 @@ def main() -> int:
         for index, item in enumerate(items)
     }
     _, trace = evaluate_predictions_with_trace(
-        formal.boxes, selected, class_names=protocol.class_names,
-        category_mapping=protocol.category_mapping, iou_thresholds=protocol.iou_thresholds)
+        formal.boxes,
+        selected,
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+    )
     labels: dict[tuple[int, int], str] = {}
     for item in trace.matches:
-        labels[(item.image_id, selected_local_index[(item.image_id, id(selected[item.image_id][item.prediction_index]))])] = "TP"
+        labels[
+            (
+                item.image_id,
+                selected_local_index[
+                    (item.image_id, id(selected[item.image_id][item.prediction_index]))
+                ],
+            )
+        ] = "TP"
     for item in trace.unmatched_predictions:
-        labels[(item.image_id, selected_local_index[(item.image_id, id(selected[item.image_id][item.prediction_index]))])] = "FP"
+        labels[
+            (
+                item.image_id,
+                selected_local_index[
+                    (item.image_id, id(selected[item.image_id][item.prediction_index]))
+                ],
+            )
+        ] = "FP"
     _, floor_cases, _ = decompose_official_errors(
-        formal, predictions, threshold=0.001, protocol=protocol,
-        model_key="M1", include_cases=True)
+        formal, predictions, threshold=0.001, protocol=protocol, model_key="M1", include_cases=True
+    )
     floor_error_map: dict[tuple[int, int], str] = {}
     for case in floor_cases:
         if case["case_side"] == "prediction":
-            floor_error_map[(int(case["image_id"]), int(str(case["item_uid"]).rsplit("-p", 1)[1]))] = str(case["reason"])
+            floor_error_map[
+                (int(case["image_id"]), int(str(case["item_uid"]).rsplit("-p", 1)[1]))
+            ] = str(case["reason"])
     _, floor_trace = evaluate_predictions_with_trace(
-        formal.boxes, predictions, class_names=protocol.class_names,
-        category_mapping=protocol.category_mapping, iou_thresholds=protocol.iou_thresholds)
+        formal.boxes,
+        predictions,
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+    )
     floor_tp = {(x.image_id, x.prediction_index) for x in floor_trace.matches}
 
     # The proposal ledger and prediction JSON have identical per-image order.
@@ -163,24 +187,36 @@ def main() -> int:
         label = labels.get((image_id, pred_index), "BELOW_WORKPOINT")
         # Detailed FP attribution is available from the official error CSV; here
         # preserve a conservative label and use exact official matching for rerank.
-        audit.append({
-            "proposal_uid": row["proposal_uid"], "image_id": image_id,
-            "fold": int(image_rows[image_id]["fold"]), "group_id": group,
-            "relative_path": image_rows[image_id].get("relative_path", ""),
-            "source_family": source_family(group), "category_id": int(row["category_id"]),
-            "score": score, "width": width, "height": height,
-            "bbox_xyxy": " ".join(f"{float(row[k]):.10g}" for k in ("x", "y")) + " " + " ".join(
-                f"{float(float(row[k]) + float(row[dim])):.10g}" for k, dim in (("x", "width"), ("y", "height"))
-            ),
-            "short_edge": min(width, height), "size_bin": size_bin(min(width, height)),
-            "score_bin": "<0.051" if score < 0.051 else ">=0.051",
-            "official_label_at_0.051": label,
-            "official_label_at_0.001": (
-                "TP" if (image_id, pred_index) in floor_tp
-                else floor_error_map.get((image_id, pred_index), "UNATTRIBUTED")
-            ),
-            "local_prediction_index": pred_index,
-        })
+        audit.append(
+            {
+                "proposal_uid": row["proposal_uid"],
+                "image_id": image_id,
+                "fold": int(image_rows[image_id]["fold"]),
+                "group_id": group,
+                "relative_path": image_rows[image_id].get("relative_path", ""),
+                "source_family": source_family(group),
+                "category_id": int(row["category_id"]),
+                "score": score,
+                "width": width,
+                "height": height,
+                "bbox_xyxy": " ".join(f"{float(row[k]):.10g}" for k in ("x", "y"))
+                + " "
+                + " ".join(
+                    f"{float(float(row[k]) + float(row[dim])):.10g}"
+                    for k, dim in (("x", "width"), ("y", "height"))
+                ),
+                "short_edge": min(width, height),
+                "size_bin": size_bin(min(width, height)),
+                "score_bin": "<0.051" if score < 0.051 else ">=0.051",
+                "official_label_at_0.051": label,
+                "official_label_at_0.001": (
+                    "TP"
+                    if (image_id, pred_index) in floor_tp
+                    else floor_error_map.get((image_id, pred_index), "UNATTRIBUTED")
+                ),
+                "local_prediction_index": pred_index,
+            }
+        )
     fields = list(audit[0])
     with (out / "candidate_audit.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
@@ -256,13 +292,17 @@ def main() -> int:
                         source_q = bisect_right(source_vals, r["score"]) / max(1, len(source_vals))
                         transformed = source_q
                         if method == "source_size_quantile":
-                            cell_vals = source_size_values.get((r["source_family"], r["size_bin"]), [])
+                            cell_vals = source_size_values.get(
+                                (r["source_family"], r["size_bin"]), []
+                            )
                             if cell_vals:
                                 cell_q = bisect_right(cell_vals, r["score"]) / len(cell_vals)
                                 weight = len(cell_vals) / (len(cell_vals) + 200.0)
                                 transformed = weight * cell_q + (1.0 - weight) * source_q
                     scored_rows.append((float(transformed), r["score"], r["proposal_uid"], r))
-                chosen = sorted(scored_rows, key=lambda x: (-x[0], -x[1], x[2]))[:raw_budget_by_image[image_id]]
+                chosen = sorted(scored_rows, key=lambda x: (-x[0], -x[1], x[2]))[
+                    : raw_budget_by_image[image_id]
+                ]
                 for transformed, _, _, r in chosen:
                     item = predictions[image_id][r["local_prediction_index"]].copy()
                     item["score"] = transformed
@@ -270,21 +310,36 @@ def main() -> int:
             for image_id in (i for i, r in image_rows.items() if int(r["fold"]) == heldout):
                 reranked.setdefault(image_id, [])
             gt = {i: formal.boxes.get(i, []) for i in reranked}
-            metrics = evaluate_predictions(gt, reranked, class_names=protocol.class_names,
-                category_mapping=protocol.category_mapping, iou_thresholds=protocol.iou_thresholds)
-            ranking = evaluate_ranking_metrics(gt, reranked, class_names=protocol.class_names,
-                category_mapping=protocol.category_mapping, iou_thresholds=protocol.iou_thresholds)
-            result_rows.append({"heldout_fold": heldout, "method": method, "candidate_budget": fixed_budget,
-                "recall": metrics.recall, "fdr": metrics.fdr, "tp": metrics.details["tp"],
-                "fp": metrics.details["fp"], "fn": metrics.details["fn"],
-                "official_macro_recall": ranking.overall_recall,
-                "official_macro_fdr": ranking.overall_fdr})
-    with (out / "rerank_fold_metrics.csv").open(
-        "w", encoding="utf-8", newline=""
-    ) as f:
-        writer = csv.DictWriter(
-            f, fieldnames=list(result_rows[0]), lineterminator="\n"
-        )
+            metrics = evaluate_predictions(
+                gt,
+                reranked,
+                class_names=protocol.class_names,
+                category_mapping=protocol.category_mapping,
+                iou_thresholds=protocol.iou_thresholds,
+            )
+            ranking = evaluate_ranking_metrics(
+                gt,
+                reranked,
+                class_names=protocol.class_names,
+                category_mapping=protocol.category_mapping,
+                iou_thresholds=protocol.iou_thresholds,
+            )
+            result_rows.append(
+                {
+                    "heldout_fold": heldout,
+                    "method": method,
+                    "candidate_budget": fixed_budget,
+                    "recall": metrics.recall,
+                    "fdr": metrics.fdr,
+                    "tp": metrics.details["tp"],
+                    "fp": metrics.details["fp"],
+                    "fn": metrics.details["fn"],
+                    "official_macro_recall": ranking.overall_recall,
+                    "official_macro_fdr": ranking.overall_fdr,
+                }
+            )
+    with (out / "rerank_fold_metrics.csv").open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(result_rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(result_rows)
 
@@ -315,29 +370,39 @@ def main() -> int:
         "score_bin",
         "manual_label",
     ]
-    with (out / "fp_bg_review_sample.csv").open(
-        "w", encoding="utf-8", newline=""
-    ) as f:
+    with (out / "fp_bg_review_sample.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=sample_fields, lineterminator="\n")
         writer.writeheader()
         for r in sample:
             writer.writerow(
                 {
-                    **{
-                        key: r.get(key, "")
-                        for key in sample_fields
-                        if key != "manual_label"
-                    },
+                    **{key: r.get(key, "") for key in sample_fields if key != "manual_label"},
                     "manual_label": "",
                 }
             )
-    metadata_out = {"status": "complete_b1_b2_exploratory",
-        "input_sha256": {"formal_crop_manifest": sha256(manifest), "oof_proposals": sha256(aggregate / "oof_proposals.csv")},
-        "counts": {"images": len(image_rows), "proposals": len(audit), "fp_bg_review_sample": len(sample)},
-        "methods": list(methods), "official_workpoint": 0.051,
+    metadata_out = {
+        "status": "complete_b1_b2_exploratory",
+        "input_sha256": {
+            "formal_crop_manifest": sha256(manifest),
+            "oof_proposals": sha256(aggregate / "oof_proposals.csv"),
+        },
+        "counts": {
+            "images": len(image_rows),
+            "proposals": len(audit),
+            "fp_bg_review_sample": len(sample),
+        },
+        "methods": list(methods),
+        "official_workpoint": 0.051,
         "budget_policy": "per-image raw score >= 0.051 candidate count",
-        "scientific_scope": {"cross_fit": True, "fixed_candidate_budget": True, "deployment_final": False}}
-    (out / "b_stage_metadata.json").write_text(json.dumps(metadata_out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        "scientific_scope": {
+            "cross_fit": True,
+            "fixed_candidate_budget": True,
+            "deployment_final": False,
+        },
+    }
+    (out / "b_stage_metadata.json").write_text(
+        json.dumps(metadata_out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"B_STAGE_PASS images={len(image_rows)} proposals={len(audit)} sample={len(sample)}")
     return 0
 

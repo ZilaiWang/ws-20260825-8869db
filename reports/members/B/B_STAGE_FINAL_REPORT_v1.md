@@ -4,11 +4,16 @@
 状态：`complete_negative_ablation`
 结论范围：`exploratory`、`cross_fit`、`fixed_per_image_budget`、`not_deployment_final`
 
-## 1. 最终结论
+## 1. 最终结论与适用范围
 
 B0 来源/尺寸审计与 B1 固定预算重排已经完成。简单来源族分位数在逐图固定预算下只是单调变换，与原始分数完全等价；来源族+尺寸分位数在三个 held-out fold 均显著降低 Recall、提高 FDR。因此该简单规则未通过准入，不进入正式 outer-fold replay，也不作为部署规则。
 
-B2 曾在本地生成 709 条带 proposal 身份和坐标的复核表，但最新主线已经提供更严格的 N0-4 正式盲审包：324 张盲化卡片、密封映射、重复一致性门槛和人工决策表。为避免非盲信息泄漏及重复审阅，本 PR 不提交 709 条旧表，后续人工复核统一使用主线 N0-4 包。
+这里的“来源族”严格指脚本中的三个粗粒度类别：MAR20 飞机、舰船场景和
+车辆场景。60 个 `mar20-airport-proxy-*` 组在本实验中全部折叠为同一个
+`aircraft_source_family`。因此本结论不能外推为“逐机场代理组校准无效”；
+它只否定当前三粗来源族及其尺寸分箱规则。
+
+B2 曾在本地生成 709 条带 proposal 身份和坐标的复核表，但最新主线已经提供更严格的 N0-4 v3 正式盲审包：322 张盲化卡片、密封映射、重复一致性门槛和人工决策表。为避免非盲信息泄漏及重复审阅，本 PR 不提交 709 条旧表，后续人工复核统一使用主线 N0-4 v3 包。
 
 ## 2. 与最新主线的关系
 
@@ -81,6 +86,8 @@ python scripts/b0_source_score_audit.py --root <M1_OOF_ROOT> --output-dir <B0_OU
 python scripts/b_stage_source_rerank.py --root <M1_OOF_ROOT> --output-dir <B1_OUTPUT>
 ```
 
-提交的小型产物位于 `reports/members/B/artifacts/`。完整 `candidate_audit.csv`、原始 OOF、模型权重和压缩包均不提交 Git。
+Git 提交保留脚本和汇总报告。复跑生成的 `candidate_audit.csv`、逐折 JSON、
+原始 OOF、模型权重和压缩包属于可再生产物，不在本 PR 中提交；报告中的冻结
+输入 SHA、三折指标和停止结论构成当前小型审计记录。
 
 最终决策：**simple source/size reranking = stop / not admitted**。
