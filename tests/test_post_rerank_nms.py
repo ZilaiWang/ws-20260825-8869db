@@ -5,7 +5,10 @@ import copy
 import pytest
 
 from rsdet.analysis.post_rerank_nms import select_nms_workpoint
-from rsdet.postprocess.nms import class_aware_nms_predictions
+from rsdet.postprocess.nms import (
+    category_threshold_nms_predictions,
+    class_aware_nms_predictions,
+)
 
 
 def _prediction(
@@ -77,6 +80,40 @@ def test_post_rerank_nms_preserves_categories_outside_allowlist() -> None:
         "ship-b",
         "aircraft-a",
     ]
+
+
+def test_category_threshold_nms_uses_frozen_threshold_per_category() -> None:
+    predictions = {
+        1: [
+            _prediction(2, 0.9, [0, 0, 10, 10], uid="ship-a"),
+            _prediction(2, 0.8, [2, 2, 12, 12], uid="ship-b"),
+            _prediction(24, 0.7, [0, 0, 10, 10], uid="vehicle-a"),
+            _prediction(24, 0.6, [2, 2, 12, 12], uid="vehicle-b"),
+            _prediction(9, 0.5, [0, 0, 10, 10], uid="aircraft-a"),
+            _prediction(9, 0.4, [0, 0, 10, 10], uid="aircraft-b"),
+        ]
+    }
+
+    # IoU is about 0.47: ship threshold 0.50 keeps both, vehicle threshold
+    # 0.35 suppresses the lower-scored duplicate, aircraft bypasses exactly.
+    result = category_threshold_nms_predictions(
+        predictions,
+        {0: 0.5, 1: 0.5, 2: 0.5, 3: 0.5, 24: 0.35},
+    )
+
+    assert [record["uid"] for record in result[1]] == [
+        "ship-a",
+        "ship-b",
+        "vehicle-a",
+        "aircraft-a",
+        "aircraft-b",
+    ]
+
+
+@pytest.mark.parametrize("threshold", [-0.1, 1.1, float("nan"), "bad"])
+def test_category_threshold_nms_rejects_invalid_threshold(threshold: object) -> None:
+    with pytest.raises(ValueError):
+        category_threshold_nms_predictions({}, {24: threshold})
 
 
 @pytest.mark.parametrize("threshold", [-0.1, 1.1, float("nan")])

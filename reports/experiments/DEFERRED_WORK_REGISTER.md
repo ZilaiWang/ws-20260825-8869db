@@ -55,6 +55,7 @@ M1 结果之后的实际执行顺序统一见
 | CLEANDIFT-SOLE | 探索 probe 弱于 DINOv2-B 和 ConvNeXt | 正式 CV3 显示互补增益，只能作为对照/辅助教师 |
 | P06-DIFF-EARLY | 真实错误类型未知 | 通过 P06-REAL 准入后才可恢复 |
 | MULTI-FACTOR-M2 | 同时改模型规模和分辨率无法归因 | M1 正式三折稳定后逐因素立项 |
+| R1-9-SHIP-VEHICLE-NMS | 固定官方 IoU 虽减少 219 FP，却误删 58 TP；舰船 pooled Recall 下降 0.02013 | 只有新的实例唯一性证据，不允许继续搜索 NMS 阈值 |
 
 ## 3. 执行计划
 

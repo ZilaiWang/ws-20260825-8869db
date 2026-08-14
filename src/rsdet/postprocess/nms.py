@@ -131,14 +131,8 @@ def class_aware_nms_predictions(
         scores: list[float] = []
         boxes: list[tuple[float, float, float, float]] = []
         for index, record in enumerate(records):
-            if (
-                "category_id" not in record
-                or "score" not in record
-                or "bbox_xyxy" not in record
-            ):
-                raise ValueError(
-                    f"image_id={image_id} prediction[{index}] missing required field"
-                )
+            if "category_id" not in record or "score" not in record or "bbox_xyxy" not in record:
+                raise ValueError(f"image_id={image_id} prediction[{index}] missing required field")
             try:
                 category_id = int(record["category_id"])
                 score = float(record["score"])
@@ -147,9 +141,7 @@ def class_aware_nms_predictions(
                     f"image_id={image_id} prediction[{index}] category/score invalid"
                 ) from error
             if not math.isfinite(score):
-                raise ValueError(
-                    f"image_id={image_id} prediction[{index}] score must be finite"
-                )
+                raise ValueError(f"image_id={image_id} prediction[{index}] score must be finite")
             box = _validated_box(
                 record["bbox_xyxy"],
                 name=f"predictions[{image_id}][{index}].bbox_xyxy",
@@ -175,6 +167,48 @@ def class_aware_nms_predictions(
     return output
 
 
+def category_threshold_nms_predictions(
+    predictions: Mapping[int, Sequence[Mapping[str, Any]]],
+    category_iou_thresholds: Mapping[int, float],
+) -> dict[int, list[dict[str, Any]]]:
+    """Apply deterministic NMS with a frozen IoU threshold per fine category.
+
+    Categories absent from ``category_iou_thresholds`` bypass suppression.
+    Threshold groups are applied in ascending category order.  Because each
+    category belongs to exactly one group and NMS never compares categories,
+    this is equivalent to a single per-category pass while reusing the audited
+    :func:`class_aware_nms_predictions` implementation.
+    """
+
+    normalized: dict[int, float] = {}
+    for raw_category, raw_threshold in category_iou_thresholds.items():
+        category = int(raw_category)
+        if category in normalized:
+            raise ValueError(f"duplicate category threshold: {category}")
+        try:
+            threshold = float(raw_threshold)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"threshold for category {category} must be numeric") from error
+        if not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+            raise ValueError(f"threshold for category {category} must be finite and within [0, 1]")
+        normalized[category] = threshold
+
+    result = {
+        int(image_id): [dict(record) for record in records]
+        for image_id, records in predictions.items()
+    }
+    by_threshold: dict[float, list[int]] = {}
+    for category, threshold in normalized.items():
+        by_threshold.setdefault(threshold, []).append(category)
+    for threshold in sorted(by_threshold, reverse=True):
+        result = class_aware_nms_predictions(
+            result,
+            threshold,
+            category_ids=sorted(by_threshold[threshold]),
+        )
+    return result
+
+
 def compute_iou(box_a: Sequence[float], box_b: Sequence[float]) -> float:
     """Compute IoU for two valid, positive-area ``xyxy`` boxes."""
     return _iou_validated(
@@ -183,4 +217,9 @@ def compute_iou(box_a: Sequence[float], box_b: Sequence[float]) -> float:
     )
 
 
-__all__ = ["class_aware_nms_predictions", "compute_iou", "nms"]
+__all__ = [
+    "category_threshold_nms_predictions",
+    "class_aware_nms_predictions",
+    "compute_iou",
+    "nms",
+]
