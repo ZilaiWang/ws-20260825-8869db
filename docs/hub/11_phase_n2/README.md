@@ -1,11 +1,15 @@
-# Phase N2：共享对象学生
+# Phase N2：对象学生 → 前景门控
 
-更新日期：2026-08-10
-状态：`v1_superseded_v2_code_ready_replay_optional`
+更新日期：2026-08-14
+状态：`v1_superseded_v2_replay_optional_v3_cfg_code_ready`
 
 > N2 v1 的训练与评估结果已作废，不得进入 leaderboard 或创新消融。
-> 当前权威修复报告为
+> v2 合同修复报告为
 > [`N2_V2_CONTRACT_REPAIR_20260810.md`](../../../reports/experiments/N2_V2_CONTRACT_REPAIR_20260810.md)。
+> 2026-08-14 起，N2 的下一步主实验定为 **N2-CFG（粗类条件式前景门控）**，
+> 见
+> [`N2_CFG_BACKGROUND_GATE_PLAN_20260814.md`](../../../reports/experiments/N2_CFG_BACKGROUND_GATE_PLAN_20260814.md)。
+> 权威路线依据为《改进方案 1》（项目根目录）。
 
 ## 1. v1 作废原因
 
@@ -44,9 +48,22 @@ N2 重启后至少同时满足：
 
 ## 4. 实现
 
+### v2（26 类对象学生，重分类 replay）
+
 - `src/rsdet/analysis/proposal_crops.py`
 - `src/rsdet/analysis/proposal_reclassification.py`
 - `scripts/build_proposal_crop_manifest.py`
 - `scripts/train_object_student.py`
 - `scripts/reclassify_proposals.py`
 - `scripts/evaluate_reclassified.py`
+
+### v3 N2-CFG（粗类条件式前景门控，主实验）
+
+- `src/rsdet/analysis/background_gate.py`
+- `src/rsdet/analysis/background_gate_manifest.py`
+- `src/rsdet/models/background_gate_classifier.py`
+- `scripts/build_bg_gate_manifest.py`
+- `scripts/train_bg_gate.py`
+- `scripts/infer_bg_gate_logits.py`
+- `scripts/evaluate_bg_gate.py`
+- `configs/experiments/n2_cfg_background_gate_v1.yaml`
