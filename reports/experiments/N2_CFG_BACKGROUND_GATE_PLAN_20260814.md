@@ -67,7 +67,26 @@ M1 → Y1-C2 → 飞机 proposal-domain CE → D4 → 飞机同细类 NMS@0.50
 - context_1.25 正方形扩展与 formal `context_1p25` 语义一致；
 - 完整测试套件 603 passed + 5 skipped，无回归。
 
-## 6. 待服务器执行（GPU + N0 CSV）
+## 6. S0 基线结果（2026-08-14 已跑，本机 CPU）
+
+三折 cross-fit，零 TP 损失预算（`recall_budget=0`）下，纯 score 单调校准：
+
+| held-out fold | inner 拟合删除 FP_BG | heldout FP_BG | heldout TP | 删除占比 |
+|---|---:|---:|---:|---:|
+| 0 | 7 | 500 | 6777 | 1.4% |
+| 1 | 11 | 464 | 6756 | 2.4% |
+| 2 | 19 | 575 | 5937 | 3.3% |
+
+pooled：FP_BG 1539、TP 19470，与 R1-6 报告逐项一致。
+
+**结论**：在零 TP 损失约束下，R1-6 的 score 只能删除 1.4%~3.3% 的 FP_BG
+（每折 7~19 个）。即 FP_BG 的 score 分布与 TP 高度重叠，**score 本身无法
+区分背景误报**。这正是一致需要引入图像前景证据（S1/S2）的原因，S0 作为
+下界，门禁要求 S2 在相同 Recall 约束下显著超过 S0（`s2_must_beat_s0`）。
+
+产物：`outputs/N2-CFG-S0-BASELINE/evaluate_S0.json`（未入 git，遵循 outputs 忽略约定）。
+
+## 7. 待服务器执行（GPU + N0 CSV）
 
 1. **等 B 回传 `manual_review_decisions.csv`** → `compile_fp_bg_review.py` 产出
    `clear_background_whitelist.csv`（一致率 ≥0.85 编译门槛；0.90+κ≥0.75 科学门槛）；
@@ -77,7 +96,7 @@ M1 → Y1-C2 → 飞机 proposal-domain CE → D4 → 飞机同细类 NMS@0.50
 5. `evaluate_bg_gate.py` 跑 S0/S1/S2 cross-fit；
 6. 按门禁判定。
 
-## 7. 门禁（《改进方案 1》3.2 / 3.4）
+## 8. 门禁（《改进方案 1》3.2 / 3.4）
 
 - pooled `FP_BG` 减少 ≥10%（≥154），舰船 ≥15%、车辆 ≥10%；
 - Overall Recall 下降 ≤0.2pp，任一粗类 ≤0.5pp；
@@ -87,7 +106,7 @@ M1 → Y1-C2 → 飞机 proposal-domain CE → D4 → 飞机同细类 NMS@0.50
 
 任一停止条件触发即停，不继续搜网络/loss/阈值。
 
-## 8. 回退
+## 9. 回退
 
 feature flag `enable_n2_cfg=false` 时输出与冻结 R1-6 prediction parity 完全
 一致；每个被删候选记录 `proposal_uid / r1_score / fg_score / q / coarse /
