@@ -111,6 +111,29 @@ def _load_ultralytics_model(family: str, weights: str, architecture: str | None 
     raise ValueError(f"不支持的 ultralytics family: {family!r}")
 
 
+def _load_afss_suff_list(suff_json: Path, split_view: Path) -> list[float]:
+    """从充分度表 + split_view 生成按训练集顺序的充分度列表（Y4 采样器输入）。
+
+    ``suff_json`` 为 ``afss_diagnose.py`` 输出（含 ``per_image_suff``），
+    顺序须与 ultralytics dataset 索引一致，即 ``split_view`` 中
+    ``split == "train"`` 的样本顺序（与 ``build_dataset_yaml`` 的 train.txt 一致）。
+    """
+    payload = json.loads(suff_json.read_text(encoding="utf-8"))
+    per_image = payload.get("per_image_suff")
+    if not isinstance(per_image, dict) or not per_image:
+        raise ValueError(f"充分度表缺少 per_image_suff: {suff_json}")
+    view = json.loads(split_view.read_text(encoding="utf-8"))
+    suff_list: list[float] = []
+    for s in view["samples"]:
+        if s.get("split") != "train":
+            continue
+        key = str(s["image_id"])
+        if key not in per_image:
+            raise ValueError(f"充分度表缺少 image_id={key}（须用同一 split 计算充分度）")
+        suff_list.append(float(per_image[key]))
+    return suff_list
+
+
 def _write_resolved_config(config: Mapping[str, Any], output_dir: Path) -> Path:
     resolved = json.loads(json.dumps(config))
     resolved["model"] = dict(resolved["model"])
@@ -163,6 +186,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true", help="只审计配置与数据，不训练")
     parser.add_argument("--resume", type=Path, default=None, help="禁止：正式 OOF 不允许 resume")
+    # 创新训练期模块（材料 19 Y3/Y4/Y5）
+    parser.add_argument(
+        "--innovation",
+        choices=("none", "y3", "y4", "y5"),
+        default="none",
+        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强",
+    )
+    parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
+    parser.add_argument("--suff-json", type=Path, default=None, help="Y4 充分度表(afss_diagnose.py 输出)")
+    parser.add_argument("--easy-floor", type=float, default=0.05, help="Y4 容易图最低回看权重")
+    parser.add_argument("--rotate90-p", type=float, default=1.0, help="Y5 旋转概率")
     return parser.parse_args(argv)
 
 
@@ -188,7 +222,28 @@ def main(argv: list[str] | None = None) -> int:
 
     architecture = config["model"].get("architecture")
     model = _load_ultralytics_model(config["model"]["family"], str(weights), architecture)
-    model.train(**arguments)
+
+    innovation = getattr(args, "innovation", "none")
+    if innovation == "y3":
+        from rsdet.innovation.trainers import hierarchical_trainer
+
+        logger.info("启用 Y3 层次粗类辅助损失 (coarse_gain=%.2f)", args.coarse_gain)
+        model.train(trainer=hierarchical_trainer(coarse_gain=args.coarse_gain), **arguments)
+    elif innovation == "y4":
+        if args.suff_json is None:
+            raise ValueError("Y4 需要 --suff-json（afss_diagnose.py 输出）")
+        from rsdet.innovation.trainers import afss_trainer
+
+        suff_list = _load_afss_suff_list(args.suff_json, split_view)
+        logger.info("启用 Y4 AFSS 采样 (%d 图, easy_floor=%.2f)", len(suff_list), args.easy_floor)
+        model.train(trainer=afss_trainer(suff_list, easy_floor=args.easy_floor), **arguments)
+    elif innovation == "y5":
+        from rsdet.innovation.trainers import rotate90_augmentations
+
+        logger.info("启用 Y5 90° 旋转增强 (p=%.2f)", args.rotate90_p)
+        model.train(augmentations=rotate90_augmentations(p=args.rotate90_p), **arguments)
+    else:
+        model.train(**arguments)
 
     checkpoint = output_dir / "runs" / "foundation" / "weights" / "last.pt"
     if not checkpoint.is_file():

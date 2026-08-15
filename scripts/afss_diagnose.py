@@ -140,6 +140,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "hard_coarse_dist": dict(hard_coarse.most_common()),
         "hard_size_dist": dict(hard_size.most_common()),
         "hard_group_top5": dict(hard_group.most_common(5)),
+        # 每图充分度（image_id -> min(precision, recall)），供 AFSS 采样器对齐使用
+        "per_image_suff": {str(i): float(v) for i, v in sorted(suff.items())},
         "note": "充分度 = 每图 min(precision, recall)；困难图 = 充分度最低 10% 的图。"
                 "若困难图集中在车辆/尾类/特定 source group，则 AFSS 采样器有据可依。",
     }
