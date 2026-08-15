@@ -97,13 +97,16 @@ def _build_train_arguments(config: Mapping[str, Any], dataset_yaml: Path) -> dic
     return arguments
 
 
-def _load_ultralytics_model(family: str, weights: str):
+def _load_ultralytics_model(family: str, weights: str, architecture: str | None = None):
     from ultralytics import RTDETR, YOLO
 
     normalized = family.strip().lower()
     if normalized == "rtdetr":
         return RTDETR(str(weights))
     if normalized == "yolo":
+        if architecture:
+            # 自定义结构（如 yolo26s-p2.yaml）：按结构初始化后加载预训练权重迁移。
+            return YOLO(str(architecture)).load(str(weights))
         return YOLO(str(weights))
     raise ValueError(f"不支持的 ultralytics family: {family!r}")
 
@@ -183,7 +186,8 @@ def main(argv: list[str] | None = None) -> int:
         print("TRAIN_DRY_RUN_PASS")
         return 0
 
-    model = _load_ultralytics_model(config["model"]["family"], str(weights))
+    architecture = config["model"].get("architecture")
+    model = _load_ultralytics_model(config["model"]["family"], str(weights), architecture)
     model.train(**arguments)
 
     checkpoint = output_dir / "runs" / "foundation" / "weights" / "last.pt"
