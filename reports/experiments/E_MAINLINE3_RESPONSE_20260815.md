@@ -72,7 +72,33 @@
 
 说明：投票"细类=真值"13/22 是在 50% 漂移概率下（一半 tile 被强制漂走）的结果，属测试强度上限；真实模型漂移远低于此。跨 tile 归并本身 100% 正确。
 
-## 5. 后续依赖（WP4）
+## 5. WP4 10K 端到端实测（真实 M1 + 3090，工程 smoke）
 
-- 本地已完成 mock 全链路验证；真实 M1 权重 + 3090 服务器实测待权重到位（`/root/autodl-tmp/M1/` 当前不存在，需确认附件位置）。
-- 服务器：RTX 3090 24GB 已就绪（`connect.nmb2`），conda base 3.10.8，`/root/autodl-tmp` 数据盘 49G 可用。
+权重来源：Gitee Release `v0.1-m1-weights`（best.pt，仅工程联调），SHA 校验通过：
+`fold_0/1/2_best.pt` = `4ad6d8c8…` / `8503ad6c…` / `c7d43159…`，`yolo26s.pt` = `646f8bc3…`（与登记一致）。
+
+实测（`scripts/eval_wp4_end2end_10k_3090.py`，服务器 `/root/autodl-tmp/e2e/run_e2e_10k.py` 同源）：
+
+| 项 | 值 |
+|---|---|
+| 图像 | 10,000×10,000 合成图（官方不提供真实 10K，`image_source_type=synthetic`） |
+| 冻结几何 | tile 1280 / overlap 256 / stride 1024 → **恰好 100 tiles** / batch 8 |
+| 模型 | M1 YOLO26s fold_0 best.pt @ RTX 3090，conf=0.001 / iou=0.7 / max_det=500 |
+| 计时 | `perf_counter + torch.cuda.synchronize`，1 warmup + 5 measured |
+| **total_after_read** | **p50 = 1.30s，max = 1.40s，6/6 ≤ 20.0s 硬门禁 ✅** |
+| 拆分 | model-only ≈1.17s / tiling ≈0.13s / fusion ≈0.00s |
+| 峰值显存 | 0.26 GiB |
+| 输出对象 | M1 合成图检出 17 个 → 聚合 17 个 GlobalObject |
+
+存档：`outputs/e_wp3/e2e_result_fold0_3090.json`（含权重 SHA、GPU、逐 run 明细）。
+
+**口径说明（重要）**：
+- 该结论只证明**管道工程可跑通 + 20s 预算充足（13× 余量）**，属"工程 smoke 通过"；
+- 因输入为合成图、权重为工程 best.pt，**不能宣称"官方时延通过"**。官方结论需
+  `real_official` 10K 图（官方未提供）+ 正式 `last.pt` + 独占 GPU，见
+  `docs/server/E_10K_PIPELINE_TASK.md`（当前 `real_official` 注册表为空，本任务不满足条件）；
+- 合成图为纯色块，M1 检出 17 个对象属工程环境下的正常假阳性，不用于精度结论
+  （精度结论以第 1-3 节真实 OOF 数据为准）。
+
+**代码同步**：评审期间 Gitee master 新增 M3 提交 `8d13b2a`（CV3 OOF 训练/推理引擎，纯新增 4 文件），
+已 fast-forward 本地 master 并入分支（`4ff3f6a`），E 测试 58 passed 无回归。
