@@ -85,7 +85,7 @@
 | 冻结几何 | tile 1280 / overlap 256 / stride 1024 → **恰好 100 tiles** / batch 8 |
 | 模型 | M1 YOLO26s fold_0 best.pt @ RTX 3090，conf=0.001 / iou=0.7 / max_det=500 |
 | 计时 | `perf_counter + torch.cuda.synchronize`，1 warmup + 5 measured |
-| **total_after_read** | **p50 = 1.30s，max = 1.40s，6/6 ≤ 20.0s 硬门禁 ✅** |
+| **total_after_read** | **p50 = 1.34s，max = 1.44s，6/6 ≤ 20.0s 硬门禁 ✅** |
 | 拆分 | model-only ≈1.17s / tiling ≈0.13s / fusion ≈0.00s |
 | 峰值显存 | 0.26 GiB |
 | 输出对象 | M1 合成图检出 17 个 → 聚合 17 个 GlobalObject |
