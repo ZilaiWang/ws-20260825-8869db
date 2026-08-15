@@ -100,6 +100,16 @@
 - 合成图为纯色块，M1 检出 17 个对象属工程环境下的正常假阳性，不用于精度结论
   （精度结论以第 1-3 节真实 OOF 数据为准）。
 
+**COCO detection JSON 导出 + 统一校验**：`scripts/eval_wp4_end2end_10k_3090.py`（及服务器同步版
+`/root/autodl-tmp/e2e/run_e2e_10k.py`）新增 `--coco <path>`：跑完聚合后把融合结果经
+`predictions_to_coco_records` 导出标准 COCO detection 顶层列表，并经 `validate_coco_prediction_records`
+按统一校验（`category_id`∈0-24、`score`∈[0,1]、bbox 四元组且不越界）校验通过后才写结果。
+
+- 真实 M1 + 3090 实测：17 个聚合对象 → COCO 导出 17 条 → 统一校验 **passed**（1 图 / 3 细类），
+  存档 `outputs/e_wp3/e2e_result_coco_smoke_3090.json`（`coco_export.detections=17, validation="passed"`）；
+- 对应 E 分工要求"COCO detection JSON 导出"（任务范围）与"输出 JSON 字段、坐标格式、类别 ID 和分数
+  可通过统一校验"（要求）均已落地。
+
 **真实大图就绪**：`scripts/eval_wp4_end2end_10k_3090.py` 已加 `--image-path` / `--image-source-type`
 支持——给定真实大图（PNG/TIF/JPG）时加载真实图并记录 `image_sha256` / `image_width` / `image_height`，
 `image_source_type=real_project_proxy`、`n_gt=None`；无图则退回首选项合成图。该分支已在本地

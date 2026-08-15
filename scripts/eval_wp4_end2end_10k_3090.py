@@ -37,6 +37,10 @@ import rsdet.pipeline.mock_model  # noqa: F401  注册 mock
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 from rsdet.pipeline.m1_wrapper import M1Wrapper
 from rsdet.models.registry import build_model
+from rsdet.predictions import (
+    predictions_to_coco_records,
+    validate_coco_prediction_records,
+)
 from rsdet.tiling.synthetic import generate_synthetic_scene
 
 HARD_GATE_S = 20.0
@@ -64,6 +68,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--runs", type=int, default=5, help="measured runs")
     ap.add_argument("--warmup", type=int, default=1, help="warmup runs（不计入）")
     ap.add_argument("--output", type=str, default="outputs/e_wp3/e2e_result.json")
+    ap.add_argument("--coco", type=str, default="",
+                    help="导出 COCO detection JSON 到该路径并跑统一校验（默认不导出）")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args(argv)
 
@@ -161,6 +167,36 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     walls = sorted(r["wall_after_read_s"] for r in measured)
+
+    # COCO detection JSON 导出 + 统一校验（分工 E 要求：输出字段/坐标格式/类别ID/分数可通过统一校验）
+    coco_summary: dict[str, Any] | None = None
+    if args.coco:
+        # 用最后一次 measured run 的融合结果导出（全局坐标已恢复、重复已去重）
+        records = predictions_to_coco_records(
+            [prediction],
+            allowed_category_ids=range(25),
+        )
+        coco_path = Path(args.coco)
+        coco_path.parent.mkdir(parents=True, exist_ok=True)
+        coco_path.write_text(
+            json.dumps(records, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        check = validate_coco_prediction_records(
+            records,
+            allowed_category_ids=range(25),
+            image_sizes={prediction.image_id: (int(image.shape[1]), int(image.shape[0]))},
+        )
+        coco_summary = {
+            "path": str(coco_path),
+            "detections": check["detections"],
+            "images_with_predictions": check["images_with_predictions"],
+            "categories_with_predictions": check["categories_with_predictions"],
+            "validation": "passed",
+        }
+        print(f"[e2e] COCO 导出+统一校验通过: {coco_path} "
+              f"detections={check['detections']} categories={check['categories_with_predictions']}")
+
     payload = {
         "contract_version": "e_10k_engineering_smoke_v1",
         "engineering_checkpoint_only": True,
@@ -199,6 +235,7 @@ def main(argv: list[str] | None = None) -> int:
             "all_under_20s": all(r["under_20s"] for r in measured),
             "max_peak_vram_gb": round(max(r["peak_vram_gb"] for r in measured), 3),
         },
+        "coco_export": coco_summary,
         "note": (
             "工程 smoke：合成 10K + 工程 best.pt，仅验证管道与耗时预算；"
             "官方时延结论需 real_official 10K + 正式 last.pt + 独占 GPU（见 E_10K_PIPELINE_TASK.md）"
