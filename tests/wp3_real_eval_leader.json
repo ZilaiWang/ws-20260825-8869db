@@ -1,0 +1,31 @@
+{
+  "n_images": 4481,
+  "n_proposals": 55548,
+  "n_objects": 31092,
+  "n_gt": 20933,
+  "n_tp": 18856,
+  "n_fp": 12236,
+  "recall": 0.9007786748196628,
+  "precision": 0.6064582529267979,
+  "fdr": 0.3935417470732021,
+  "class_agnostic_tp": 20316,
+  "class_agnostic_recall": 0.9705250083600058,
+  "fp_cls": 1460,
+  "macro_recall": 0.8462341125667433,
+  "macro_fdr": 0.3734082379590709,
+  "conflict_objects": 0,
+  "dedup_rate": 0.4402678764311947,
+  "agg_s": null,
+  "agg_s_note": "agg_s 口径待 E 成员确认，本脚本不复现",
+  "input_sha256": {
+    "proposals": "abc93445693d05ba5454388900c634a63f52e58bdf56713e56e36f9ce249d2e0",
+    "formal_crop_manifest": "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128"
+  },
+  "aggregate_params": {
+    "cluster_eps": 50.0,
+    "merge_iou": 0.3,
+    "nms_iou": 0.5
+  },
+  "macro_note": "macro 为官方 V1.6 口径：大类内细类简单平均",
+  "口径说明": "recall/fdr/macro 为官方细类匹配口径；class_agnostic_recall 复现 E 原始 wp3 存档的 recall(~0.9694)，即定位召回、不校验细类。两者之差为 FP_CLS。"
+}
