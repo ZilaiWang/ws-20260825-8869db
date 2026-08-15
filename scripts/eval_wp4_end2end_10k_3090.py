@@ -30,6 +30,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 
 import rsdet.pipeline.mock_model  # noqa: F401  注册 mock
@@ -52,6 +53,10 @@ def sha256_file(path: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--weights", type=str, default="", help="真实 M1 best.pt；空=mock")
+    ap.add_argument("--image-path", type=str, default="",
+                    help="真实大图路径（PNG/TIF/JPG）。给定时加载真实图；否则生成合成图")
+    ap.add_argument("--image-source-type", type=str, default="",
+                    help="覆盖 image_source_type；默认：有图=real_project_proxy，无图=synthetic")
     ap.add_argument("--image-size", type=int, default=10000)
     ap.add_argument("--tile-size", type=int, default=1280)
     ap.add_argument("--overlap", type=int, default=256)
@@ -64,17 +69,35 @@ def main(argv: list[str] | None = None) -> int:
 
     torch.cuda.synchronize()
 
-    scene = generate_synthetic_scene(
-        image_size=args.image_size,
-        tile_size=args.tile_size,
-        overlap=args.overlap,
-        num_ships=8,
-        num_aircraft=20,
-        num_vehicles=4,
-        seed=args.seed,
-    )
-    image = scene.image
-    print(f"[e2e] 10K 图 {image.shape[1]}x{image.shape[0]} RGB, GT 目标 {len(scene.objects)}")
+    if args.image_path:
+        from PIL import Image as PILImage
+
+        img_path = Path(args.image_path)
+        if not img_path.exists():
+            raise SystemExit(f"图像不存在: {args.image_path}")
+        with PILImage.open(img_path) as handle:
+            image = np.asarray(handle.convert("RGB"))
+        image = np.ascontiguousarray(image)
+        image_source_type = args.image_source_type or "real_project_proxy"
+        image_sha256 = sha256_file(str(img_path))
+        n_gt = None
+        print(f"[e2e] 真实图 {image.shape[1]}x{image.shape[0]} RGB, "
+              f"sha256={image_sha256[:16]}… source={image_source_type}")
+    else:
+        scene = generate_synthetic_scene(
+            image_size=args.image_size,
+            tile_size=args.tile_size,
+            overlap=args.overlap,
+            num_ships=8,
+            num_aircraft=20,
+            num_vehicles=4,
+            seed=args.seed,
+        )
+        image = scene.image
+        image_source_type = args.image_source_type or "synthetic"
+        image_sha256 = None
+        n_gt = len(scene.objects)
+        print(f"[e2e] 10K 图 {image.shape[1]}x{image.shape[0]} RGB, GT 目标 {n_gt}")
 
     if args.weights:
         if not Path(args.weights).exists():
@@ -141,7 +164,11 @@ def main(argv: list[str] | None = None) -> int:
     payload = {
         "contract_version": "e_10k_engineering_smoke_v1",
         "engineering_checkpoint_only": True,
-        "image_source_type": "synthetic",
+        "image_source_type": image_source_type,
+        "image_sha256": image_sha256,
+        "image_width": int(image.shape[1]),
+        "image_height": int(image.shape[0]),
+        "n_gt": n_gt,
         "hard_gate_total_after_read_seconds": HARD_GATE_S,
         "geometry": {
             "image_size": args.image_size,

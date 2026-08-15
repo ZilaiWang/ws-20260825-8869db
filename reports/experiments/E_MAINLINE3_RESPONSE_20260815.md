@@ -100,5 +100,21 @@
 - 合成图为纯色块，M1 检出 17 个对象属工程环境下的正常假阳性，不用于精度结论
   （精度结论以第 1-3 节真实 OOF 数据为准）。
 
+**真实大图就绪**：`scripts/eval_wp4_end2end_10k_3090.py` 已加 `--image-path` / `--image-source-type`
+支持——给定真实大图（PNG/TIF/JPG）时加载真实图并记录 `image_sha256` / `image_width` / `image_height`，
+`image_source_type=real_project_proxy`、`n_gt=None`；无图则退回首选项合成图。该分支已在本地
+（mock + 2048×2048 测试 PNG）与服务器 `/root/autodl-tmp/e2e/run_e2e_10k.py`（同源同步、SHA 双向核对）
+双端验证通过。拿到团队真实 10K 图（C 服务器 `real_10000x10000.png`，需 C 授权 / 跨实例传输）后即可直接：
+
+```bash
+cd /root/autodl-tmp/e2e
+PYTHONPATH=/root/autodl-tmp/xh-202625/src /root/miniconda3/bin/python run_e2e_10k.py \
+    --weights /root/autodl-tmp/M1/fold_0_best.pt \
+    --image-path /path/to/real_10000x10000.png \
+    --output /root/autodl-tmp/e2e/e2e_result_real_10k.json
+```
+
+报真实检测数 + 跨 tile 归并对象数 + 耗时（真实代理图无 GT，只做工程口径，不宣称精度/官方时延）。
+
 **代码同步**：评审期间 Gitee master 新增 M3 提交 `8d13b2a`（CV3 OOF 训练/推理引擎，纯新增 4 文件），
 已 fast-forward 本地 master 并入分支（`4ff3f6a`），E 测试 58 passed 无回归。
