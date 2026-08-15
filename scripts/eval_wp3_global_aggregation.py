@@ -133,6 +133,39 @@ def main(argv: Sequence[str] | None = None) -> int:
     n_tp = sum(1 for _ in trace.matches)
     n_fp = sum(1 for _ in trace.unmatched_predictions)
 
+    # 聚合前基线：直接用原始 OOF proposals 评估（不经过 aggregate），
+    # 补材料 37 缺陷 2 的"聚合前 Recall"缺失。
+    pre_pred_boxes: dict[int, list[dict[str, Any]]] = {}
+    for image_id, proposals in grouped.items():
+        pre_pred_boxes[image_id] = [
+            {
+                "bbox_xyxy": _xywh_to_xyxy(p),
+                "score": float(p["score"]),
+                "category_id": int(p["category_id"]),
+            }
+            for p in proposals
+        ]
+    pre_overall, _ = evaluate_predictions_with_trace(
+        formal.boxes,
+        pre_pred_boxes,
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+    )
+
+    # FDR@score>=0.25：补材料 37 缺陷 2 的"FDR(score≥0.25)=3.83%"缺失。
+    filtered_boxes: dict[int, list[dict[str, Any]]] = {
+        image_id: [r for r in records if r["score"] >= 0.25]
+        for image_id, records in pred_boxes.items()
+    }
+    fdr_overall, _ = evaluate_predictions_with_trace(
+        formal.boxes,
+        filtered_boxes,
+        class_names=protocol.class_names,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+    )
+
     # class-agnostic 定位召回对照：复现 E 原始 wp3 存档的 recall（~0.9694）。
     # 官方口径要求「框匹配且细类正确」；class-agnostic 只要求「框覆盖目标」，
     # 两者之差即 FP_CLS（框覆盖目标但细类错误）。
@@ -160,6 +193,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "recall": overall.recall,
         "precision": n_tp / (n_tp + n_fp) if (n_tp + n_fp) else 0.0,
         "fdr": overall.fdr,
+        "pre_aggregation_recall": pre_overall.recall,
+        "pre_aggregation_fdr": pre_overall.fdr,
+        "fdr_at_025": fdr_overall.fdr,
+        "fdr_at_025_recall": fdr_overall.recall,
         "class_agnostic_tp": class_agnostic_tp,
         "class_agnostic_recall": class_agnostic_recall,
         "fp_cls": fp_cls,
