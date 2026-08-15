@@ -191,7 +191,11 @@ def main(argv: list[str] | None = None) -> int:
         "measured_runs": len(measured),
         "samples": measured,
         "summary": {
-            "total_after_read_s": {"p50": round(walls[len(walls) // 2], 4), "max": round(walls[-1], 4)},
+            "total_after_read_s": {
+                "p50": round(walls[len(walls) // 2], 4),
+                "p95": round(float(np.percentile(walls, 95)), 4),
+                "max": round(walls[-1], 4),
+            },
             "all_under_20s": all(r["under_20s"] for r in measured),
             "max_peak_vram_gb": round(max(r["peak_vram_gb"] for r in measured), 3),
         },
@@ -205,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"\n[e2e] 结果已写: {args.output}")
     print(f"[e2e] total_after_read p50={payload['summary']['total_after_read_s']['p50']}s "
+          f"p95={payload['summary']['total_after_read_s']['p95']}s "
           f"max={payload['summary']['total_after_read_s']['max']}s "
           f"all_under_20s={payload['summary']['all_under_20s']}")
     return 0
