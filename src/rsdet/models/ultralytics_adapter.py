@@ -152,6 +152,20 @@ class UltralyticsDetector(BaseDetector):
             raw_boxes = [
                 [float(coordinate) for coordinate in box] for box in self._as_list(boxes.xyxy)
             ]
+            # 防御性 clamp 到原图边界：ultralytics 的 clip 在 RT-DETR 低置信度边缘
+            # 目标上可能失效，导致 bbox 左上角越界为负（实测 -94px）。这里按原图
+            # 尺寸强制 clamp，后续 valid 检查会过滤 clamp 后宽/高 <= 0 的退化框。
+            img_h = float(getattr(sample, "height", None) or sample.image.shape[0])
+            img_w = float(getattr(sample, "width", None) or sample.image.shape[1])
+            raw_boxes = [
+                [
+                    max(0.0, min(box[0], img_w)),
+                    max(0.0, min(box[1], img_h)),
+                    max(0.0, min(box[2], img_w)),
+                    max(0.0, min(box[3], img_h)),
+                ]
+                for box in raw_boxes
+            ]
             raw_scores = [float(score) for score in self._as_list(boxes.conf)]
             raw_labels = [int(label) for label in self._as_list(boxes.cls)]
             valid = [
