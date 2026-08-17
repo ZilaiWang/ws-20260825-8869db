@@ -1,0 +1,86 @@
+{
+  "model": "M3 (RT-DETR-L) vs M1 (YOLO26s) paired OOF",
+  "min_score": 0.001,
+  "total": {
+    "m1_only": 45,
+    "m3_only": 1313,
+    "both": 19457,
+    "neither": 118
+  },
+  "n_gt": 20933,
+  "per_coarse": [
+    {
+      "group": "aircraft",
+      "n_gt": 17849,
+      "both": 16758,
+      "m1_only": 10,
+      "m3_only": 1036,
+      "neither": 45,
+      "m3_recall_boost": 0.058,
+      "m1_recall_boost": 0.0006
+    },
+    {
+      "group": "ship",
+      "n_gt": 2682,
+      "both": 2402,
+      "m1_only": 11,
+      "m3_only": 221,
+      "neither": 48,
+      "m3_recall_boost": 0.0824,
+      "m1_recall_boost": 0.0041
+    },
+    {
+      "group": "vehicle",
+      "n_gt": 402,
+      "both": 297,
+      "m1_only": 24,
+      "m3_only": 56,
+      "neither": 25,
+      "m3_recall_boost": 0.1393,
+      "m1_recall_boost": 0.0597
+    }
+  ],
+  "per_size": [
+    {
+      "group": "large",
+      "n_gt": 121,
+      "both": 113,
+      "m1_only": 0,
+      "m3_only": 7,
+      "neither": 1,
+      "m3_recall_boost": 0.0579,
+      "m1_recall_boost": 0.0
+    },
+    {
+      "group": "medium",
+      "n_gt": 7834,
+      "both": 7418,
+      "m1_only": 6,
+      "m3_only": 388,
+      "neither": 22,
+      "m3_recall_boost": 0.0495,
+      "m1_recall_boost": 0.0008
+    },
+    {
+      "group": "small",
+      "n_gt": 12690,
+      "both": 11741,
+      "m1_only": 28,
+      "m3_only": 854,
+      "neither": 67,
+      "m3_recall_boost": 0.0673,
+      "m1_recall_boost": 0.0022
+    },
+    {
+      "group": "tiny",
+      "n_gt": 288,
+      "both": 185,
+      "m1_only": 11,
+      "m3_only": 64,
+      "neither": 28,
+      "m3_recall_boost": 0.2222,
+      "m1_recall_boost": 0.0382
+    }
+  ],
+  "note": "m3_only = M3 补回的 M1 漏检 GT（低阈值下）；neither = 双模型均无候选的残余 FN。paired 匹配为同细类 + 粗类 IoU 阈值贪心（与官方口径一致）。"
+}
