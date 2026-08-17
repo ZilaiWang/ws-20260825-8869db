@@ -25,6 +25,7 @@ RESULTS_ROOT="${RESULTS_ROOT:-/workspace/results}"
 PYTHON_BIN="${VENV_DIR}/bin/python"
 RUN_ID="E-FORMAL-BENCHMARK"
 RUN_ROOT="${RESULTS_ROOT}/${RUN_ID}"
+CAPTURE_DIR="${RUN_ROOT}/capture"
 STATUS_PATH="${RUN_ROOT}/status.txt"
 
 CHECKPOINT="${CHECKPOINT:-/workspace/cv3-model-assets/m1_fold0_last.pt}"
@@ -103,7 +104,7 @@ text = text.replace("__MODEL_FAMILY__", "yolo")
 text = text.replace("__SELECTED_CHECKPOINT__", "/workspace/cv3-model-assets/m1_fold0_last.pt")
 text = text.replace("__10K_DATA_ROOT__", str(data_root))
 text = text.replace("__10K_MANIFEST__", str(run_root / "image_manifest.json"))
-text = text.replace("__OUTPUT_DIR__", str(run_root))
+text = text.replace("__OUTPUT_DIR__", str(run_root / "capture"))
 (run_root / "resolved_config.yaml").write_text(text, encoding="utf-8")
 print("resolved_config.yaml written")
 PY
@@ -162,17 +163,17 @@ echo "running_capture" > "${STATUS_PATH}"
   --checkpoint-provenance "${RUN_ROOT}/checkpoint_provenance.json" \
   --image-manifest "${RUN_ROOT}/image_manifest.json" \
   --data-root "${DATA_ROOT}" \
-  --output-dir "${RUN_ROOT}" \
+  --output-dir "${CAPTURE_DIR}" \
   --expected-width 10000 --expected-height 10000 \
   2>&1 | tee "${RUN_ROOT}/logs/capture.log"
 test "${PIPESTATUS[0]}" -eq 0 || { echo "采集失败"; exit 1; }
 
 log "=== [8/9] audit 审计 ==="
 "${PYTHON_BIN}" scripts/audit_10k_runtime.py \
-  --input "${RUN_ROOT}/runtime_samples.jsonl" \
+  --input "${CAPTURE_DIR}/runtime_samples.jsonl" \
   --hardware "${RUN_ROOT}/hardware.json" \
   --benchmark-contract "${RUN_ROOT}/benchmark_contract.json" \
-  --output "${RUN_ROOT}/audit.json" \
+  --output "${CAPTURE_DIR}/audit.json" \
   --expected-width 10000 --expected-height 10000 \
   --minimum-measured-runs "${MEASURED_RUNS}" \
   --maximum-after-read-seconds 20.0 \
@@ -182,16 +183,17 @@ test "${PIPESTATUS[0]}" -eq 0 || { echo "audit 失败"; exit 1; }
 log "=== [9/9] 回传包 ==="
 echo "complete" > "${STATUS_PATH}"
 RETURN_PACKAGE="${RESULTS_ROOT}/${RUN_ID}-return.tar.gz"
-tar -C "${RESULTS_ROOT}" --exclude='predictions_10k_low.json' -czf "${RETURN_PACKAGE}" \
+tar -C "${RESULTS_ROOT}" -czf "${RETURN_PACKAGE}" \
   "${RUN_ID}/resolved_config.yaml" "${RUN_ID}/image_manifest.json" \
   "${RUN_ID}/checkpoint_provenance.json" "${RUN_ID}/hardware.json" \
-  "${RUN_ID}/benchmark_contract.json" "${RUN_ID}/runtime_samples.jsonl" \
-  "${RUN_ID}/audit.json" "${RUN_ID}/logs" "${RUN_ID}/status.txt"
+  "${RUN_ID}/benchmark_contract.json" \
+  "${RUN_ID}/capture/runtime_samples.jsonl" "${RUN_ID}/capture/audit.json" \
+  "${RUN_ID}/logs" "${RUN_ID}/status.txt"
 sha256sum "${RETURN_PACKAGE}" > "${RETURN_PACKAGE}.sha256"
 log "E 正式测速完成: ${RETURN_PACKAGE}"
 log "audit 摘要:"
 "${PYTHON_BIN}" -c "
 import json
-d = json.load(open('${RUN_ROOT}/audit.json'))
+d = json.load(open('${CAPTURE_DIR}/audit.json'))
 print(json.dumps(d, ensure_ascii=False, indent=2)[:2000])
 "
