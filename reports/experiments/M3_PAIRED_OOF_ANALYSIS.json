@@ -82,5 +82,65 @@
       "m1_recall_boost": 0.0382
     }
   ],
+  "per_fold": {
+    "0": {
+      "m1_only": 11,
+      "m3_only": 584,
+      "both": 6700,
+      "neither": 55
+    },
+    "1": {
+      "m1_only": 7,
+      "m3_only": 324,
+      "both": 6823,
+      "neither": 25
+    },
+    "2": {
+      "m1_only": 27,
+      "m3_only": 405,
+      "both": 5934,
+      "neither": 38
+    }
+  },
+  "m3_only_source_groups_top": {
+    "mar20-airport-proxy-018": 259,
+    "mar20-airport-proxy-051": 85,
+    "mar20-airport-proxy-036": 66,
+    "mar20-airport-proxy-015": 60,
+    "mar20-airport-proxy-041": 39,
+    "mar20-airport-proxy-013": 33,
+    "mar20-airport-proxy-034": 33,
+    "mar20-airport-proxy-040": 32,
+    "mar20-airport-proxy-022": 29,
+    "mar20-airport-proxy-023": 28
+  },
+  "admission_gate": {
+    "gate_1_folds_ge_2_of_3": {
+      "pass": true,
+      "folds_with_m3_only": [
+        0,
+        1,
+        2
+      ],
+      "n_folds_with_m3_only": 3
+    },
+    "gate_2_source_groups_ge_3": {
+      "pass": true,
+      "n_source_groups": 126,
+      "top5_source_groups": {
+        "mar20-airport-proxy-018": 259,
+        "mar20-airport-proxy-051": 85,
+        "mar20-airport-proxy-036": 66,
+        "mar20-airport-proxy-015": 60,
+        "mar20-airport-proxy-041": 39
+      }
+    },
+    "gate_3_net_gain": {
+      "pass": true,
+      "n_m3_only_total": 1313,
+      "vehicle_m3_only": 56
+    },
+    "note": "gate_4(经 N2-CFG 后 FDR≤0.17) 与 gate_5(10K p95≤18s) 需 N2-CFG/E 正式测速后判定"
+  },
   "note": "m3_only = M3 补回的 M1 漏检 GT（低阈值下）；neither = 双模型均无候选的残余 FN。paired 匹配为同细类 + 粗类 IoU 阈值贪心（与官方口径一致）。"
 }

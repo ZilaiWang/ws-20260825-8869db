@@ -96,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=Path("outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv"),
     )
+    parser.add_argument("--split", type=Path, default=Path("data/splits/cv3_airport_proxy_k60_v2.json"))
     parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -104,6 +105,13 @@ def main(argv: list[str] | None = None) -> int:
     iou_thresholds = {
         cid: protocol.iou_thresholds[protocol.category_mapping[cid]]
         for cid in protocol.category_mapping
+    }
+
+    # image_id -> (fold, source_group)
+    split = json.loads(args.split.read_text(encoding="utf-8"))
+    id2meta = {
+        int(s["image_id"]): (int(s["fold"]), str(s["group_id"]))
+        for s in split["samples"]
     }
 
     formal = load_formal_ground_truth(args.formal_crop_manifest)
@@ -117,11 +125,15 @@ def main(argv: list[str] | None = None) -> int:
     per_size: dict[str, dict[str, int]] = defaultdict(
         lambda: {"m1_only": 0, "m3_only": 0, "both": 0, "neither": 0}
     )
+    per_fold: dict[int, dict[str, int]] = defaultdict(
+        lambda: {"m1_only": 0, "m3_only": 0, "both": 0, "neither": 0}
+    )
+    m3_only_groups: dict[str, int] = defaultdict(int)  # M3-only 补回 GT 的 source group 分布
 
     for image_id, gts in formal.boxes.items():
         m1_preds = m1.get(image_id, [])
         m3_preds = m3.get(image_id, [])
-        # 每张图的 GT 先按细类过滤低分预测，再逐 GT 贪心匹配
+        fold, group = id2meta.get(image_id, (-1, "unknown"))
         m1_used: set[int] = set()
         m3_used: set[int] = set()
         for gt in gts:
@@ -133,10 +145,13 @@ def main(argv: list[str] | None = None) -> int:
             total[key] += 1
             per_coarse[coarse][key] += 1
             per_size[_size_bin(_short_edge(list(gt["bbox_xyxy"])))][key] += 1
+            per_fold[fold][key] += 1
+            if key == "m3_only":
+                m3_only_groups[group] += 1
 
-    def summarize(table: dict[str, dict[str, int]]) -> dict[str, Any]:
+    def summarize(table: dict[str, dict[str, int]]) -> list[dict[str, Any]]:
         rows = []
-        for group, counts in sorted(table.items()):
+        for group, counts in sorted(table.items(), key=lambda kv: str(kv[0])):
             n = sum(counts.values())
             m3_only = counts["m3_only"]
             m1_only = counts["m1_only"]
@@ -154,6 +169,34 @@ def main(argv: list[str] | None = None) -> int:
             )
         return rows
 
+    # 门禁判定（改进方案1 4.2 节）
+    folds_with_m3_only = sorted(
+        f for f, c in per_fold.items() if c.get("m3_only", 0) > 0 and f >= 0
+    )
+    n_source_groups = len(m3_only_groups)
+    n_m3_only_total = total["m3_only"]
+    vehicle_m3_only = per_coarse.get("vehicle", {}).get("m3_only", 0)
+    gate = {
+        "gate_1_folds_ge_2_of_3": {
+            "pass": len(folds_with_m3_only) >= 2,
+            "folds_with_m3_only": folds_with_m3_only,
+            "n_folds_with_m3_only": len(folds_with_m3_only),
+        },
+        "gate_2_source_groups_ge_3": {
+            "pass": n_source_groups >= 3,
+            "n_source_groups": n_source_groups,
+            "top5_source_groups": dict(
+                sorted(m3_only_groups.items(), key=lambda kv: -kv[1])[:5]
+            ),
+        },
+        "gate_3_net_gain": {
+            "pass": n_m3_only_total >= 30 or vehicle_m3_only >= 21,
+            "n_m3_only_total": n_m3_only_total,
+            "vehicle_m3_only": vehicle_m3_only,
+        },
+        "note": "gate_4(经 N2-CFG 后 FDR≤0.17) 与 gate_5(10K p95≤18s) 需 N2-CFG/E 正式测速后判定",
+    }
+
     payload = {
         "model": "M3 (RT-DETR-L) vs M1 (YOLO26s) paired OOF",
         "min_score": MIN_SCORE,
@@ -161,6 +204,11 @@ def main(argv: list[str] | None = None) -> int:
         "n_gt": sum(total.values()),
         "per_coarse": summarize(per_coarse),
         "per_size": summarize(per_size),
+        "per_fold": {str(f): {k: v for k, v in c.items()} for f, c in sorted(per_fold.items()) if f >= 0},
+        "m3_only_source_groups_top": dict(
+            sorted(m3_only_groups.items(), key=lambda kv: -kv[1])[:10]
+        ),
+        "admission_gate": gate,
         "note": "m3_only = M3 补回的 M1 漏检 GT（低阈值下）；neither = 双模型均无候选的残余 FN。"
                 "paired 匹配为同细类 + 粗类 IoU 阈值贪心（与官方口径一致）。",
     }
