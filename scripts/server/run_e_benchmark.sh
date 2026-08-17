@@ -23,7 +23,8 @@ PROJECT_ROOT="${PROJECT_ROOT:-/workspace/xh-202625-n2cfg}"
 VENV_DIR="${VENV_DIR:-/workspace/venvs/p06-cu121}"
 RESULTS_ROOT="${RESULTS_ROOT:-/workspace/results}"
 PYTHON_BIN="${VENV_DIR}/bin/python"
-RUN_ID="E-FORMAL-BENCHMARK"
+MODEL_KEY="${MODEL_KEY:-M1}"   # M1 -> yolo family, M3 -> rtdetr family
+RUN_ID="E-FORMAL-BENCHMARK-${MODEL_KEY}"
 RUN_ROOT="${RESULTS_ROOT}/${RUN_ID}"
 CAPTURE_DIR="${RUN_ROOT}/capture"
 STATUS_PATH="${RUN_ROOT}/status.txt"
@@ -32,16 +33,22 @@ CHECKPOINT="${CHECKPOINT:-/workspace/cv3-model-assets/m1_fold0_last.pt}"
 FOLD_METADATA="${FOLD_METADATA:-/workspace/cv3-model-assets/fold_0_fold_metadata.json}"
 OOF_METADATA="${OOF_METADATA:-/workspace/cv3-model-assets/oof_metadata.json}"
 DATA_ROOT="${DATA_ROOT:-/workspace/data/10k}"
-MODEL_KEY="M1"
 TILE_SIZE=1280
 OVERLAP=256
 EXPECTED_TILE_COUNT=100
 WARMUP_RUNS=3
 MEASURED_RUNS=10
 
-EXPECTED_CHECKPOINT_SHA="d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d"
-EXPECTED_FOLD_META_SHA="b2bd717d1766ab4fbf870901e56ef6327b81e4d56dbcb6958657ac1c0261af81"
-EXPECTED_OOF_META_SHA="53b35f2cff801ce23d9bd211ead9a0ef896e3a01f974b5da060fd2a4ac4bf4c6"
+# 默认资产 SHA（M1）；M3 通过环境变量覆盖
+EXPECTED_CHECKPOINT_SHA="${EXPECTED_CHECKPOINT_SHA:-d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d}"
+EXPECTED_FOLD_META_SHA="${EXPECTED_FOLD_META_SHA:-b2bd717d1766ab4fbf870901e56ef6327b81e4d56dbcb6958657ac1c0261af81}"
+EXPECTED_OOF_META_SHA="${EXPECTED_OOF_META_SHA:-53b35f2cff801ce23d9bd211ead9a0ef896e3a01f974b5da060fd2a4ac4bf4c6}"
+
+case "${MODEL_KEY}" in
+  M1) FAMILY="yolo" ;;
+  M3) FAMILY="rtdetr" ;;
+  *) echo "MODEL_KEY 只允许 M1/M3"; exit 1 ;;
+esac
 
 mkdir -p "${RUN_ROOT}/logs"
 log() { echo "[E-BENCH] $*" | tee -a "${RUN_ROOT}/logs/run.log"; }
@@ -75,10 +82,14 @@ import json
 print(json.load(open('${FOLD_METADATA}'))['artifacts']['checkpoint'])
 ")
 test -n "${CKPT_TARGET}" || { echo "无法从 fold_metadata 解析 checkpoint 路径"; exit 1; }
-mkdir -p "$(dirname "${CKPT_TARGET}")"
-cp "${CHECKPOINT}" "${CKPT_TARGET}"
-CHECKPOINT="${CKPT_TARGET}"
-log "checkpoint 就位于 fold_metadata 记录路径: ${CHECKPOINT}"
+if [[ "$(readlink -f "${CHECKPOINT}")" != "$(readlink -f "${CKPT_TARGET}")" ]]; then
+  mkdir -p "$(dirname "${CKPT_TARGET}")"
+  cp "${CHECKPOINT}" "${CKPT_TARGET}"
+  CHECKPOINT="${CKPT_TARGET}"
+  log "checkpoint 就位于 fold_metadata 记录路径: ${CHECKPOINT}"
+else
+  log "checkpoint 已在 fold_metadata 记录路径（无需拷贝）: ${CHECKPOINT}"
+fi
 
 log "=== [3/9] GPU 独占检查 + 合成图检查 ==="
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
@@ -104,16 +115,17 @@ log "data_root=${DATA_ROOT} 下 10000x10000 图数: ${N_10K}（需 >= ${MEASURED
 test "${N_10K}" -ge "${MEASURED_RUNS}" || { echo "合成 10K 图不足"; exit 1; }
 
 log "=== [4/9] 生成 resolved config + image manifest + provenance ==="
-"${PYTHON_BIN}" - "${RUN_ROOT}" "${DATA_ROOT}" "${CHECKPOINT}" <<'PY'
+"${PYTHON_BIN}" - "${RUN_ROOT}" "${DATA_ROOT}" "${CHECKPOINT}" "${FAMILY}" <<'PY'
 import sys
 from pathlib import Path
 
 run_root = Path(sys.argv[1])
 data_root = Path(sys.argv[2])
 checkpoint = sys.argv[3]
+family = sys.argv[4]
 template = Path("/workspace/xh-202625-n2cfg/configs/experiments/e_10k_pipeline_cv3.template.yaml")
 text = template.read_text(encoding="utf-8")
-text = text.replace("__MODEL_FAMILY__", "yolo")
+text = text.replace("__MODEL_FAMILY__", family)
 text = text.replace("__SELECTED_CHECKPOINT__", checkpoint)
 text = text.replace("__10K_DATA_ROOT__", str(data_root))
 text = text.replace("__10K_MANIFEST__", str(run_root / "image_manifest.json"))
