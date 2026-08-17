@@ -1,0 +1,8 @@
+{
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "driver_version": "570.124.04",
+  "torch_version": "2.5.1+cu121",
+  "cuda_runtime": "12.1",
+  "other_gpu_processes": "none",
+  "collected_at_utc": "2026-08-17T17:46:11Z"
+}

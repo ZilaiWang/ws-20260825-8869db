@@ -1,0 +1,18 @@
+{
+  "contract_version": "runtime_10k_benchmark_v1",
+  "image_source_type": "synthetic",
+  "model_key": "M1",
+  "image_manifest_sha256": "7c02b113f1da38ecfb1533972c3f4e2fb57db75d795e7186720734352cae7258",
+  "checkpoint_sha256": "d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d",
+  "checkpoint_provenance_sha256": "293dafd4199bd3a44409d0d505e2ae2bdd9bac11cd395bb8742aeabe227df345",
+  "config_sha256": "2407ed83040dcd9b1ab427b4e9ac52b3242a6cbc6a875181fef8dbd9a3002e54",
+  "hardware_sha256": "76f111360613e61163a09d4a1c95e574cd142a02d219f07fb61f9c4d3b3b7467",
+  "engineering_checkpoint_only": false,
+  "cuda_synchronized": true,
+  "timing_method": "perf_counter_with_torch_cuda_synchronize",
+  "tile_size": 1280,
+  "overlap": 256,
+  "expected_tile_count": 100,
+  "warmup_runs": 3,
+  "minimum_measured_runs": 10
+}
