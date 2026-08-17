@@ -138,16 +138,22 @@ import torch
 from pathlib import Path
 
 run_root = Path(sys.argv[1])
-smi = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total,memory.used,driver_version",
-                      "--format=csv,noheader"], capture_output=True, text=True).stdout.strip().splitlines()
-apps = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,used_memory", "--format=csv,noheader"],
+def smi(*query_fields):
+    out = subprocess.run(
+        ["nvidia-smi", "--query-gpu=" + ",".join(query_fields), "--format=csv,noheader,nounits"],
+        capture_output=True, text=True,
+    ).stdout.strip().splitlines()[0]
+    return [part.strip() for part in out.split(",")]
+
+gpu_name, driver_version, _ = smi("name", "driver_version", "memory.total")
+apps = subprocess.run(["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader"],
                       capture_output=True, text=True).stdout.strip()
 hardware = {
-    "gpu": [line.strip() for line in smi],
-    "cuda_version": torch.version.cuda,
+    "gpu_name": gpu_name,
+    "driver_version": driver_version,
     "torch_version": torch.__version__,
-    "gpu_compute_apps": apps or "none",
-    "measured_exclusive": (apps.strip() == ""),
+    "cuda_runtime": torch.version.cuda,
+    "other_gpu_processes": apps if apps else "none",
     "collected_at_utc": subprocess.run(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"],
                                        capture_output=True, text=True).stdout.strip(),
 }
