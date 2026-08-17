@@ -6,6 +6,8 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import numpy as np
+
 
 def _validated_box(box: Sequence[float], *, name: str) -> tuple[float, float, float, float]:
     if len(box) != 4:
@@ -80,16 +82,35 @@ def nms(
         range(len(validated_boxes)),
         key=lambda index: (-validated_scores[index], index),
     )
+    # 批量 IoU 的贪心 NMS（与旧纯 Python 实现语义完全一致：降序、严格
+    # IoU > threshold 才抑制、同分保序），仅将逐框 Python IoU 换成
+    # numpy vectorized 计算，避免高候选量（如 RT-DETR 低阈值）时 O(n^2)
+    # 纯 Python 循环成为不可接受的瓶颈。
+    if not order:
+        return []
+    boxes_arr = np.asarray(validated_boxes, dtype=np.float64)  # (n, 4) x1 y1 x2 y2
+    order = np.asarray(order, dtype=np.int64)
     keep: list[int] = []
-    while order:
-        current = order[0]
+    while order.size:
+        current = int(order[0])
         keep.append(current)
-        current_box = validated_boxes[current]
-        order = [
-            index
-            for index in order[1:]
-            if _iou_validated(current_box, validated_boxes[index]) <= threshold
-        ]
+        if order.size == 1:
+            break
+        rest = order[1:]
+        box = boxes_arr[current]
+        rest_boxes = boxes_arr[rest]
+        x1 = np.maximum(box[0], rest_boxes[:, 0])
+        y1 = np.maximum(box[1], rest_boxes[:, 1])
+        x2 = np.minimum(box[2], rest_boxes[:, 2])
+        y2 = np.minimum(box[3], rest_boxes[:, 3])
+        intersection = np.maximum(0.0, x2 - x1) * np.maximum(0.0, y2 - y1)
+        area_a = (box[2] - box[0]) * (box[3] - box[1])
+        area_b = (rest_boxes[:, 2] - rest_boxes[:, 0]) * (rest_boxes[:, 3] - rest_boxes[:, 1])
+        union = area_a + area_b - intersection
+        iou = np.divide(
+            intersection, union, out=np.zeros_like(union), where=union > 0.0
+        )
+        order = rest[iou <= threshold]
     return keep
 
 
