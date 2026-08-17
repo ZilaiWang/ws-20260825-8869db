@@ -24,13 +24,13 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from rsdet.analysis.background_gate import (
-    ACTIVE_COARSE_FIRST_ROUND,
     COARSE_CLASSES,
     MODE_S0,
     MODE_S1,
     MODE_S2,
     GateCalibration,
     apply_gate,
+    calibrate_q,
     coarse_of_category_id,
     make_calibration,
 )
@@ -46,6 +46,9 @@ class FitSample:
     coarse: str
     is_tp: bool
     is_fp_bg: bool
+    image_id: int | None = None
+    category_id: int | None = None
+    source_group: str = ""
 
 
 def _gamma_grid(mode: str) -> list[Mapping[str, float]]:
@@ -92,8 +95,6 @@ def _best_tau_drop(
             tau_drop=0.0,
             gamma=gamma,
         )
-        from rsdet.analysis.background_gate import calibrate_q
-
         q = calibrate_q(sample.score, sample.fg_logit, sample.coarse, calib)
         scores.append((q, sample.is_tp, sample.is_fp_bg))
     scores.sort(key=lambda item: item[0])  # 升序，低 q 在前
@@ -213,10 +214,11 @@ def parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
-    import csv
 
-    from rsdet.analysis.background_gate_manifest import _load_selected_predictions
-    from rsdet.analysis.background_gate_manifest import _load_image_ledger
+    from rsdet.analysis.background_gate_manifest import (
+        _load_image_ledger,
+        _load_selected_predictions,
+    )
     from rsdet.analysis.oof_detection import (
         decompose_official_errors,
         load_formal_ground_truth,
@@ -262,6 +264,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         for prediction_index, record in enumerate(records):
             proposal_uid = str(record.get("proposal_uid") or f"r1-i{image_id}-p{prediction_index}")
             coarse = coarse_of_category_id(int(record["category_id"]))
+            ledger_entry = ledger.get(int(image_id)) or {}
             samples.append(
                 FitSample(
                     proposal_uid=proposal_uid,
@@ -272,6 +275,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     coarse=coarse,
                     is_tp=(image_id, prediction_index) in tp_keys,
                     is_fp_bg=(image_id, prediction_index) in fp_bg_keys,
+                    image_id=int(image_id),
+                    category_id=int(record["category_id"]),
+                    source_group=str(ledger_entry.get("group_id", "")),
                 )
             )
 
@@ -291,11 +297,44 @@ def main(argv: Sequence[str] | None = None) -> int:
         ]
         heldout_fp_bg = sum(1 for sample in heldout_samples if sample.is_fp_bg)
         heldout_tp = sum(1 for sample in heldout_samples if sample.is_tp)
+        # held-out 应用拟合出的校准器：q < tau_drop 即被删除（OOF 泛化口径明细）。
+        applied_removed: list[dict[str, Any]] = []
+        for sample in sorted(heldout_samples, key=lambda s: s.score, reverse=True):
+            q = calibrate_q(sample.score, sample.fg_logit, sample.coarse, calibration)
+            if q < calibration.tau_drop:
+                applied_removed.append(
+                    {
+                        "proposal_uid": sample.proposal_uid,
+                        "image_id": sample.image_id,
+                        "category_id": sample.category_id,
+                        "coarse": sample.coarse,
+                        "source_group": sample.source_group,
+                        "score": sample.score,
+                        "q": q,
+                        "is_tp": sample.is_tp,
+                        "is_fp_bg": sample.is_fp_bg,
+                    }
+                )
+        heldout_fp_bg_by_coarse: dict[str, int] = {}
+        heldout_tp_by_coarse: dict[str, int] = {}
+        for coarse in COARSE_CLASSES:
+            heldout_fp_bg_by_coarse[coarse] = sum(
+                1 for sample in heldout_samples if sample.is_fp_bg and sample.coarse == coarse
+            )
+            heldout_tp_by_coarse[coarse] = sum(
+                1 for sample in heldout_samples if sample.is_tp and sample.coarse == coarse
+            )
         per_fold.append(
             {
                 "held_out_fold": held_out,
                 "fit": fit_stats,
-                "heldout_counts": {"fp_bg": heldout_fp_bg, "tp": heldout_tp},
+                "heldout_counts": {
+                    "fp_bg": heldout_fp_bg,
+                    "tp": heldout_tp,
+                    "fp_bg_by_coarse": heldout_fp_bg_by_coarse,
+                    "tp_by_coarse": heldout_tp_by_coarse,
+                },
+                "applied_removed": applied_removed,
             }
         )
 

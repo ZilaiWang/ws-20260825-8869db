@@ -165,42 +165,16 @@ for mode in S0 S1 S2; do
   test "${PIPESTATUS[0]}" -eq 0 || exit 1
 done
 
-echo "=== [7/7] 门禁判定（S2 须在相同 Recall 约束下优于 S0）==="
+echo "=== [7/7] 门禁判定（sealed admission runner，S2 须在相同 Recall 约束下显著优于 S0）==="
 echo "running_admission" > "${STATUS_PATH}"
-"${PYTHON_BIN}" - "${RUN_ROOT}" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-root = Path(sys.argv[1])
-eval_dir = root / "evaluation"
-modes = ("S0", "S1", "S2")
-data = {}
-for mode in modes:
-    data[mode] = json.loads((eval_dir / f"evaluate_{mode}.json").read_text())
-
-def pooled_removed_fp_bg(mode_json: dict) -> int:
-    return sum(fold["fit"]["removed_fp_bg"] for fold in mode_json["per_fold"])
-
-def max_removed_tp(mode_json: dict) -> int:
-    return max(fold["fit"]["removed_tp"] for fold in mode_json["per_fold"])
-
-fp_bg_removed = {mode: pooled_removed_fp_bg(data[mode]) for mode in modes}
-admission = {
-    "fp_bg_removed_pooled_inner_crossfit": fp_bg_removed,
-    "s2_vs_s0_delta": fp_bg_removed["S2"] - fp_bg_removed["S0"],
-    "s2_beats_s0": fp_bg_removed["S2"] > fp_bg_removed["S0"],
-    "zero_tp_loss_all_modes": all(max_removed_tp(data[mode]) == 0 for mode in modes),
-    "note": (
-        "removed_fp_bg 为 leave-one-fold-out 的 inner 拟合删除数（零 TP 损失预算）；"
-        "正式 pooled/逐类/来源稳健性门禁须由本地基于 per_fold 完整 JSON 复算。"
-    ),
-}
-(out := (eval_dir / "admission.json")).write_text(
-    json.dumps(admission, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-)
-print(json.dumps(admission, ensure_ascii=False, indent=2))
-PY
+"${PYTHON_BIN}" scripts/run_sealed_admission.py \
+  --evaluate-s0 "${RUN_ROOT}/evaluation/evaluate_S0.json" \
+  --evaluate-s1 "${RUN_ROOT}/evaluation/evaluate_S1.json" \
+  --evaluate-s2 "${RUN_ROOT}/evaluation/evaluate_S2.json" \
+  --recall-budget 0 \
+  --output "${RUN_ROOT}/evaluation/admission.json" \
+  2>&1 | tee "${RUN_ROOT}/logs/admission.log"
+test "${PIPESTATUS[0]}" -eq 0 || exit 1
 
 echo "complete" > "${STATUS_PATH}"
 
