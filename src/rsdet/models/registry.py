@@ -19,6 +19,7 @@ _MODEL_REGISTRY: Dict[str, Type[BaseDetector]] = {}
 _LAZY_MODEL_MODULES = {
     # Keep heavyweight torch/torchvision imports out of data and metric tools.
     "bhcdetr": "rsdet.models.bhcdetr_adapter",
+    "ultralytics": "rsdet.models.ultralytics_adapter",
 }
 
 
