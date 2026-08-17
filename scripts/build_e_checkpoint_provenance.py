@@ -95,7 +95,7 @@ def build_provenance(
         "status": "checkpoint_lineage_verified",
         "engineering_checkpoint_only": False,
         "model_key": model_key,
-        "fold": fold,
+        "source_fold": int(fold),
         "checkpoint": None,  # 占位，输出时转相对路径
         "checkpoint_sha256": ckpt_sha,
         "fold_metadata": None,

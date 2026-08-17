@@ -54,7 +54,7 @@ export PYTHONPATH="${PROJECT_ROOT}/src"
 export PYTHONNOUSERSITE=1
 "${PYTHON_BIN}" -c "import torch, ultralytics, yaml, PIL, numpy; print('deps OK', 'torch', torch.__version__, 'ultralytics', ultralytics.__version__)"
 
-log "=== [2/9] 输入资产 SHA 校验 ==="
+log "=== [2/9] 输入资产 SHA 校验 + checkpoint 就位 ==="
 test -f "${CHECKPOINT}" || { echo "缺少 checkpoint: ${CHECKPOINT}"; exit 1; }
 test -f "${FOLD_METADATA}" || { echo "缺少 fold_metadata: ${FOLD_METADATA}"; exit 1; }
 test -f "${OOF_METADATA}" || { echo "缺少 oof_metadata: ${OOF_METADATA}"; exit 1; }
@@ -67,6 +67,18 @@ log "oof_meta SHA:   ${OOF_SHA:0:12}… (期望 ${EXPECTED_OOF_META_SHA:0:12}…
 test "${CKPT_SHA}" = "${EXPECTED_CHECKPOINT_SHA}" || { echo "checkpoint SHA 不符"; exit 1; }
 test "${FOLD_SHA}" = "${EXPECTED_FOLD_META_SHA}" || { echo "fold_metadata SHA 不符"; exit 1; }
 test "${OOF_SHA}" = "${EXPECTED_OOF_META_SHA}" || { echo "oof_metadata SHA 不符"; exit 1; }
+# benchmark 校验要求 fold_metadata.artifacts.checkpoint 解析后 == 传入 checkpoint。
+# fold_metadata 的 SHA 是冻结的（内容不可改），因此把校验过的 checkpoint 复制到
+# fold_metadata 记录的原始路径，作为正式测速 checkpoint。
+CKPT_TARGET=$("${PYTHON_BIN}" -c "
+import json
+print(json.load(open('${FOLD_METADATA}'))['artifacts']['checkpoint'])
+")
+test -n "${CKPT_TARGET}" || { echo "无法从 fold_metadata 解析 checkpoint 路径"; exit 1; }
+mkdir -p "$(dirname "${CKPT_TARGET}")"
+cp "${CHECKPOINT}" "${CKPT_TARGET}"
+CHECKPOINT="${CKPT_TARGET}"
+log "checkpoint 就位于 fold_metadata 记录路径: ${CHECKPOINT}"
 
 log "=== [3/9] GPU 独占检查 + 合成图检查 ==="
 nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
@@ -92,16 +104,17 @@ log "data_root=${DATA_ROOT} 下 10000x10000 图数: ${N_10K}（需 >= ${MEASURED
 test "${N_10K}" -ge "${MEASURED_RUNS}" || { echo "合成 10K 图不足"; exit 1; }
 
 log "=== [4/9] 生成 resolved config + image manifest + provenance ==="
-"${PYTHON_BIN}" - "${RUN_ROOT}" "${DATA_ROOT}" <<'PY'
+"${PYTHON_BIN}" - "${RUN_ROOT}" "${DATA_ROOT}" "${CHECKPOINT}" <<'PY'
 import sys
 from pathlib import Path
 
 run_root = Path(sys.argv[1])
 data_root = Path(sys.argv[2])
+checkpoint = sys.argv[3]
 template = Path("/workspace/xh-202625-n2cfg/configs/experiments/e_10k_pipeline_cv3.template.yaml")
 text = template.read_text(encoding="utf-8")
 text = text.replace("__MODEL_FAMILY__", "yolo")
-text = text.replace("__SELECTED_CHECKPOINT__", "/workspace/cv3-model-assets/m1_fold0_last.pt")
+text = text.replace("__SELECTED_CHECKPOINT__", checkpoint)
 text = text.replace("__10K_DATA_ROOT__", str(data_root))
 text = text.replace("__10K_MANIFEST__", str(run_root / "image_manifest.json"))
 text = text.replace("__OUTPUT_DIR__", str(run_root / "capture"))
