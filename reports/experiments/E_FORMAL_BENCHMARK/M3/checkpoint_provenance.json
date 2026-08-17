@@ -1,0 +1,13 @@
+{
+  "contract_version": "checkpoint_provenance_v1",
+  "status": "checkpoint_lineage_verified",
+  "engineering_checkpoint_only": false,
+  "model_key": "M3",
+  "source_fold": 0,
+  "checkpoint": "/workspace/results/M3-CV3-OOF/fold_0/training/runs/foundation/weights/last.pt",
+  "checkpoint_sha256": "72dd3b4de83a88c44b83f494e8b59cfe77f5fd03e889338bdd4addc728f3f493",
+  "fold_metadata": "/workspace/results/M3-CV3-OOF/fold_0/fold_metadata.json",
+  "fold_metadata_sha256": "796c4a5c18eaaf320f1675ca6d719c8546b70548a9c1228ba64e473300d101ee",
+  "oof_metadata": "/workspace/results/M3-CV3-OOF-aggregate/oof_metadata.json",
+  "oof_metadata_sha256": "a533aeab880d6d4da6e916fa3331f680acc5362e0753769cccc83a48b622cfba"
+}
