@@ -56,3 +56,31 @@ audit.json / logs / status.txt。
 任务单 E_10K_PIPELINE_TASK.md 第 8 节还要求 M1/M3/组合分别测速。M1 完成后，
 M3（RT-DETR-L）同流程换 checkpoint + family=rtdetr 再跑一遍（M3 正式三折
 last.pt 已在服务器 `/workspace/results/M3-CV3-OOF/fold_0/training/runs/foundation/weights/last.pt`）。
+
+### 状态（2026-08-18 更新）
+
+- M1 正式测速 ✅（after-read p50=4.42s / p95=4.62s / max=4.63s，≤20s）
+- M3 正式测速 ✅（after-read p50=12.40s / p95=12.48s / max=12.50s，≤20s）
+- **组合正式实测 ⏳ 待跑**（入口已就绪，见下）
+
+### 组合测速入口（run_e_benchmark_combined.sh）
+
+组合系统 = M1 + M3 串行流水线（同一 10K 图依次过两模型后融合）。
+组合 after-read 预算 = M1 + M3 逐 run 加总，门禁 p50/p95/max ≤ 20s
+（现状预算加总 p50 = 4.42 + 12.40 = 16.82s，余量 1.19×）。
+
+```bash
+# 服务器 GPU 独占时执行（需要 M3 资产环境变量）：
+CHECKPOINT_M3=/workspace/results/M3-CV3-OOF/fold_0/training/runs/foundation/weights/last.pt \
+FOLD_METADATA_M3=/workspace/results/M3-CV3-OOF/fold_0/fold_metadata.json \
+OOF_METADATA_M3=/workspace/results/M3-CV3-OOF-aggregate/oof_metadata.json \
+EXPECTED_CHECKPOINT_SHA_M3=72dd3b4de83a88c44b83f494e8b59cfe77f5fd03e889338bdd4addc728f3f493 \
+EXPECTED_FOLD_META_SHA_M3=796c4a5c18eaaf320f1675ca6d719c8546b70548a9c1228ba64e473300d101ee \
+EXPECTED_OOF_META_SHA_M3=a533aeab880d6d4da6e916fa3331f680acc5362e0753769cccc83a48b622cfba \
+  bash scripts/server/run_e_benchmark_combined.sh
+```
+
+- 产出：`E-FORMAL-BENCHMARK-COMBINED/audit_combined.json`（逐图 M1+M3 加总 +
+  p50/p95/max + 门禁判定）+ 双合同/双 hardware + 回传包。
+- 注：组合预算加总口径是工程化 approximation；若官方要求"单模型内部
+  fuse 后组合"的并行口径，需 E 与官方确认后另写实现。
