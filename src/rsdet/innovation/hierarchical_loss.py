@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from ultralytics.utils.loss import E2EDetectLoss, v8DetectionLoss
+from ultralytics.utils.loss import E2ELoss, v8DetectionLoss
 from ultralytics.utils.tal import make_anchors
 
 from rsdet.innovation.coarse import COARSE_MAPPING, build_coarse_matrix
@@ -134,13 +134,15 @@ class HierarchicalCoarseLoss(v8DetectionLoss):
         )
 
 
-class HierarchicalE2ECoarseLoss(E2EDetectLoss):
+class HierarchicalE2ECoarseLoss(E2ELoss):
     """YOLO26 系列（end2end one2many/one2one 双分支）的层次粗类辅助损失。
 
     ultralytics 8.4.103 的 yolo26 系 Detect head 在训练时输出
-    ``{"one2many": ..., "one2one": ...}``，必须用 ``E2EDetectLoss`` 包装
-    （one2many 用 ``tal_topk=10``、one2one 用 ``tal_topk=1``），两个分支各自
-    使用 ``HierarchicalCoarseLoss``（粗类辅助并入 cls 分量，loss 仍 3 分量）。
+    ``{"one2many": ..., "one2one": ...}``，DetectionModel.init_criterion 为
+    ``E2ELoss``（带 o2m/o2o 权重衰减，one2many topk=10 / one2one topk=7,
+    topk2=1）。本类继承 ``E2ELoss`` 并把两个分支的 loss_fn 换成
+    ``HierarchicalCoarseLoss``（粗类辅助并入 cls 分量，各分支 loss 仍 3 分量，
+    E2ELoss.__call__ 的加权求和/验证兼容性保持与原生一致）。
     """
 
     def __init__(
@@ -156,9 +158,16 @@ class HierarchicalE2ECoarseLoss(E2EDetectLoss):
             coarse_mapping: 细类 -> 粗类索引（长度 = model.nc）。
             coarse_gain: 粗类辅助损失相对主 cls 损失的权重。
         """
-        self.one2many = HierarchicalCoarseLoss(
-            model, tal_topk=10, coarse_mapping=coarse_mapping, coarse_gain=coarse_gain
-        )
-        self.one2one = HierarchicalCoarseLoss(
-            model, tal_topk=1, coarse_mapping=coarse_mapping, coarse_gain=coarse_gain
-        )
+        mapping = tuple(coarse_mapping)
+        gain = float(coarse_gain)
+
+        def loss_fn(m: Any, tal_topk: int = 10, tal_topk2: int | None = None) -> HierarchicalCoarseLoss:
+            return HierarchicalCoarseLoss(
+                m,
+                tal_topk=tal_topk,
+                tal_topk2=tal_topk2,
+                coarse_mapping=mapping,
+                coarse_gain=gain,
+            )
+
+        super().__init__(model, loss_fn=loss_fn)
