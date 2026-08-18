@@ -41,9 +41,14 @@ def hierarchical_trainer(coarse_gain: float = 0.5, coarse_mapping: Sequence[int]
         def _setup_train(self) -> None:
             super()._setup_train()
             model = unwrap_model(self.model)
+            # criterion 可能是惰性属性（yolo26 系）：不存在则触发 init_criterion。
+            criterion = getattr(model, "criterion", None)
+            if criterion is None and hasattr(model, "init_criterion"):
+                criterion = model.init_criterion()
+                model.criterion = criterion
             # YOLO26 系（end2end one2many/one2one 双分支）用 E2E 包装；
             # 其余（v8/v11 等）直接用 HierarchicalCoarseLoss。
-            criterion_name = type(model.criterion).__name__ if model.criterion is not None else ""
+            criterion_name = type(criterion).__name__ if criterion is not None else ""
             if criterion_name in ("E2ELoss", "E2EDetectLoss"):
                 model.criterion = HierarchicalE2ECoarseLoss(
                     model, coarse_gain=coarse_gain, coarse_mapping=mapping
