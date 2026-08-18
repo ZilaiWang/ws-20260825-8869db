@@ -164,6 +164,7 @@ print(f"converted {len(rows)} predictions -> {dst}")
 PY
 "${PYTHON_BIN}" scripts/evaluate_experiment.py \
   --predictions "${RUN_ROOT}/oof_predictions_list.json" \
+  --formal-crop-manifest "${FORMAL_CROP}" \
   --model-key "${KEY}" --output "${RUN_ROOT}/evaluate_${KEY}.json" > /dev/null
 "${PYTHON_BIN}" scripts/analyze_experiment_errors.py \
   --cases "${RUN_ROOT}/evaluate_${KEY}.cases.json" \
