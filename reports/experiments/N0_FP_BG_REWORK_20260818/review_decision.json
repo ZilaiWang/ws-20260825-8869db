@@ -1,0 +1,33 @@
+{
+  "status": "review_gate_failed",
+  "manual_review_complete": true,
+  "repeat_consistency_gate_passed": false,
+  "minimum_repeat_consistency": 0.85,
+  "conflicting_proposal_count": 13,
+  "background_whitelist_admission": false,
+  "background_whitelist_count": 0,
+  "unique_reviewed_proposals": 268,
+  "card_label_counts": {
+    "clear_background": 39,
+    "duplicate_or_fragment_not_captured": 30,
+    "plausible_unlabeled_or_ambiguous_target": 221,
+    "poor_localization_of_known_target": 32
+  },
+  "labeled": 322,
+  "unlabeled": 0,
+  "label_counts": {
+    "plausible_unlabeled_or_ambiguous_target": 221,
+    "poor_localization_of_known_target": 32,
+    "clear_background": 39,
+    "duplicate_or_fragment_not_captured": 30
+  },
+  "repeat_pairs_total": 54,
+  "repeat_pairs_consistent": 41,
+  "repeat_pairs_incomplete": 0,
+  "repeat_consistency_rate": 0.7592592592592593,
+  "input_sha256": {
+    "decisions": "08f811d5cea5bded4cd3fdf8d50bc65b852582e59c59f98ab74b48a5c38437a7",
+    "sealed_mapping": "0a2a32a40a860878150432ea8be45ca0839c6b337ce779ea536125a1a99bd669",
+    "audit_csv": "224ca6c9175e6c81f71e1ab7b9ddb85a15e1656be10484ded826e59de87f4330"
+  }
+}
