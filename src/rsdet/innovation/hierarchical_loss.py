@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
-from ultralytics.utils.loss import v8DetectionLoss
+from ultralytics.utils.loss import E2EDetectLoss, v8DetectionLoss
 from ultralytics.utils.tal import make_anchors
 
 from rsdet.innovation.coarse import COARSE_MAPPING, build_coarse_matrix
@@ -131,4 +131,34 @@ class HierarchicalCoarseLoss(v8DetectionLoss):
             (fg_mask, target_gt_idx, target_bboxes, anchor_points, stride_tensor),
             loss,
             loss.detach(),
+        )
+
+
+class HierarchicalE2ECoarseLoss(E2EDetectLoss):
+    """YOLO26 系列（end2end one2many/one2one 双分支）的层次粗类辅助损失。
+
+    ultralytics 8.4.103 的 yolo26 系 Detect head 在训练时输出
+    ``{"one2many": ..., "one2one": ...}``，必须用 ``E2EDetectLoss`` 包装
+    （one2many 用 ``tal_topk=10``、one2one 用 ``tal_topk=1``），两个分支各自
+    使用 ``HierarchicalCoarseLoss``（粗类辅助并入 cls 分量，loss 仍 3 分量）。
+    """
+
+    def __init__(
+        self,
+        model: Any,
+        coarse_mapping: tuple[int, ...] = COARSE_MAPPING,
+        coarse_gain: float = 0.5,
+    ) -> None:
+        """初始化 E2E 双分支层次损失。
+
+        Args:
+            model: ultralytics ``DetectionModel``（须 de-paralleled）。
+            coarse_mapping: 细类 -> 粗类索引（长度 = model.nc）。
+            coarse_gain: 粗类辅助损失相对主 cls 损失的权重。
+        """
+        self.one2many = HierarchicalCoarseLoss(
+            model, tal_topk=10, coarse_mapping=coarse_mapping, coarse_gain=coarse_gain
+        )
+        self.one2one = HierarchicalCoarseLoss(
+            model, tal_topk=1, coarse_mapping=coarse_mapping, coarse_gain=coarse_gain
         )

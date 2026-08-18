@@ -30,7 +30,10 @@ def hierarchical_trainer(coarse_gain: float = 0.5, coarse_mapping: Sequence[int]
     from ultralytics.utils.torch_utils import unwrap_model
 
     from rsdet.innovation.coarse import COARSE_MAPPING
-    from rsdet.innovation.hierarchical_loss import HierarchicalCoarseLoss
+    from rsdet.innovation.hierarchical_loss import (
+        HierarchicalCoarseLoss,
+        HierarchicalE2ECoarseLoss,
+    )
 
     mapping = tuple(coarse_mapping) if coarse_mapping is not None else COARSE_MAPPING
 
@@ -38,7 +41,16 @@ def hierarchical_trainer(coarse_gain: float = 0.5, coarse_mapping: Sequence[int]
         def _setup_train(self) -> None:
             super()._setup_train()
             model = unwrap_model(self.model)
-            model.criterion = HierarchicalCoarseLoss(model, coarse_gain=coarse_gain, coarse_mapping=mapping)
+            # YOLO26 系（end2end one2many/one2one 双分支）用 E2E 包装；
+            # 其余（v8/v11 等）直接用 HierarchicalCoarseLoss。
+            if getattr(model, "criterion", None) is not None and type(model.criterion).__name__ == "E2EDetectLoss":
+                model.criterion = HierarchicalE2ECoarseLoss(
+                    model, coarse_gain=coarse_gain, coarse_mapping=mapping
+                )
+            else:
+                model.criterion = HierarchicalCoarseLoss(
+                    model, coarse_gain=coarse_gain, coarse_mapping=mapping
+                )
 
     _HierarchicalTrainer.__name__ = "HierarchicalTrainer"
     return _HierarchicalTrainer
