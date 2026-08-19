@@ -44,16 +44,29 @@ def _resolve(path: str | Path, base: Path) -> Path:
     return result.resolve()
 
 
-def build_dataset_yaml(split_view: Path, data_root: Path, output_dir: Path) -> Path:
-    """从 split_view.json 生成 ultralytics dataset.yaml 与 train/val 路径表。"""
+def build_dataset_yaml(split_view: Path, data_root: Path, output_dir: Path,
+                       hard_image_ids: set[int] | None = None) -> Path:
+    """从 split_view.json 生成 ultralytics dataset.yaml 与 train/val 路径表。
+
+    hard_image_ids: E7 困难样本课程——这些图在 train.txt 中重复出现,
+    使模型以更高频率采样困难图(默认重复 1 次 = 权重 2x)。
+    """
     view = json.loads(split_view.read_text(encoding="utf-8"))
     samples = view.get("samples")
     if not isinstance(samples, list) or not samples:
         raise ValueError("split_view.json 缺少 samples")
+    id_to_rel = {int(s["image_id"]): s["relative_path"] for s in samples}
     train_rel = [s["relative_path"] for s in samples if s.get("split") == "train"]
     val_rel = [s["relative_path"] for s in samples if s.get("split") == "val"]
     if not train_rel or not val_rel:
         raise ValueError(f"split view 训练 {len(train_rel)} / 验证 {len(val_rel)} 有空集合")
+
+    if hard_image_ids:
+        hard_rel = [id_to_rel[i] for i in hard_image_ids if i in id_to_rel]
+        if hard_rel:
+            logger.info("E7 困难课程: %d 张困难图重复 1 次(训练图 %d→%d)",
+                        len(hard_rel), len(train_rel), len(train_rel) + len(hard_rel))
+            train_rel = train_rel + hard_rel
 
     output_dir.mkdir(parents=True, exist_ok=True)
     train_txt = output_dir / "train.txt"
@@ -196,6 +209,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
     parser.add_argument("--coph-presence-gain", type=float, default=1.0, help="E8 COPH 存在性正则权重")
     parser.add_argument("--coph-coarse-gain", type=float, default=0.0, help="E8 COPH 粗类辅助权重(默认关)")
+    parser.add_argument("--hard-curriculum", type=Path, default=None,
+                        help="E7 困难样本课程 JSON(目标清单, 这些图训练重复 1 次)")
     parser.add_argument("--suff-json", type=Path, default=None, help="Y4 充分度表(afss_diagnose.py 输出)")
     parser.add_argument("--easy-floor", type=float, default=0.05, help="Y4 容易图最低回看权重")
     parser.add_argument("--rotate90-p", type=float, default=1.0, help="Y5 旋转概率")
@@ -212,7 +227,13 @@ def main(argv: list[str] | None = None) -> int:
     split_view = _resolve(config["data"]["manifest"], args.config)
     weights = _resolve(config["model"]["weights"], args.config)
 
-    dataset_yaml = build_dataset_yaml(split_view, data_root, output_dir)
+    hard_image_ids: set[int] | None = None
+    if args.hard_curriculum is not None:
+        hard_image_ids = {int(r["image_id"]) for r in json.loads(
+            Path(args.hard_curriculum).read_text(encoding="utf-8"))}
+        logger.info("E7 困难课程: 加载 %d 个困难目标, %d 张图",
+                    len(hard_image_ids), 0)
+    dataset_yaml = build_dataset_yaml(split_view, data_root, output_dir, hard_image_ids)
     arguments = _build_train_arguments(config, dataset_yaml)
     _write_resolved_config(config, output_dir)
 
