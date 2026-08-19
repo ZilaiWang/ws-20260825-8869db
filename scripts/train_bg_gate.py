@@ -254,10 +254,17 @@ def train_one_fold(
             x = (x / 255.0 - mean) / std
             labels_t = torch.tensor(labels, dtype=torch.float32, device=device_obj)
             out = model(x)
-            # 粗类宏均衡 BCE：每个样本用其粗类条件 logit 计算损失。
-            logits = torch.stack(
-                [out.fg_logit(coarse).squeeze(1) for coarse in coarses], dim=0
+            # 粗类宏均衡 BCE：每个样本用其自身粗类条件 logit 计算损失。
+            # out.fg_logit(coarse) 返回整批在该粗类列的 logit（S2 口径），
+            # 这里按样本自身粗类逐行取索引，避免整列错配（B×B 维度错误）。
+            coarse_idx = torch.tensor(
+                [COARSE_CLASSES.index(c) for c in coarses],
+                dtype=torch.long,
+                device=device_obj,
             )
+            batch_idx = torch.arange(x.shape[0], device=device_obj)
+            residual = out.coarse_logits[batch_idx, coarse_idx].unsqueeze(1)
+            logits = (out.shared_logit + residual).squeeze(1)
             loss = loss_fn(logits, labels_t)
             optimizer.zero_grad()
             loss.backward()
