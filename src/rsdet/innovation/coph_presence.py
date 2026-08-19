@@ -50,11 +50,11 @@ class CophPresenceLoss(HierarchicalCoarseLoss):
 
         if fg_mask.sum() > 0 and self.presence_gain > 0.0:
             pred_scores = preds["scores"].permute(0, 2, 1).contiguous()
-            # 类别无关存在性: 每个锚点的 max 类概率
-            max_prob = pred_scores.sigmoid().amax(dim=-1)  # (bs, na)
-            presence_targets = torch.ones_like(max_prob[fg_mask])
-            presence_loss = F.binary_cross_entropy(
-                max_prob[fg_mask].to(loss.dtype), presence_targets.to(loss.dtype)
+            # 类别无关存在性: 每个锚点的 max 类 logit(BCEWithLogits, AMP 安全)
+            max_logit = pred_scores.amax(dim=-1)  # (bs, na)
+            presence_targets = torch.ones_like(max_logit[fg_mask])
+            presence_loss = F.binary_cross_entropy_with_logits(
+                max_logit[fg_mask].to(loss.dtype), presence_targets.to(loss.dtype)
             )
             loss[1] = loss[1] + self.presence_gain * presence_loss
 
