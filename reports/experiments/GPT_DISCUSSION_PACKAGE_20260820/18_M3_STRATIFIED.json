@@ -1,0 +1,34 @@
+{
+  "n_hard_positives": 1313,
+  "by_class": {
+    "ship": 221,
+    "vehicle": 56,
+    "aircraft": 1036
+  },
+  "by_size": {
+    "small": 854,
+    "tiny": 64,
+    "medium": 388,
+    "large": 7
+  },
+  "by_fold": {
+    "1": 324,
+    "2": 405,
+    "0": 584
+  },
+  "source_group_n": 126,
+  "source_group_top": {
+    "mar20-airport-proxy-018": 259,
+    "mar20-airport-proxy-051": 85,
+    "mar20-airport-proxy-036": 66,
+    "mar20-airport-proxy-015": 60,
+    "mar20-airport-proxy-041": 39,
+    "mar20-airport-proxy-013": 33,
+    "mar20-airport-proxy-034": 33,
+    "mar20-airport-proxy-040": 32,
+    "mar20-airport-proxy-022": 29,
+    "mar20-airport-proxy-023": 28
+  },
+  "vehicle_hard_positives": 56,
+  "tiny_hard_positives": 64
+}
