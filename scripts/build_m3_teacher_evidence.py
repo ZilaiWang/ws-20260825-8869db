@@ -153,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         fold, group = id2meta.get(image_id, (-1, "unknown"))
         m1_used: set[int] = set()
         m3_used: set[int] = set()
-        for gt in gts:
+        for gt_index, gt in enumerate(gts):
             thr = iou_thresholds[int(gt["category_id"])]
             m1_hit, _ = _best_match(gt, m1_preds, thr, m1_used)
             m3_hit, m3_iou = _best_match(gt, m3_preds, thr, m3_used)
@@ -161,8 +161,12 @@ def main(argv: list[str] | None = None) -> int:
                 # hard positive：M1 漏检、M3 找回
                 coarse = protocol.category_mapping[int(gt["category_id"])]
                 se = _short_edge(list(gt["bbox_xyxy"]))
+                # 对象级 annotation_uid（来自 formal manifest），同一张图多个目标不共享。
+                obj = formal.objects.get((image_id, gt_index))
+                annotation_uid = obj.annotation_uid if obj else f"i{image_id}-gt{gt_index}"
                 row = {
-                    "gt_uid": str(gt.get("uid", f"i{image_id}-gt")),
+                    "gt_uid": str(annotation_uid),
+                    "annotation_uid": str(annotation_uid),
                     "image_id": image_id,
                     "fold": fold,
                     "source_group": group,

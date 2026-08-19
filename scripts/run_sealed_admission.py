@@ -59,8 +59,19 @@ def _applied_fp_bg_removed(mode_json: dict[str, Any]) -> int:
     return sum(1 for r in _applied_removed_by(mode_json, "applied_removed") if r["is_fp_bg"])
 
 
-def _applied_tp_removed(mode_json: dict[str, Any]) -> int:
-    return sum(1 for r in _applied_removed_by(mode_json, "applied_removed") if r["is_tp"])
+def _applied_tp_removed(
+    mode_json: dict[str, Any], exclude_shadow_coarse: bool = True
+) -> int:
+    """统计被门控删除的 TP。
+
+    exclude_shadow_coarse=True 时排除 aircraft（部署旁路合同：
+    config active_coarse_first_round=[ship, vehicle]），因为 aircraft 的删除
+    仅作 shadow 报数，不应触发 g7 zero-tp-loss 门禁。
+    """
+    records = _applied_removed_by(mode_json, "applied_removed")
+    if exclude_shadow_coarse:
+        records = [r for r in records if not r.get("shadow_coarse", False)]
+    return sum(1 for r in records if r["is_tp"])
 
 
 def _per_fold_applied_fp_bg(mode_json: dict[str, Any]) -> dict[int, int]:

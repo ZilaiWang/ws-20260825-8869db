@@ -298,6 +298,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         heldout_fp_bg = sum(1 for sample in heldout_samples if sample.is_fp_bg)
         heldout_tp = sum(1 for sample in heldout_samples if sample.is_tp)
         # held-out 应用拟合出的校准器：q < tau_drop 即被删除（OOF 泛化口径明细）。
+        # shadow_coarse：aircraft 为部署旁路合同（config active_coarse_first_round=[ship,vehicle]），
+        # 其删除仅作 shadow 报数，不计入 g7 zero-tp-loss 门禁（见 run_sealed_admission.py）。
         applied_removed: list[dict[str, Any]] = []
         for sample in sorted(heldout_samples, key=lambda s: s.score, reverse=True):
             q = calibrate_q(sample.score, sample.fg_logit, sample.coarse, calibration)
@@ -313,6 +315,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "q": q,
                         "is_tp": sample.is_tp,
                         "is_fp_bg": sample.is_fp_bg,
+                        "shadow_coarse": sample.coarse == "aircraft",
                     }
                 )
         heldout_fp_bg_by_coarse: dict[str, int] = {}
