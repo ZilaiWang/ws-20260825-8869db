@@ -1,0 +1,98 @@
+contract_version: r1_aircraft_refinement_v1
+experiment_id: E4-FGR-AIRCRAFT-REFINEMENT-Y5
+project_config: configs/project.yaml
+
+inputs:
+  training_manifest: outputs/N2-PROPO-CROP-v2/proposal_crop_manifest.csv
+  training_manifest_sha256: bf1bc8fe3db193dfaac6900ec35f0c1c9df16be25ed782535e13490de148e5a4
+  inference_manifest: /tmp/y5_proposal_inference_manifest.csv
+  inference_manifest_sha256: 9aef15009a73a5e3ee4f92f10901902a0c164b04194187329053b5531bf052de
+  base_logits_sha256:
+    "0": 45701eb30a2bf7ee0e14aa21ef6f998422f45fc1f7126ca227d4d3e9d3b8cd00
+    "1": 72c803e7db8728ea192788c27d49fdda385005860c516216f5970ef807c948a5
+    "2": 5953b1c7660f06d3e68e789fc98b033ad09c8cc0fe35b930d7f92ff0e284e7f7
+  formal_crop_manifest: outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  y1_calibration_result: outputs/Y1-CROSSFIT-CALIBRATION-V1/calibration_result.json
+  y1_calibration_result_sha256: 8b9e7a8618b77d167a40bdc2eaf01a9463e9cf8489fdfca7aed1b0059b7b3c12
+  convnext_weight_sha256: 983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d
+  p03_checkpoint_sha256:
+    "0": 243d96481f4c6b8c0048c72484b5f395cd2f0c5ba55d103c9b6b665ac4981f54
+    "1": bd56974d6598d4f104f11d75fa38b5771e2c20acd55858d1becc26c7a66a7fb7
+    "2": eb0a13b3f97c42098ff5ba4bcef5deefcf8f0f5604b346e2c9289fa4246a1c10
+  expected_images: 4481
+  expected_annotations: 20933
+  expected_counts:
+    training_aircraft_rows: 17948
+    inference_aircraft_rows: 32062
+
+training:
+  methods: [ce, selective_anchor_kd]
+  primary_method: selective_anchor_kd
+  initialization: fold_specific_P03_fixed_epoch30
+  epochs: 5
+  checkpoint_selection: fixed_epoch_last_no_heldout_evaluation
+  seed: 42
+  backbone_lr: 2.0e-5
+  head_lr: 1.0e-4
+  weight_decay: 0.05
+  label_smoothing: 0.05
+  grad_clip_norm: 1.0
+  kd_temperature: 2.0
+  kd_weight: 0.5
+  kd_selection: teacher_correct_samples_only
+  augmentation: uniform_random_D4
+  sampling: natural
+
+runtime:
+  torch_version: 2.5.1
+  torchvision_version: 0.20.1
+  cuda_runtime: "12.1"
+  train_batch_size: 96
+  inference_object_batch_size: 16
+  num_workers: 8
+  amp: fp16
+
+search:
+  min_top_probabilities: [0.55, 0.70, 0.85]
+  min_margins: [0.10, 0.25]
+  fusion_alphas: [0.10, 0.25]
+  gated_fusion_alpha: 0.20
+  threshold_start: 0.001
+  threshold_stop: 0.301
+  threshold_step: 0.01
+  maximum_selection_recall_drop: 0.003
+  probability_semantics: p_fine_class_given_detector_aircraft_route
+
+conditions:
+  reference: p03_identity
+  primary: selective_anchor_kd_d4
+  ablations:
+    - p03_d4
+    - ce_identity
+    - ce_d4
+    - selective_anchor_kd_identity
+
+decision_gates:
+  official_recall_min: 0.85
+  official_fdr_max: 0.20
+  aircraft_macro_recall_tolerance: 0.002
+  aircraft_macro_fdr_tolerance: 0.002
+  require_nonnegative_net_tp: true
+  require_exact_ship_vehicle_parity: true
+
+scientific_scope:
+  level: iterative_oof_development
+  formal_admission_before_run: false
+  primary_hypothesis: >-
+    Proposal-domain adaptation with correct-teacher selective anchoring and D4
+    probability averaging improves aircraft fine classification over the frozen
+    P03 aircraft-only reference while ship and vehicle remain bitwise-routed
+    through their original path.
+  exclusions:
+    - no background rejector
+    - no bbox refinement
+    - no detector retraining
+    - no cross-coarse relabel
+    - no held-out checkpoint selection
+    - no class-balanced sampling
