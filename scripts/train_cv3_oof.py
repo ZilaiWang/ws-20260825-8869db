@@ -189,11 +189,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # 创新训练期模块（材料 19 Y3/Y4/Y5）
     parser.add_argument(
         "--innovation",
-        choices=("none", "y3", "y4", "y5"),
+        choices=("none", "y3", "y4", "y5", "coph"),
         default="none",
-        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强",
+        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则",
     )
     parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
+    parser.add_argument("--coph-presence-gain", type=float, default=1.0, help="E8 COPH 存在性正则权重")
+    parser.add_argument("--coph-coarse-gain", type=float, default=0.0, help="E8 COPH 粗类辅助权重(默认关)")
     parser.add_argument("--suff-json", type=Path, default=None, help="Y4 充分度表(afss_diagnose.py 输出)")
     parser.add_argument("--easy-floor", type=float, default=0.05, help="Y4 容易图最低回看权重")
     parser.add_argument("--rotate90-p", type=float, default=1.0, help="Y5 旋转概率")
@@ -242,6 +244,21 @@ def main(argv: list[str] | None = None) -> int:
 
         logger.info("启用 Y5 90° 旋转增强 (p=%.2f)", args.rotate90_p)
         model.train(augmentations=rotate90_augmentations(p=args.rotate90_p), **arguments)
+    elif innovation == "coph":
+        from rsdet.innovation.coph_presence import coph_trainer
+
+        logger.info(
+            "启用 E8 COPH 存在性正则 (presence_gain=%.2f, coarse_gain=%.2f)",
+            args.coph_presence_gain,
+            args.coph_coarse_gain,
+        )
+        model.train(
+            trainer=coph_trainer(
+                coarse_gain=args.coph_coarse_gain,
+                presence_gain=args.coph_presence_gain,
+            ),
+            **arguments,
+        )
     else:
         model.train(**arguments)
 
