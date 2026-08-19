@@ -126,7 +126,7 @@ class E2EPresenceLoss:
         coarse_gain: float = 0.5,
         presence_gain: float = 1.0,
     ) -> None:
-        from ultralytics.models.yolo.detect.loss import E2ELoss
+        from ultralytics.utils.loss import E2ELoss
 
         mapping = tuple(coarse_mapping)
         gain = float(coarse_gain)
