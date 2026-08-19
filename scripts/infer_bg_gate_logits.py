@@ -18,7 +18,6 @@ from typing import Any, Mapping, Sequence
 from rsdet.analysis.background_gate import (
     COARSE_CLASSES,
     INPUT_RESOLUTION,
-    coarse_of_category_id,
     expand_context_bbox,
 )
 from rsdet.analysis.background_gate_manifest import (

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from scripts.evaluate_bg_gate import FitSample, fit_gate_calibration
 
 

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 # 三个粗类（官方协议排序）。
 COARSE_CLASSES: tuple[str, ...] = ("ship", "aircraft", "vehicle")

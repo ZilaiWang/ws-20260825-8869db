@@ -50,7 +50,6 @@ class ForegroundGateOutput:
 
     def fg_logit(self, coarse: str) -> Any:
         """返回某粗类的 ``shared + residual`` 前景 logit（S2 用）。"""
-        import torch
 
         index = COARSE_CLASSES.index(coarse)
         residual = self.coarse_logits[:, index : index + 1]
