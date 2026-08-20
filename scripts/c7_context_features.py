@@ -108,10 +108,32 @@ def main():
     spatial = nodes.groupby("image_id", group_keys=False).apply(spatial_neighbors)
     nodes = pd.concat([nodes, spatial], axis=1)
 
+    # 更细的空间关系: 局部密度(200px 半径)/相对面积/邻居类别一致性/top3 score
+    nodes["area"] = nodes["w"] * nodes["h"]
+    nodes["img_area_median"] = nodes.groupby("image_id")["area"].transform("median")
+    nodes["rel_area"] = nodes["area"] / (nodes["img_area_median"] + 1e-6)
+    nodes["img_top3_score"] = nodes.groupby("image_id")["y5_score"].transform(
+        lambda s: float(s.nlargest(3).mean()))
+    nodes["nn_same_cls"] = (nodes["same_cls_n"] > 0).astype(int)
+    nodes["nn_dist_log"] = np.log1p(nodes["nn_dist"])
+    # 200px 半径内候选数(局部密度)
+    def local_density_200(g):
+        cxs = g["cx"].to_numpy(); cys = g["cy"].to_numpy()
+        n = len(g)
+        out = np.zeros(n)
+        # 向量化: 距离矩阵
+        for i in range(n):
+            d = np.sqrt((cxs - cxs[i])**2 + (cys - cys[i])**2)
+            out[i] = (d < 200).sum() - 1
+        return pd.DataFrame({"local_density_200": out}, index=g.index)
+    ld = nodes.groupby("image_id", group_keys=False).apply(local_density_200)
+    nodes = pd.concat([nodes, ld], axis=1)
+
     CTX = ["rank_in_img", "img_n", "img_score_mean", "img_score_max",
            "img_oto_ratio", "img_d4_mean", "img_cls_entropy", "img_highconf_ratio",
-           "nn_dist", "nn_score", "same_cls_n"]
-    print(f"集合上下文特征: {CTX}")
+           "nn_dist_log", "nn_score", "same_cls_n", "nn_same_cls",
+           "rel_area", "img_top3_score", "local_density_200"]
+    print(f"集合上下文特征: {len(CTX)} 个")
 
     def train(feats):
         X = nodes[feats].to_numpy(dtype=float)
