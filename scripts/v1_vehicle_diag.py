@@ -102,9 +102,9 @@ def main():
         no_cand, total = no_cand_by_coarse(preds, formal, proto, fold_img)
         rows.append((name, len(preds), floor, no_cand, total))
         print(f"{name:12s} {len(preds):8d} {floor:11.4f} "
-              f"{no_cand.get('aircraft',0)}/{total.get('aircraft',0):>10s} "
-              f"{no_cand.get('ship',0)}/{total.get('ship',0):>7s} "
-              f"{no_cand.get('vehicle',0)}/{total.get('vehicle',0):>10s}")
+              f"{no_cand.get('aircraft',0)}/{total.get('aircraft',0)}"
+              f"   {no_cand.get('ship',0)}/{total.get('ship',0)}"
+              f"   {no_cand.get('vehicle',0)}/{total.get('vehicle',0)}")
 
     # vehicle 专项(如果有多模型对比)
     if len(rows) >= 2:
