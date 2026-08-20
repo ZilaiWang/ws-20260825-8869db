@@ -202,13 +202,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # 创新训练期模块（材料 19 Y3/Y4/Y5）
     parser.add_argument(
         "--innovation",
-        choices=("none", "y3", "y4", "y5", "coph"),
+        choices=("none", "y3", "y4", "y5", "coph", "dfd"),
         default="none",
-        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则",
+        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督",
     )
     parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
     parser.add_argument("--coph-presence-gain", type=float, default=1.0, help="E8 COPH 存在性正则权重")
     parser.add_argument("--coph-coarse-gain", type=float, default=0.0, help="E8 COPH 粗类辅助权重(默认关)")
+    parser.add_argument("--dfd-gain", type=float, default=1.0, help="E9/B4 DFD 密集前景监督权重")
+    parser.add_argument("--dfd-sigma-scale", type=float, default=0.15, help="DFD 高斯 sigma 相对 box 尺寸比例")
+    parser.add_argument("--dfd-focal-alpha", type=float, default=2.0, help="DFD focal 调制指数")
+    parser.add_argument("--dfd-neg-gamma", type=float, default=4.0, help="DFD 负样本 (1-heatmap)^gamma 调制")
     parser.add_argument("--hard-curriculum", type=Path, default=None,
                         help="E7 困难样本课程 JSON(目标清单, 这些图训练重复 1 次)")
     parser.add_argument("--suff-json", type=Path, default=None, help="Y4 充分度表(afss_diagnose.py 输出)")
@@ -277,6 +281,27 @@ def main(argv: list[str] | None = None) -> int:
             trainer=coph_trainer(
                 coarse_gain=args.coph_coarse_gain,
                 presence_gain=args.coph_presence_gain,
+            ),
+            **arguments,
+        )
+    elif innovation == "dfd":
+        from rsdet.innovation.dfd_presence import dfd_trainer
+
+        logger.info(
+            "启用 E9/B4 DFD 密集前景监督 (dfd_gain=%.2f, sigma_scale=%.2f, "
+            "presence_gain=%.2f)",
+            args.dfd_gain,
+            args.dfd_sigma_scale,
+            args.coph_presence_gain,
+        )
+        model.train(
+            trainer=dfd_trainer(
+                coarse_gain=args.coph_coarse_gain,
+                presence_gain=args.coph_presence_gain,
+                dfd_gain=args.dfd_gain,
+                dfd_sigma_scale=args.dfd_sigma_scale,
+                dfd_focal_alpha=args.dfd_focal_alpha,
+                dfd_neg_gamma=args.dfd_neg_gamma,
             ),
             **arguments,
         )
