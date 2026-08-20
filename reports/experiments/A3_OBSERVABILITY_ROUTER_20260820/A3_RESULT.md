@@ -35,3 +35,14 @@
 
 - scripts/a3_observability_router.py(机制验证) / a3_router_e2e.py(端到端)
 - /tmp/a3_router.json / /tmp/a3_router_e2e.json
+
+## Sentinel 泛化验证(排除 sentinel 图训练, 555 冻结图评估)
+
+| sentinel 图 | R@FDR=.12 | FDR@R=.94 |
+|---|---:|---:|
+| 基线 OER+NMS | 0.9698 | 0.0251 |
+| **全改 OER+NMS** | **0.9840(+1.42pp)** | **0.0190(−0.61pp)** |
+
+- 924 个改类, 799 corrected(86.5% 纠错率, 未见图上保持);
+- **改类收益泛化**: sentinel +1.42pp 与全量 +1.69pp 方向一致 → 非对旧 OOF 的记忆;
+- OER node_validity 排序能力 + crop 改类规则均泛化。
