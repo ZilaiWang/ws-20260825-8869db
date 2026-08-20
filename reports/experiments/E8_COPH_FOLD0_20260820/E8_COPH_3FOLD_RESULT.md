@@ -60,3 +60,15 @@ P(fine) AUC 在 COPH 上 0.9730(细类正确/错误高度可分)。
 - 三折 crop logits: /tmp/E8-COPH-CROP3-LOGITS/
 - 三折完整链: /tmp/COPH-3fold-safechain.json(+predictions)
 - sentinel: /tmp/sentinel-eval-coph-chain.json
+
+## Paired delta ledger(COPH 链 vs Y5 链, 对象级)
+
+| 项 | 值 |
+|---|---|
+| new_TP(COPH 新找回) | 193 |
+| broken_TP(COPH 弄丢) | 118 |
+| 净 TP | **+75**(Y5 20,337 → COPH 20,412) |
+| FP_BG_added | 11,687(候选扩增的 SoftRisk 后残余) |
+
+对象级确认: COPH 收益来自 193 个新找回真阳(细类不确定框被存在性正则保留),
+代价是 11,687 新增 FP + 118 个 broken TP。
