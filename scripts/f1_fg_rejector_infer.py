@@ -9,8 +9,6 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-import pandas as pd
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.background_gate import COARSE_CLASSES, expand_context_bbox
@@ -38,7 +36,7 @@ def main():
     from rsdet.models.background_gate_classifier import build_coarse_foreground_gate
     from rsdet.data.crop_classification import render_crop
 
-    nodes = pd.read_csv(args.nodes)
+    nodes = list(csv.DictReader(open(args.nodes, encoding="utf-8-sig")))
     preds4 = json.load(open(args.preds_d4))
     bbox_of = {p["proposal_uid"]: p["bbox_xyxy"] for p in preds4}
 
@@ -51,13 +49,15 @@ def main():
 
     # 候选行
     rows = []
-    for r in nodes.itertuples():
-        if r.proposal_uid not in bbox_of or r.image_id not in img_map:
+    for r in nodes:
+        uid = r["proposal_uid"]
+        img_id = int(r["image_id"])
+        if uid not in bbox_of or img_id not in img_map:
             continue
-        rel, fold = img_map[r.image_id]
-        rows.append({"proposal_uid": r.proposal_uid, "image_id": int(r.image_id),
-                     "fold": fold, "category_id": int(r.category_id),
-                     "bbox_xyxy": bbox_of[r.proposal_uid], "rel": rel})
+        rel, fold = img_map[img_id]
+        rows.append({"proposal_uid": uid, "image_id": img_id,
+                     "fold": fold, "category_id": int(r["category_id"]),
+                     "bbox_xyxy": bbox_of[uid], "rel": rel})
     print(f"候选: {len(rows)}")
 
     device = torch.device(args.device)
