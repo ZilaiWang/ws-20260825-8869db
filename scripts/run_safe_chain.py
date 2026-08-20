@@ -222,7 +222,11 @@ def main() -> int:
         "threshold_curves": curves,
         "components": ["R1-R3-fuse", "post-rerank-NMS", "soft-risk" if args.soft_risk else None],
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # 链后预测(供 sentinel/账本等下游消费)
+    pred_out = out.with_name(out.stem + "_predictions.json")
+    pred_out.write_text(json.dumps(preds, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"\n已写: {out}")
+    print(f"链后预测: {pred_out} ({len(preds)} 条)")
     return 0
 
 
