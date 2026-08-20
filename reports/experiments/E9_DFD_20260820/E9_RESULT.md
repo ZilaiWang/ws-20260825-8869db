@@ -77,3 +77,47 @@
 **建议先做 A**: DFD 的 candidate-floor 收益是真实的(+1.11pp), 问题在排序而非候选;
 OER(当前三折 0.9607 的排序核心)正是对症的强排序器。若 OER 链上 DFD 仍无增益,
 则 DFD 降级为可选增强, 主提交维持 Y5 + OER。
+
+---
+
+## DFD 三折 OER 完整链最终验证(22:20, 决定性结论)
+
+三折训练(fold1/2 补完)+ 三折推理 + 三折 crop(P03-F)+ 三折 OTO + OER cross-fit。
+
+| 链(全量 OOF, 三折 cross-fit) | R@FDR=.12 | R@FDR=.11 | FDR@R=.93 |
+|---|---:|---:|---:|
+| Y5 三折 OER 基础 | 0.9583 | 0.9560 | 0.0565 |
+| Y5 三折 OER + has_oto | **0.9607** | 0.9584 | 0.0572 |
+| DFD 三折 OER 基础 | 0.9577 | 0.9557 | 0.0611 |
+| DFD 三折 OER + has_oto | 0.9603 | 0.9581 | 0.0598 |
+| **Δ(DFD−Y5)** | **−0.04pp** | −0.03pp | — |
+
+sentinel(555 图): DFD 0.9884(未在 sentinel 上超 Y5 的 0.9847 之外的稳定增益)。
+
+## 决定性结论: DFD 不纳入主提交
+
+1. **candidate-floor +1.11pp 是真实的**(vehicle 17→3 / ship 29→17 / aircraft 79→23),
+   但它在 **OER 强排序链上没有转化为固定风险前沿增益**(−0.04pp);
+2. **与 SoftRisk 弱排序链(+0.23pp)的方向相反**——说明 DFD 救回的低对比真阳,
+   在 OER 的严格排序下被新增的 ~85K 候选(150,204 vs 65,301)带来的 FP 反噬;
+3. **这是 COPH 教训的第三次复现**(COPH −0.62pp / DFD 弱链 +0.23pp / DFD 强链 −0.04pp):
+   **扩候选(无论存在性正则还是密集前景监督)都无法提升"排序/裁决"质量**;
+4. **真正的瓶颈从来不是候选缺失,而是"对象级联合裁决"的上限**——OER 已是当前最强排序器,
+   在 150K 候选 vs 65K 候选上表现一致(说明 OER 本身已饱和, 不是数据量问题)。
+
+## 最终决策
+
+| 项 | 决策 |
+|---|---|
+| DFD 主提交 | ❌ 不纳入(candidate-floor 收益不转化为前沿增益) |
+| DFD 可选增强 | ⚠️ 仅在"vehicle/ship 低对比场景"有候选价值, 默认关闭 |
+| **主提交维持** | **Y5 + OER + 改类 + has_oto(R@FDR=.12 = 0.9607)** |
+| 下一步方向 | 不是再扩候选, 而是提升 OER 的裁决上限(OER-v1 DeepSets/图网络, 或 C 系列层次识别器) |
+
+## 产物
+
+- 权重: 服务器 /workspace/results/E9-DFD-FOLD{0,1,2}-40EP/
+- 三折候选: outputs/E9-DFD-FOLD0/DFD-fold{0,1,2}-preds.json(150,204)
+- 三折 crop logits: outputs/E9-DFD-FOLD0/crop3-logits/
+- 对象图: outputs/E9-DFD-FOLD0/object-graph/
+- OER 链: outputs/E9-DFD-FOLD0/dfd-oer-chain.json
