@@ -45,3 +45,41 @@
 - scripts/c3_counterfactual_field.py / c6_hard_confounder.py / c7_oer_v2_listwise.py
 - outputs/Y5-OER-RESTORE/fpn-feats/(三折 FPN 特征, 3200维, 已持久化)
 - outputs/Y5-OER-RESTORE/c3-counterfactual.json / c6-confounder.json / c7-listwise.json
+
+---
+
+## 追加: 深挖集合级证据(C7-lite 正向 / DeepSets 负, 2026-08-21 02:00-03:00)
+
+### C7-lite 手工集合上下文 —— ✅ 唯一正向(+0.26pp)
+
+| 特征数 | R@FDR=.12 | Δ |
+|---|---:|---:|
+| baseline(14特征) | 0.9616 | — |
+| +8 同图邻居统计 | 0.9635 | +0.19pp |
+| +11(空间邻居) | 0.9638 | +0.21pp |
+| **+15(局部密度/相对面积/top3)** | **0.9642** | **+0.26pp** |
+
+R@FDR=.11 更明显: 0.9591 → 0.9623(+0.32pp)。
+
+**结论**: 集合级证据(候选间关系)是 OER 唯一缺失的维度, 手工统计有效且
+趋势随特征丰富度持续上涨。
+
+### 真 DeepSets(Set-Attention)—— ❌ 训练退化
+
+- Set-Attention(点积注意力聚合邻居 + MLP), 三折 cross-fit, 30 epoch;
+- 纯排序质量: R@FDR=.12 = 0.1704(vs y5_score 0.9559, −0.79);
+- 分数分布退化: p25=0.449 中位=0.449 p75=0.451(大量候选挤在 0.45, 无区分度);
+- **失败原因**: 简单 Set-Attention + 30 epoch 训练不充分(BCE loss 0.21 不下降),
+  小集合(图内 1-2 候选)attention 无意义, class-balance 权重倾向输出常数;
+- **结论**: 学习性集合聚合需要更好的设计(更多 epoch/更好初始化/处理小集合),
+  手工统计(C7-lite)当前更可靠。
+
+### F-lite 家族感知改类 —— ❌ 无判别
+
+- crop 改类正确率: 家族一致 0.789 vs 不同 0.795(几乎无区分);
+- 家族标签不能区分"该改/不该改", F2-F5 需真正的属性组合分类器。
+
+### C4 结构证据(空间 grid FPN)—— ❌ 无效
+
+- closure 判别力 0.56(远弱于 y5_score 300x), OER +0.0002;
+- 根因: Y5 backbone/head 已用 FPN 特征, 空间 grid 无独立信息。
