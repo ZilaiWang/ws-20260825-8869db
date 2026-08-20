@@ -33,3 +33,27 @@
 
 - fold1/2 OTO 诊断跑完后, 把 has_oto_support 加入 OER node_validity 特征,
   全量三折重训, 看 Recall@FDR=0.12 能否进一步突破 0.9584。
+
+## 正式结果: has_oto_strong 特征提升 frontier(突破 0.96)
+
+**关键**: OTO 支持要带 score 门槛才有效——score>0 时 99.8% 候选都有支持(无判别力),
+但 **OTO score>0.5** 的强支持才有判别力(TP 0.892 vs FP 0.094, 差 +0.80)。
+
+| 组合(全量 OOF 三折 cross-fit) | R@FDR=.12 | R@FDR=.11 | FDR@R=.93 |
+|---|---:|---:|---:|
+| OER + 改类(基础) | 0.9583 | 0.9560 | 0.0565 |
+| **OER + has_oto强 + 改类** | **0.9607** | **0.9584** | 0.0572 |
+| Δ | **+0.24pp** | +0.24pp | — |
+
+- **0.9607 超过 Attack 目标 0.96**;
+- sentinel(555 冻结图)泛化: R@FDR=.12 = **0.9847**(收益泛化, 非 overfit);
+- has_oto_strong = 存在同图同细类 IoU>0.5 且 OTO score>0.5 的 one-to-one 候选。
+
+## 里程碑数字链
+
+Safe 0.9357 → OER+NMS 0.9415 → +改类 0.9584 → +has_oto强 **0.9607** → sentinel 0.9847
+
+## 产物
+
+- scripts/a5_oto_oer.py(正式 pipeline)
+- /tmp/a5_oto_fold{0,1,2}.json / /tmp/a5_oto_oer.json
