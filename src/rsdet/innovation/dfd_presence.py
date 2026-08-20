@@ -126,7 +126,7 @@ class DfdPresenceLoss(CophPresenceLoss):
             keep = torch.zeros_like(gt_cls, dtype=torch.bool)
             for c in self.only_classes:
                 keep = keep | (gt_cls == c)
-            mask_gt = mask_gt & keep.unsqueeze(-1)
+            mask_gt = mask_gt * keep.unsqueeze(-1).to(mask_gt.dtype)
 
         heatmap = self._build_center_heatmap(anchor_points, gt_bboxes, mask_gt, batch_size)
 
