@@ -48,3 +48,18 @@ FP 增量集中在 FP_CLS(+516, R3 融合职责)与 FP_DUP(+359, 全类 NMS 已�
 - fold0 预测: /tmp/COPH-fold0-preds.json(40,304 条)
 - fold0 crop logits: /tmp/E8-COPH-CROP-LOGITS/fold_0_logits.npz
 - 脚本: scripts/e8_coph_softrisk_verify.py(公平对比); run_safe_chain.py 增 --nms-all/单折CV/图域限制
+
+## 追加: COPH fold1 验证(2026-08-20 15:05)
+
+- fold1 候选 30,595(+45% vs Y5 fold1 21,152);
+- R3 融合(fold1): R=0.9533 F=0.1977(macroR +2.07pp vs D0);
+- **完整链(fold1 同口径 R3+NMS-all+SoftRisk)**:
+
+| 链 | t=0.1 R/F | t=0.2 R/F |
+|---|---|---|
+| Y5 fold1 | 0.9489 / 0.0916 | 0.9362 / 0.0578 |
+| **COPH fold1** | **0.9565 / 0.1122** | **0.9444 / 0.0776** |
+| Δ | **+0.76pp / +2.06pp** | **+0.82pp / +1.98pp** |
+
+**两折一致**: COPH Recall 稳定提升(fold0 +1.43pp / fold1 +0.76pp),
+FDR 代价 fold1 更小(+2.1pp vs +3.9pp)。fold2 训练中(等三折汇总)。
