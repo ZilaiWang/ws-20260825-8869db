@@ -114,12 +114,17 @@ def main() -> int:
     ap.add_argument("--formal-crop-manifest", required=True)
     ap.add_argument("--project-config", default="configs/project.yaml")
     ap.add_argument("--output", required=True)
+    ap.add_argument("--folds", default="0,1,2", help="加载 logits 的折(逗号分隔, 单折场景如 COPH 可传 0)")
+    ap.add_argument("--variant", default=None,
+                    help="跳过 cross-fit, 直接应用指定变体(如 R3_fuse_a0.40)——单折/诊断场景")
     args = ap.parse_args()
+
+    folds = tuple(int(f) for f in args.folds.split(",") if f.strip())
 
     config = load_config(args.config)
     records = load_proposal_manifest(args.manifest)
     print(f"proposals: {len(records)}")
-    logits = load_logits(args.logits_dir, records)
+    logits = load_logits(args.logits_dir, records, folds=folds)
     probabilities = logits_to_probabilities(logits)
     proto = parse_evaluation_protocol(load_config(args.project_config))
     variants = build_variants(config["search"])
@@ -136,48 +141,61 @@ def main() -> int:
     gt = load_gt_from_formal_crop_manifest(args.formal_crop_manifest,
                                            expected_images=4481, expected_annotations=20933)
 
-    # 三折 cross-fit: 两折选变体+阈值, 评估第三折
-    per_fold: list[dict] = []
-    merged_best: dict[int, list[dict]] = {}
-    for held in (0, 1, 2):
-        sel_ids = [i for i in all_ids if image_folds[i] != held]
-        val_ids = [i for i in all_ids if image_folds[i] == held]
-        sel_gt = {i: gt[i] for i in sel_ids}
-        candidates = []
-        for v in variants:
-            t, m = scan_threshold(sel_gt, {i: transformed[v.name][i] for i in sel_ids}, proto)
-            candidates.append({"variant": v.name, "threshold": t, "selection": m})
-        # 选: 达标且 recall drop <=0.005, 按 macro_recall 优先
-        base = next(c for c in candidates if c["variant"] == "D0_detector")
-        best = None
-        for c in candidates:
-            eligible = (c["selection"]["recall"] >= base["selection"]["recall"] - 0.005
-                        and c["selection"]["fdr"] <= base["selection"]["fdr"] + 1e-12
-                        and c["selection"]["recall"] >= proto.recall_min
-                        and c["selection"]["fdr"] <= proto.fdr_max)
-            if eligible:
-                key = c["selection"]["macro_recall"]
-                if best is None or key > best[0]:
-                    best = (key, c)
-        chosen = best[1] if best else base
-        val_preds = {i: transformed[chosen["variant"]][i] for i in val_ids}
-        t, m = scan_threshold({i: gt[i] for i in val_ids}, val_preds, proto)
-        per_fold.append({"held_out": held, "variant": chosen["variant"],
-                         "threshold": chosen["threshold"], "val_metric": m})
-        # 记录 chosen 变体在 held-out 上的预测(用于 merged)
-        for i in val_ids:
-            merged_best[i] = transformed[chosen["variant"]][i]
-        print(f"fold{held}: variant={chosen['variant']} t={chosen['threshold']:.3f} "
-              f"R={m['recall']:.4f} F={m['fdr']:.4f} macroR={m['macro_recall']:.4f} "
-              f"airR={m['aircraft_recall']:.4f}")
+    # 指定变体: 跳过 cross-fit, 直接应用(单折/诊断场景)
+    if args.variant:
+        if args.variant not in transformed:
+            raise ValueError(f"未知变体 {args.variant}, 可选: {sorted(transformed)}")
+        merged_best = transformed[args.variant]
+        gt_subset = {i: gt[i] for i in all_ids}  # 只评估 manifest 覆盖的图
+        t_all, m_all = scan_threshold(gt_subset, merged_best, proto)
+        print(f"\n=== 指定变体 {args.variant}: R={m_all['recall']:.4f} F={m_all['fdr']:.4f} "
+              f"macroR={m_all['macro_recall']:.4f} aircraftR={m_all['aircraft_recall']:.4f} ===")
+        per_fold: list[dict] = []
 
-    # 合并三折(各折用其 chosen 变体)
-    t_all, m_all = scan_threshold(gt, merged_best, proto)
-    print(f"\n=== E1 合并(各折选变体): R={m_all['recall']:.4f} F={m_all['fdr']:.4f} "
-          f"macroR={m_all['macro_recall']:.4f} aircraftR={m_all['aircraft_recall']:.4f} ===")
+    # 三折 cross-fit: 两折选变体+阈值, 评估第三折
+    else:
+        per_fold = []
+        merged_best = {}
+        for held in (0, 1, 2):
+            sel_ids = [i for i in all_ids if image_folds[i] != held]
+            val_ids = [i for i in all_ids if image_folds[i] == held]
+            sel_gt = {i: gt[i] for i in sel_ids}
+            candidates = []
+            for v in variants:
+                t, m = scan_threshold(sel_gt, {i: transformed[v.name][i] for i in sel_ids}, proto)
+                candidates.append({"variant": v.name, "threshold": t, "selection": m})
+            # 选: 达标且 recall drop <=0.005, 按 macro_recall 优先
+            base = next(c for c in candidates if c["variant"] == "D0_detector")
+            best = None
+            for c in candidates:
+                eligible = (c["selection"]["recall"] >= base["selection"]["recall"] - 0.005
+                            and c["selection"]["fdr"] <= base["selection"]["fdr"] + 1e-12
+                            and c["selection"]["recall"] >= proto.recall_min
+                            and c["selection"]["fdr"] <= proto.fdr_max)
+                if eligible:
+                    key = c["selection"]["macro_recall"]
+                    if best is None or key > best[0]:
+                        best = (key, c)
+            chosen = best[1] if best else base
+            val_preds = {i: transformed[chosen["variant"]][i] for i in val_ids}
+            t, m = scan_threshold({i: gt[i] for i in val_ids}, val_preds, proto)
+            per_fold.append({"held_out": held, "variant": chosen["variant"],
+                             "threshold": chosen["threshold"], "val_metric": m})
+            # 记录 chosen 变体在 held-out 上的预测(用于 merged)
+            for i in val_ids:
+                merged_best[i] = transformed[chosen["variant"]][i]
+            print(f"fold{held}: variant={chosen['variant']} t={chosen['threshold']:.3f} "
+                  f"R={m['recall']:.4f} F={m['fdr']:.4f} macroR={m['macro_recall']:.4f} "
+                  f"airR={m['aircraft_recall']:.4f}")
+
+        # 合并三折(各折用其 chosen 变体)
+        t_all, m_all = scan_threshold(gt, merged_best, proto)
+        print(f"\n=== E1 合并(各折选变体): R={m_all['recall']:.4f} F={m_all['fdr']:.4f} "
+              f"macroR={m_all['macro_recall']:.4f} aircraftR={m_all['aircraft_recall']:.4f} ===")
 
     # D0 基线(全量, 无重排)
-    _, m_d0 = scan_threshold(gt, transformed["D0_detector"], proto)
+    gt_baseline = gt_subset if args.variant else gt
+    _, m_d0 = scan_threshold(gt_baseline, transformed["D0_detector"], proto)
     print(f"D0 基线: R={m_d0['recall']:.4f} F={m_d0['fdr']:.4f} "
           f"macroR={m_d0['macro_recall']:.4f} aircraftR={m_d0['aircraft_recall']:.4f}")
 

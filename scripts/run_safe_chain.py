@@ -36,8 +36,12 @@ AIRCRAFT_CIDS = list(range(4, 24))
 THRESHOLDS = (0.05, 0.1, 0.2)
 
 
-def post_rerank_nms(preds: list[dict], iou_thr: float = 0.5) -> list[dict]:
-    """aircraft 同细类 NMS(按 score 降序贪心; 只抑制 aircraft 同细类高 IoU 框)。"""
+def post_rerank_nms(preds: list[dict], iou_thr: float = 0.5, all_classes: bool = False) -> list[dict]:
+    """同细类 NMS(按 score 降序贪心)。
+
+    ``all_classes=False`` 只抑制 aircraft(默认, 兼容 R1 链);
+    ``all_classes=True`` 对所有细类抑制(COPH 候选 ship/vehicle 重复框同样需要压)。
+    """
     pb: dict[int, list[dict]] = defaultdict(list)
     for p in preds:
         pb[p["image_id"]].append(p)
@@ -49,7 +53,7 @@ def post_rerank_nms(preds: list[dict], iou_thr: float = 0.5) -> list[dict]:
             if i in suppressed:
                 continue
             kept.append(p)
-            if p["category_id"] not in AIRCRAFT_CIDS:
+            if not all_classes and p["category_id"] not in AIRCRAFT_CIDS:
                 continue
             for j, q in ordered:
                 if j == i or j in suppressed or q["category_id"] != p["category_id"]:
@@ -59,13 +63,19 @@ def post_rerank_nms(preds: list[dict], iou_thr: float = 0.5) -> list[dict]:
     return kept
 
 
-def evaluate(preds: list[dict], formal: Any, proto: Any, threshold: float) -> dict:
+def evaluate(preds: list[dict], formal: Any, proto: Any, threshold: float,
+             image_ids: set[int] | None = None) -> dict:
+    """官方细类口径评估。``image_ids`` 限制评估图域(单折场景用预测覆盖的图)。"""
     pb: dict[int, list[dict]] = defaultdict(list)
     for p in preds:
         pb[p["image_id"]].append(p)
+    if image_ids is None:
+        image_ids = set(pb)
     used: dict[int, set[int]] = defaultdict(set)
     tp = fn = 0
     for img_id, gts in formal.boxes.items():
+        if img_id not in image_ids:
+            continue
         plist = [p for p in pb.get(img_id, []) if p["score"] >= threshold]
         ordered = sorted(enumerate(plist), key=lambda t: -t[1]["score"])
         for g in gts:
@@ -100,6 +110,8 @@ def main() -> int:
     ap.add_argument("--formal-crop-manifest", required=True)
     ap.add_argument("--project-config", default="configs/project.yaml")
     ap.add_argument("--nms-iou", type=float, default=0.5)
+    ap.add_argument("--nms-all", action="store_true",
+                    help="全细类 NMS(COPH 候选场景; 默认仅 aircraft)")
     ap.add_argument("--soft-risk", action="store_true", help="启用 E3 Soft-Risk 重排")
     ap.add_argument("--beta", type=float, default=0.5)
     ap.add_argument("--clip-c", type=float, default=3.0)
@@ -114,7 +126,7 @@ def main() -> int:
     print(f"输入候选: {len(preds)}")
 
     # E2 NMS
-    preds = post_rerank_nms(preds, args.nms_iou)
+    preds = post_rerank_nms(preds, args.nms_iou, all_classes=args.nms_all)
     print(f"E2 NMS 后: {len(preds)}")
 
     # E3 Soft-Risk(可选)
@@ -159,13 +171,28 @@ def main() -> int:
         y = np.array(labels, dtype=np.float64)
         X_nf = np.delete(X, 4, axis=1)
         probs = np.zeros(len(preds))
-        for held in (0, 1, 2):
-            tr = [i for i, f in enumerate(folds) if f != held]
-            va = [i for i, f in enumerate(folds) if f == held]
-            clf = LogisticRegression(max_iter=2000, C=1.0, class_weight="balanced",
-                                     random_state=20260820 + held)
-            clf.fit(X_nf[tr], y[tr])
-            probs[va] = clf.predict_proba(X_nf[va])[:, 1]
+        unique_folds = sorted({f for f in folds})
+        if len(unique_folds) >= 3:
+            # 三折 cross-fit(防泄漏)
+            for held in (0, 1, 2):
+                tr = [i for i, f in enumerate(folds) if f != held]
+                va = [i for i, f in enumerate(folds) if f == held]
+                clf = LogisticRegression(max_iter=2000, C=1.0, class_weight="balanced",
+                                         random_state=20260820 + held)
+                clf.fit(X_nf[tr], y[tr])
+                probs[va] = clf.predict_proba(X_nf[va])[:, 1]
+        else:
+            # 单折(如 COPH fold0): 内部 5 折 CV, 避免 held-out 空训练集
+            rng = np.random.default_rng(20260820)
+            idx = rng.permutation(len(preds))
+            split = np.array_split(idx, 5)
+            for fi, va in enumerate(split):
+                tr = np.concatenate([split[j] for j in range(5) if j != fi])
+                clf = LogisticRegression(max_iter=2000, C=1.0, class_weight="balanced",
+                                         random_state=20260820 + fi)
+                clf.fit(X_nf[tr], y[tr])
+                probs[va] = clf.predict_proba(X_nf[va])[:, 1]
+            print(f"E3 Soft-Risk: 单折场景({unique_folds}), 用内部 5 折 CV")
 
         def logit(x: np.ndarray) -> np.ndarray:
             x = np.clip(x, 1e-6, 1 - 1e-6)
@@ -178,10 +205,11 @@ def main() -> int:
             p["score"] = float(new_scores[i])
         print("E3 Soft-Risk 已应用")
 
-    # 阈值曲线
+    # 阈值曲线(图域 = 预测覆盖的图, 避免单折场景全量 GT 稀释 Recall)
     curves = {}
+    eval_image_ids = {int(p["image_id"]) for p in preds}
     for t in THRESHOLDS:
-        curves[str(t)] = evaluate(preds, formal, proto, t)
+        curves[str(t)] = evaluate(preds, formal, proto, t, eval_image_ids)
         m = curves[str(t)]
         print(f"t={t}: R={m['recall']:.4f} F={m['fdr']:.4f} tp={m['tp']} fp={m['fp']} fn={m['fn']}")
 

@@ -255,12 +255,19 @@ def load_proposal_manifest(path: str | Path) -> list[ProposalRecord]:
     return records
 
 
-def load_logits(logits_dir: str | Path, records: Sequence[ProposalRecord]) -> dict[str, np.ndarray]:
-    """Load three safe NPZ files and require exact one-to-one UID coverage."""
+def load_logits(
+    logits_dir: str | Path,
+    records: Sequence[ProposalRecord],
+    folds: Sequence[int] = (0, 1, 2),
+) -> dict[str, np.ndarray]:
+    """Load per-fold NPZ files and require exact one-to-one UID coverage.
+
+    ``folds`` 限定需要加载的折(默认三折; 单折场景如 COPH fold0 验证可传 (0,))。
+    """
 
     root = Path(logits_dir).expanduser().resolve()
     result: dict[str, np.ndarray] = {}
-    for fold in (0, 1, 2):
+    for fold in folds:
         path = root / f"fold_{fold}_logits.npz"
         if not path.is_file():
             raise FileNotFoundError(f"缺少 fold logits: {path}")
