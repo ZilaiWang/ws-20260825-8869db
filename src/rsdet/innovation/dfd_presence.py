@@ -57,6 +57,7 @@ class DfdPresenceLoss(CophPresenceLoss):
         dfd_sigma_scale: float = 0.15,
         dfd_focal_alpha: float = 2.0,
         dfd_neg_gamma: float = 4.0,
+        only_classes: tuple[int, ...] | None = None,
     ) -> None:
         """初始化。
 
@@ -68,6 +69,8 @@ class DfdPresenceLoss(CophPresenceLoss):
                 最小 clamp 到 stride[0])。
             dfd_focal_alpha: focal 调制指数。
             dfd_neg_gamma: 负样本 (1-heatmap)^gamma 调制(靠近中心但非峰值处降权)。
+            only_classes: 只对这些细类 GT 生成密集热力图(None=所有类)。
+                V1 车辆种子用 (24,), 只强化车辆中心、不污染其他类。
         """
         super().__init__(
             model,
@@ -81,6 +84,7 @@ class DfdPresenceLoss(CophPresenceLoss):
         self.dfd_sigma_scale = float(dfd_sigma_scale)
         self.dfd_focal_alpha = float(dfd_focal_alpha)
         self.dfd_neg_gamma = float(dfd_neg_gamma)
+        self.only_classes = tuple(only_classes) if only_classes is not None else None
         # one2one 分支(tal_topk2 is not None)不做密集监督
         self._is_one2one = tal_topk2 is not None
 
@@ -115,6 +119,14 @@ class DfdPresenceLoss(CophPresenceLoss):
         )
         _gt_labels, gt_bboxes = targets.split((1, 4), 2)  # (bs, ngt, ...)
         mask_gt = gt_bboxes.sum(2, keepdim=True).gt_(0.0)  # (bs, ngt, 1)
+
+        # V1 车辆种子: 只对指定细类的 GT 生成密集热力图
+        if self.only_classes is not None:
+            gt_cls = _gt_labels.squeeze(-1).long()  # (bs, ngt)
+            keep = torch.zeros_like(gt_cls, dtype=torch.bool)
+            for c in self.only_classes:
+                keep = keep | (gt_cls == c)
+            mask_gt = mask_gt & keep.unsqueeze(-1)
 
         heatmap = self._build_center_heatmap(anchor_points, gt_bboxes, mask_gt, batch_size)
 
@@ -194,6 +206,7 @@ class E2EDfdLoss:
         dfd_sigma_scale: float = 0.15,
         dfd_focal_alpha: float = 2.0,
         dfd_neg_gamma: float = 4.0,
+        only_classes: tuple[int, ...] | None = None,
     ) -> None:
         from ultralytics.utils.loss import E2ELoss
 
@@ -213,6 +226,7 @@ class E2EDfdLoss:
                 dfd_sigma_scale=dfd_sigma_scale,
                 dfd_focal_alpha=dfd_focal_alpha,
                 dfd_neg_gamma=dfd_neg_gamma,
+                only_classes=only_classes,
             )
 
         self._inner = E2ELoss(model, loss_fn=loss_fn)
@@ -232,14 +246,16 @@ def dfd_trainer(
     dfd_focal_alpha: float = 2.0,
     dfd_neg_gamma: float = 4.0,
     coarse_mapping: Sequence[int] | None = None,
+    only_classes: Sequence[int] | None = None,
 ) -> type:
-    """返回带 DFD 密集前景监督的 ``DetectionTrainer`` 子类(E9/B4)。
+    """返回带 DFD 密集前景监督的 ``DetectionTrainer`` 子类(E9/B4/V1)。
 
     Args:
         coarse_gain / presence_gain: 继承 COPH 的粗类/存在性正则权重。
         dfd_gain: 密集前景监督权重。
         dfd_sigma_scale / dfd_focal_alpha / dfd_neg_gamma: 高斯/focal 超参。
         coarse_mapping: 细类 -> 粗类映射(默认冻结 25 类映射)。
+        only_classes: 只对指定细类生成密集热力图(V1 车辆种子, None=所有类)。
 
     Returns:
         可传入 ``model.train(trainer=...)`` 的 trainer 类。
@@ -248,6 +264,7 @@ def dfd_trainer(
     from ultralytics.utils.torch_utils import unwrap_model
 
     mapping = tuple(coarse_mapping) if coarse_mapping is not None else COARSE_MAPPING
+    only_cls = tuple(only_classes) if only_classes is not None else None
 
     class _DfdTrainer(DetectionTrainer):
         def _setup_train(self) -> None:
@@ -268,6 +285,7 @@ def dfd_trainer(
                     dfd_sigma_scale=dfd_sigma_scale,
                     dfd_focal_alpha=dfd_focal_alpha,
                     dfd_neg_gamma=dfd_neg_gamma,
+                    only_classes=only_cls,
                 )
             else:
                 model.criterion = DfdPresenceLoss(
@@ -279,6 +297,7 @@ def dfd_trainer(
                     dfd_sigma_scale=dfd_sigma_scale,
                     dfd_focal_alpha=dfd_focal_alpha,
                     dfd_neg_gamma=dfd_neg_gamma,
+                    only_classes=only_cls,
                 )
 
     _DfdTrainer.__name__ = "DfdTrainer"

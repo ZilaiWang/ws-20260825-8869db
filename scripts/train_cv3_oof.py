@@ -213,6 +213,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dfd-sigma-scale", type=float, default=0.15, help="DFD 高斯 sigma 相对 box 尺寸比例")
     parser.add_argument("--dfd-focal-alpha", type=float, default=2.0, help="DFD focal 调制指数")
     parser.add_argument("--dfd-neg-gamma", type=float, default=4.0, help="DFD 负样本 (1-heatmap)^gamma 调制")
+    parser.add_argument("--dfd-only-classes", default=None, help="DFD 只对这些细类生成热力图(逗号分隔, V1 车辆种子用 24)")
     parser.add_argument("--hard-curriculum", type=Path, default=None,
                         help="E7 困难样本课程 JSON(目标清单, 这些图训练重复 1 次)")
     parser.add_argument("--suff-json", type=Path, default=None, help="Y4 充分度表(afss_diagnose.py 输出)")
@@ -287,12 +288,16 @@ def main(argv: list[str] | None = None) -> int:
     elif innovation == "dfd":
         from rsdet.innovation.dfd_presence import dfd_trainer
 
+        only_cls = None
+        if args.dfd_only_classes:
+            only_cls = tuple(int(x) for x in args.dfd_only_classes.split(","))
         logger.info(
-            "启用 E9/B4 DFD 密集前景监督 (dfd_gain=%.2f, sigma_scale=%.2f, "
-            "presence_gain=%.2f)",
+            "启用 DFD 密集前景监督 (dfd_gain=%.2f, sigma_scale=%.2f, "
+            "presence_gain=%.2f, only_classes=%s)",
             args.dfd_gain,
             args.dfd_sigma_scale,
             args.coph_presence_gain,
+            only_cls,
         )
         model.train(
             trainer=dfd_trainer(
@@ -302,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
                 dfd_sigma_scale=args.dfd_sigma_scale,
                 dfd_focal_alpha=args.dfd_focal_alpha,
                 dfd_neg_gamma=args.dfd_neg_gamma,
+                only_classes=only_cls,
             ),
             **arguments,
         )
