@@ -23,12 +23,12 @@ DCR²-YOLO = 候选-识别-风险三解耦:
 | E4 | FGR 微调 | 边际(M1 域 gap), 不入组合 | ⚠️ |
 | E5 | pair experts | 净潜力 +2500 但端到端~0, 待学习式 | ⚠️ |
 | E6 | 重点类原型 | 无增量(R3 已内化) | ❌ |
-| E7 | 困难课程 | 代码完成, 待验证 | ⏳ |
-| E8 | COPH | fold0 完整链 R=0.9423(+1.4pp), 三折验证中 | ✅ |
+| E7 | 困难课程 | 边际(+0.1pp, COPH 候选扩增稀释), 不入组合 | ⚠️ |
+| E8 | COPH | **三折确认 Recall +0.69~0.96pp, sentinel 泛化 +0.19pp** | ✅ |
 | E9 | P2-lite | 停止(Y2 快筛+SAHI 双证据) | 🛑 |
 | E10 | SparseZoom | 停止(2× 放大仅救 7%) | 🛑 |
-| E11 | Balanced 组合 | COPH+R3+NMS+SoftRisk, 定义完成 | ⏳ |
-| E12 | 验证体系 | ledger/sentinel/漏斗 L0-L3 落地 | ✅ |
+| E11 | Balanced 组合 | COPH+R3+NMS+SoftRisk, 三折验证完成 | ✅ |
+| E12 | 验证体系 | ledger/sentinel/漏斗 L0-L3 全部落地 | ✅ |
 
 ## 3. Safe 链(Y5 版, 已完成)
 
@@ -51,7 +51,15 @@ COPH 候选 → R3 融合 → 全类 NMS → SoftRisk
 - **Recall 三折确认 +0.69~0.96pp**; sentinel(555 冻结图)泛化 +0.19pp;
 - FDR 代价 +3.9~4.2pp(COPH 保留细类不确定框), 可用双头 SoftRisk 调工作点;
 - Paired ledger: 净 +75 TP(新 193 / 坏 118), FP +11,687;
-- E7 困难课程叠加训练验证中(COPH+hard-curriculum)。
+- E7 困难课程叠加: +0.1pp 边际(不加入 Balanced)。
+
+### Balanced 工作点建议
+
+| 工作点 | Recall | FDR | 说明 |
+|---|---|---|---|
+| t=0.1 + v0 SoftRisk | 0.9424 | 0.1588 | Recall 优先(门禁内) |
+| t=0.2 + v0 SoftRisk | 0.9302 | 0.1187 | FDR 优先, ≈ Y5 t=0.1 口径 |
+| t=0.1 + 双头(a=0.5,b=0.2) | 0.9379 | 0.1420 | 均衡 |
 
 ## 5. 验证体系(E12)
 
@@ -68,5 +76,17 @@ COPH 候选 → R3 融合 → 全类 NMS → SoftRisk
 
 - scripts/e1_y5_rerank_screen.py / soft_risk_v0.py / run_safe_chain.py
 - scripts/e8_coph_softrisk_verify.py / gen_coph_manifest.py / paired_delta_ledger.py
+- scripts/evaluate_sentinel.py / e5_pair_experts_rule.py
 - src/rsdet/innovation/coph_presence.py
 - configs/experiments/e8_coph_fold0_40ep.yaml / e4_fgr_v1.yaml
+
+## 8. 冻结版本
+
+| 版本 | 构成 | 状态 |
+|---|---|---|
+| **Safe** | Y5 + R1-R3 + aircraft NMS + SoftRisk | ✅ 冻结(t=0.1 R=0.9405/F=0.1459) |
+| **Balanced** | COPH + R3 + 全类 NMS + SoftRisk(双头可选) | ✅ 冻结(三折 R=0.9424@t=0.1) |
+| **Attack** | Balanced + 激进 SoftRisk(beta=0.7) + 学习式 E5(可选) | ⏳ 工作点参数化(组件已全) |
+
+> Attack 的 SparseZoom-KD 组件因 E10 停止被替换; 学习式 E5 改类决策器
+> 是唯一未实现的可选组件(规则版已证潜力 +2,500 但需训练决策器)。
