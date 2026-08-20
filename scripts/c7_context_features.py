@@ -84,9 +84,33 @@ def main():
     # 同 image 高置信候选比例(score > 0.5)
     nodes["img_highconf_ratio"] = nodes.groupby("image_id")["y5_score"].transform(
         lambda s: float((s > 0.5).mean()))
+    # 空间邻居关系: 同 image 最近邻距离/分数/同类别数
+    def spatial_neighbors(g):
+        # g 是同一 image 的候选(有 cx, cy, y5_score, crop_top1_class)
+        cxs = g["cx"].to_numpy()
+        cys = g["cy"].to_numpy()
+        scores = g["y5_score"].to_numpy()
+        cls = g["crop_top1_class"].to_numpy()
+        n = len(g)
+        nn_dist = np.full(n, np.nan)
+        nn_score = np.full(n, np.nan)
+        same_cls = np.zeros(n)
+        for i in range(n):
+            d = np.sqrt((cxs - cxs[i]) ** 2 + (cys - cys[i]) ** 2)
+            d[i] = np.inf
+            j = np.argmin(d)
+            nn_dist[i] = d[j]
+            nn_score[i] = scores[j]
+            same_cls[i] = (cls == cls[i]).sum() - 1
+        return pd.DataFrame({
+            "nn_dist": nn_dist, "nn_score": nn_score, "same_cls_n": same_cls,
+        }, index=g.index)
+    spatial = nodes.groupby("image_id", group_keys=False).apply(spatial_neighbors)
+    nodes = pd.concat([nodes, spatial], axis=1)
 
     CTX = ["rank_in_img", "img_n", "img_score_mean", "img_score_max",
-           "img_oto_ratio", "img_d4_mean", "img_cls_entropy", "img_highconf_ratio"]
+           "img_oto_ratio", "img_d4_mean", "img_cls_entropy", "img_highconf_ratio",
+           "nn_dist", "nn_score", "same_cls_n"]
     print(f"集合上下文特征: {CTX}")
 
     def train(feats):
