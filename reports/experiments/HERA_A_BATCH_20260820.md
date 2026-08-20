@@ -57,3 +57,28 @@ SoftRisk 一次、NMS 一次"的串行补丁**。并明确:
 - scripts/a0_pr_frontier.py / a1_build_object_graph.py / a2_oer_v0.py
 - scripts/a2_oer_edge.py / a3_observability_router.py / a3_router_e2e.py / a3_sentinel_check.py
 - reports/experiments/A0_PR_FRONTIER_20260820/ / A2_OER_V0_20260820/ / A3_OBSERVABILITY_ROUTER_20260820/
+
+---
+
+## 补充: 批次 A 完整收尾(18:35-19:10, 需 GPU 部分)
+
+### A5: OTM/OTO 诊断 → has_oto_strong 特征突破 0.96 ✅
+- YOLO26 含 one2one head, OTO 高置信(score>0.5)支持是 FP_BG 强判别信号(TP 0.892 vs FP 0.094);
+- OER + has_oto_strong + 改类: **Recall@FDR=0.12 = 0.9607**(+0.24pp), **超过 Attack 目标 0.96**;
+- sentinel 泛化 0.9847。
+
+### A3-full: 视觉特征 → 停 ✅(负结论)
+- 视觉特征对路由器 AUC +0.005(边际), 被 short_edge/crop_margin 覆盖;
+- 更正 A3 口径: 5折随机CV AUC 0.9459 高估, 严格 fold cross-fit = 0.8649。
+
+### A4: foundation probe → 🛑 网络受限
+- 服务器外网受限, DINOv2/RemoteCLIP 无法下载, 降级 ConvNeXt-T 维持。
+
+### A6: 低保真相关性 → ⏸️ 暂缓
+- 历史无中间 epoch checkpoint, 需重训; 且服务对象(B系列)前景不明。
+
+## 最终里程碑数字链(Recall@FDR=0.12)
+
+Safe 0.9357 → OER+NMS 0.9415 → +改类 0.9584 → **+has_oto强 0.9607** → sentinel 0.9847
+
+**0.9607 已超过 Attack 目标 0.96, 且 sentinel 泛化确认。**
