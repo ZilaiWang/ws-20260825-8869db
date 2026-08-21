@@ -202,12 +202,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # 创新训练期模块（材料 19 Y3/Y4/Y5）
     parser.add_argument(
         "--innovation",
-        choices=("none", "y3", "y4", "y5", "coph", "dfd", "family"),
+        choices=("none", "y3", "y4", "y5", "coph", "dfd", "family", "worstgroup"),
         default="none",
-        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督 / family=F2三层(fine+family+coarse)辅助损失",
+        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督 / family=F2三层(fine+family+coarse)辅助损失 / worstgroup=D4 worst-group加权",
     )
     parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
     parser.add_argument("--family-gain", type=float, default=0.5, help="F2 family 中间层辅助损失权重")
+    parser.add_argument("--wg-gain", type=float, default=1.5, help="D4 worst-group 样本 cls 损失放大倍数")
     parser.add_argument("--coph-presence-gain", type=float, default=1.0, help="E8 COPH 存在性正则权重")
     parser.add_argument("--coph-coarse-gain", type=float, default=0.0, help="E8 COPH 粗类辅助权重(默认关)")
     parser.add_argument("--dfd-gain", type=float, default=1.0, help="E9/B4 DFD 密集前景监督权重")
@@ -324,6 +325,30 @@ def main(argv: list[str] | None = None) -> int:
             trainer=family_trainer(
                 coarse_gain=args.coarse_gain,
                 family_gain=args.family_gain,
+            ),
+            **arguments,
+        )
+    elif innovation == "worstgroup":
+        if args.hard_curriculum is None:
+            raise ValueError("D4 worstgroup 需要 --hard-curriculum(提供 worst-group image_id 列表)")
+        from rsdet.innovation.worst_group_loss import worst_group_trainer
+
+        # 构建 worst-group 的 im_file 绝对路径集合(split_view: image_id -> relative_path)
+        hard_ids = hard_image_ids  # 已在前面从 hard_curriculum 读取
+        view = json.loads(split_view.read_text(encoding="utf-8"))
+        id_to_rel = {int(s["image_id"]): s["relative_path"] for s in view.get("samples", [])}
+        hard_paths = {str(data_root / id_to_rel[i]) for i in hard_ids if i in id_to_rel}
+        logger.info(
+            "启用 D4 worst-group 加权 (hard_paths=%d, wg_gain=%.2f, coarse_gain=%.2f)",
+            len(hard_paths),
+            args.wg_gain,
+            args.coarse_gain,
+        )
+        model.train(
+            trainer=worst_group_trainer(
+                hard_paths=hard_paths,
+                coarse_gain=args.coarse_gain,
+                wg_gain=args.wg_gain,
             ),
             **arguments,
         )
