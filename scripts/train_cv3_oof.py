@@ -202,13 +202,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # 创新训练期模块（材料 19 Y3/Y4/Y5）
     parser.add_argument(
         "--innovation",
-        choices=("none", "y3", "y4", "y5", "coph", "dfd", "family", "worstgroup"),
+        choices=("none", "y3", "y4", "y5", "coph", "dfd", "family", "worstgroup",
+                 "v2veh", "confpair", "obs", "tailw"),
         default="none",
-        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督 / family=F2三层(fine+family+coarse)辅助损失 / worstgroup=D4 worst-group加权",
+        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督 / family=F2三层(fine+family+coarse)辅助损失 / worstgroup=D4 worst-group加权 / v2veh=V2车辆中心-周围对比 / confpair=F3混淆组内判别 / obs=F4可观测性掩码 / tailw=F6尾类重加权",
     )
     parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
     parser.add_argument("--family-gain", type=float, default=0.5, help="F2 family 中间层辅助损失权重")
     parser.add_argument("--wg-gain", type=float, default=1.5, help="D4 worst-group 样本 cls 损失放大倍数")
+    parser.add_argument("--confusion-gain", type=float, default=0.5, help="F3/F4 混淆组内判别辅助权重")
+    parser.add_argument("--center-gain", type=float, default=0.5, help="V2 车辆中心-周围对比权重")
+    parser.add_argument("--tail-weight", type=float, default=2.0, help="F6 尾类 cls 损失放大倍数")
     parser.add_argument("--coph-presence-gain", type=float, default=1.0, help="E8 COPH 存在性正则权重")
     parser.add_argument("--coph-coarse-gain", type=float, default=0.0, help="E8 COPH 粗类辅助权重(默认关)")
     parser.add_argument("--dfd-gain", type=float, default=1.0, help="E9/B4 DFD 密集前景监督权重")
@@ -349,6 +353,70 @@ def main(argv: list[str] | None = None) -> int:
                 hard_paths=hard_paths,
                 coarse_gain=args.coarse_gain,
                 wg_gain=args.wg_gain,
+            ),
+            **arguments,
+        )
+    elif innovation == "v2veh":
+        from rsdet.innovation.v2_vehicle_seed import v2_vehicle_seed_trainer
+
+        logger.info(
+            "启用 V2 车辆中心-周围对比 (center_gain=%.2f, dfd_gain=%.2f)",
+            args.center_gain,
+            args.dfd_gain,
+        )
+        model.train(
+            trainer=v2_vehicle_seed_trainer(
+                coarse_gain=args.coarse_gain,
+                dfd_gain=args.dfd_gain,
+                center_gain=args.center_gain,
+            ),
+            **arguments,
+        )
+    elif innovation == "confpair":
+        from rsdet.innovation.confusion_pair import confusion_pair_trainer
+
+        logger.info(
+            "启用 F3 混淆组内判别 (confusion_gain=%.2f, family_gain=%.2f)",
+            args.confusion_gain,
+            args.family_gain,
+        )
+        model.train(
+            trainer=confusion_pair_trainer(
+                coarse_gain=args.coarse_gain,
+                family_gain=args.family_gain,
+                confusion_gain=args.confusion_gain,
+            ),
+            **arguments,
+        )
+    elif innovation == "obs":
+        from rsdet.innovation.observability import observability_trainer
+
+        logger.info(
+            "启用 F4 可观测性掩码 (confusion_gain=%.2f, family_gain=%.2f)",
+            args.confusion_gain,
+            args.family_gain,
+        )
+        model.train(
+            trainer=observability_trainer(
+                coarse_gain=args.coarse_gain,
+                family_gain=args.family_gain,
+                confusion_gain=args.confusion_gain,
+            ),
+            **arguments,
+        )
+    elif innovation == "tailw":
+        from rsdet.innovation.tail_weight import tail_weight_trainer
+
+        logger.info(
+            "启用 F6 尾类重加权 (tail_weight=%.2f, family_gain=%.2f)",
+            args.tail_weight,
+            args.family_gain,
+        )
+        model.train(
+            trainer=tail_weight_trainer(
+                coarse_gain=args.coarse_gain,
+                family_gain=args.family_gain,
+                tail_weight=args.tail_weight,
             ),
             **arguments,
         )
