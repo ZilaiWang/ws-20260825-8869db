@@ -59,6 +59,11 @@ class HierarchicalCoarseLoss(v8DetectionLoss):
         self.coarse_gain = float(coarse_gain)
         # (nc, n_coarse) 归属矩阵，随模型设备
         self.coarse_mat = build_coarse_matrix(self.nc, self.coarse_mapping, device=self.device)
+        # 每个粗类的细类索引(用于 max 聚合)
+        self._coarse_cls_idx = [
+            [c for c in range(self.nc) if self.coarse_mapping[c] == k]
+            for k in range(self.n_coarse)
+        ]
 
     def get_assigned_targets_and_loss(self, preds: dict[str, Any], batch: dict[str, Any]) -> tuple:
         """计算 box/cls(+coarse)/dfl 三分量损失。
@@ -107,8 +112,12 @@ class HierarchicalCoarseLoss(v8DetectionLoss):
         loss[1] = bce_loss.sum() / target_scores_sum
 
         # 粗类辅助 cls（Y3 增量）：并入 cls 分量，只在正样本上。
-        coarse_logits = pred_scores @ self.coarse_mat  # (bs, na, n_coarse)
-        coarse_targets = target_scores @ self.coarse_mat  # (bs, na, n_coarse) one-hot
+        # max 聚合(梯度只分给粗类内最高类, 避免求和聚合推高同粗类所有类导致候选爆炸)
+        coarse_logits = torch.stack(
+            [pred_scores[:, :, idx].max(dim=-1).values for idx in self._coarse_cls_idx],
+            dim=-1,
+        )  # (bs, na, n_coarse)
+        coarse_targets = (target_scores @ self.coarse_mat).clamp(max=1.0)
         coarse_bce = self.bce(coarse_logits, coarse_targets.to(dtype))
         if fg_mask.sum():
             loss[1] = loss[1] + self.coarse_gain * (coarse_bce[fg_mask].sum() / target_scores_sum)
