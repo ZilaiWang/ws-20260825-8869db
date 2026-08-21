@@ -67,7 +67,9 @@ class VehicleCenterContrastLoss(DfdPresenceLoss):
             return assignment, loss, loss_det
 
         pred_scores = preds["scores"].permute(0, 2, 1).contiguous()
-        presence_logit = pred_scores.amax(dim=-1)  # (bs, na)
+        # 用 vehicle 类(24)的 logit 而非 max_c——max_c 会让 center 对比推高"任意类",
+        # 导致候选全局爆炸(frontier -63pp)
+        presence_logit = pred_scores[:, :, 24]  # (bs, na) vehicle 列
 
         # 重建车辆 GT 中心/bbox
         dtype = pred_scores.dtype
