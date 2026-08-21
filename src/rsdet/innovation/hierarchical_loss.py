@@ -95,6 +95,9 @@ class HierarchicalCoarseLoss(v8DetectionLoss):
             mask_gt,
         )
 
+        # 供子类(F2 family 辅助)复用 target_scores, 避免重复 assigner。
+        self._last_target_scores = target_scores
+
         target_scores_sum = max(target_scores.sum(), 1)
 
         # Cls loss（主 25 细类）

@@ -202,11 +202,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     # 创新训练期模块（材料 19 Y3/Y4/Y5）
     parser.add_argument(
         "--innovation",
-        choices=("none", "y3", "y4", "y5", "coph", "dfd"),
+        choices=("none", "y3", "y4", "y5", "coph", "dfd", "family"),
         default="none",
-        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督",
+        help="创新训练期模块：none=基线 / y3=层次粗类辅助损失 / y4=AFSS采样 / y5=90°旋转增强 / coph=COPH存在性正则 / dfd=DFD密集前景监督 / family=F2三层(fine+family+coarse)辅助损失",
     )
     parser.add_argument("--coarse-gain", type=float, default=0.5, help="Y3 粗类辅助损失权重")
+    parser.add_argument("--family-gain", type=float, default=0.5, help="F2 family 中间层辅助损失权重")
     parser.add_argument("--coph-presence-gain", type=float, default=1.0, help="E8 COPH 存在性正则权重")
     parser.add_argument("--coph-coarse-gain", type=float, default=0.0, help="E8 COPH 粗类辅助权重(默认关)")
     parser.add_argument("--dfd-gain", type=float, default=1.0, help="E9/B4 DFD 密集前景监督权重")
@@ -308,6 +309,21 @@ def main(argv: list[str] | None = None) -> int:
                 dfd_focal_alpha=args.dfd_focal_alpha,
                 dfd_neg_gamma=args.dfd_neg_gamma,
                 only_classes=only_cls,
+            ),
+            **arguments,
+        )
+    elif innovation == "family":
+        from rsdet.innovation.family_loss import family_trainer
+
+        logger.info(
+            "启用 F2 family 三层辅助损失 (coarse_gain=%.2f, family_gain=%.2f)",
+            args.coarse_gain,
+            args.family_gain,
+        )
+        model.train(
+            trainer=family_trainer(
+                coarse_gain=args.coarse_gain,
+                family_gain=args.family_gain,
             ),
             **arguments,
         )
