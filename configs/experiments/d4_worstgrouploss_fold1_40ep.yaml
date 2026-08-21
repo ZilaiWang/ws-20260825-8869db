@@ -1,4 +1,4 @@
-D4 worst-group loss — fold1 短训验证(方案5 §十二 批次4)
+# D4 worst-group loss — fold1 短训验证(方案5 §十二 批次4)
 experiment_id: "D4-WORSTGROUPLOSS-fold1-40ep"
 seed: 42
 output_dir: "/workspace/results/D4-WORSTGROUPLOSS-FOLD1-40EP"

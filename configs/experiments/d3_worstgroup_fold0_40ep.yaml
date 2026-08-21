@@ -1,4 +1,4 @@
-D3 worst-group 课程采样 — fold0 短训验证(方案5 §十二 批次4)
+# D3 worst-group 课程采样 — fold0 短训验证(方案5 §十二 批次4)
 experiment_id: "D3-WORSTGROUP-fold0-40ep"
 seed: 42
 output_dir: "/workspace/results/D3-WORSTGROUP-FOLD0-40EP"
