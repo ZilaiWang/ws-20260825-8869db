@@ -55,6 +55,11 @@ class FamilyHierarchicalLoss(HierarchicalCoarseLoss):
         self.n_family = max(family_mapping) + 1
         self.family_gain = float(family_gain)
         self.family_mat = build_coarse_matrix(self.nc, self.family_mapping, device=self.device)
+        # 每个 family 的细类索引(用于 max 聚合)
+        self._family_cls_idx = [
+            [c for c in range(self.nc) if self.family_mapping[c] == k]
+            for k in range(self.n_family)
+        ]
 
     def get_assigned_targets_and_loss(self, preds: dict[str, Any], batch: dict[str, Any]) -> tuple:
         assignment, loss, loss_det = super().get_assigned_targets_and_loss(preds, batch)
@@ -63,9 +68,13 @@ class FamilyHierarchicalLoss(HierarchicalCoarseLoss):
         if fg_mask.sum() > 0 and self.family_gain > 0.0:
             pred_scores = preds["scores"].permute(0, 2, 1).contiguous()
             target_scores = self._last_target_scores
-            # family 辅助: family_logit = fine_logit @ family_mat
-            family_logits = pred_scores @ self.family_mat
-            family_targets = target_scores @ self.family_mat
+            # family 辅助: max 聚合(梯度只分给 family 内最高类, 避免求和聚合推高
+            # 同 family 所有类导致候选爆炸——F2 fold0 曾因求和聚合候选 9 倍爆炸)
+            family_logits = torch.stack(
+                [pred_scores[:, :, idx].max(dim=-1).values for idx in self._family_cls_idx],
+                dim=-1,
+            )
+            family_targets = (target_scores @ self.family_mat).clamp(max=1.0)
             family_bce = self.bce(family_logits, family_targets.to(pred_scores.dtype))
             loss[1] = loss[1] + self.family_gain * (
                 family_bce[fg_mask].sum() / max(target_scores.sum(), 1)
