@@ -69,8 +69,9 @@ class ObservabilityLoss(FamilyHierarchicalLoss):
         dtype = pred_scores.dtype
 
         # 每个正样本 anchor 对应 GT 的短边(像素)——向量化(避免双重 Python 循环 + GPU→CPU 同步)
+        # 注意: bbox 在 AMP 下是 float32, 短边须用 float32(不能用 pred_scores 的 Half), 否则索引赋值类型不匹配
         bs, na = pred_scores.shape[:2]
-        short_edge = torch.zeros(bs, na, device=self.device, dtype=dtype)
+        short_edge = torch.zeros(bs, na, device=self.device, dtype=torch.float32)
         if bool(fg_mask.any()):
             fg_rows, fg_cols = fg_mask.nonzero(as_tuple=True)
             gi = target_gt_idx[fg_rows, fg_cols].long()
