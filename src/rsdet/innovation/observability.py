@@ -68,20 +68,18 @@ class ObservabilityLoss(FamilyHierarchicalLoss):
         target_scores = self._last_target_scores
         dtype = pred_scores.dtype
 
-        # 每个正样本 anchor 对应 GT 的短边(像素)
+        # 每个正样本 anchor 对应 GT 的短边(像素)——向量化(避免双重 Python 循环 + GPU→CPU 同步)
         bs, na = pred_scores.shape[:2]
         short_edge = torch.zeros(bs, na, device=self.device, dtype=dtype)
-        for b in range(bs):
-            for a in range(na):
-                if not bool(fg_mask[b, a]):
-                    continue
-                gi = int(target_gt_idx[b, a])
-                if gi < 0 or gi >= target_bboxes.shape[1]:
-                    continue
-                bb = target_bboxes[b, gi]
-                w = (bb[2] - bb[0]).abs().clamp(min=1.0)
-                h = (bb[3] - bb[1]).abs().clamp(min=1.0)
-                short_edge[b, a] = w.minimum(h)
+        if bool(fg_mask.any()):
+            fg_rows, fg_cols = fg_mask.nonzero(as_tuple=True)
+            gi = target_gt_idx[fg_rows, fg_cols].long()
+            # 防御: 无效 GT 索引(负值)兜底为 0
+            gi = gi.clamp(min=0)
+            bb = target_bboxes[fg_rows, gi]
+            w = (bb[:, 2] - bb[:, 0]).abs().clamp(min=1.0)
+            h = (bb[:, 3] - bb[:, 1]).abs().clamp(min=1.0)
+            short_edge[fg_rows, fg_cols] = w.minimum(h)
 
         # 可观测性权重: 短边 < obs_min → 0, > obs_max → 1, 中间线性
         obs_w = ((short_edge - self.obs_min) / (self.obs_max - self.obs_min)).clamp(0.0, 1.0)
