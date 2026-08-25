@@ -1,0 +1,58 @@
+experiment:
+  name: scope_router_v1
+  seed: 20260825
+  strict_oof: true
+  fresh_lockbox_fraction: 0.15
+  outer_group_folds: 5
+  inner_group_folds: 4
+
+candidate_policy:
+  freeze_generator: true
+  allow_candidate_expansion: false
+  max_candidates_per_group: 192
+  ambiguous_score_range: [0.03, 0.85]
+  relabel_top_k: 3
+  include_actions: [keep, drop, relabel, rescore]
+  pairwise_top_m: 24
+
+features:
+  raw_logits_top_k: 8
+  include_has_oto: true
+  include_d4: true
+  include_head_level: true
+  include_fpn_roi: true
+  include_scene_fpn: true
+  include_tta_stability: true
+  optional_frozen_scene_encoder: null  # remoteclip | skysense | dinov3
+
+model:
+  hidden_dim: 128
+  relation_dim: 16
+  depth: 2
+  heads: 4
+  dropout: 0.10
+  utility_quantiles: [0.10, 0.50, 0.90]
+
+loss:
+  rank_weight: 0.20
+  action_weight: 0.20
+  unsafe_weight: 0.50
+  domain_group_dro_weight: 0.15
+
+calibration:
+  alpha: 0.10
+  min_group_size: 80
+  min_calibrated_lcb: 0.0
+  fallback: global
+
+decode:
+  max_actions_per_group: 32
+  conflict_iou_threshold: 0.80
+  keep_baseline_on_error: true
+
+acceptance_gate:
+  compare_against_global_baseline: 0.9415
+  minimum_mean_gain: 0.0015
+  require_paired_bootstrap_lcb_nonnegative: true
+  require_no_catastrophic_outer_fold: true
+  paired_bootstrap_repetitions: 10000
