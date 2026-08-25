@@ -93,9 +93,12 @@ class WorstGroupLoss(HierarchicalCoarseLoss):
 
         loss[1] = bce_loss.sum() / target_scores_sum
 
-        # 粗类辅助(继承 Y3)
-        coarse_logits = pred_scores @ self.coarse_mat
-        coarse_targets = target_scores @ self.coarse_mat
+        # 粗类辅助(继承 Y3)——max 聚合(梯度只分给粗类内最高类, 避免求和聚合推高同粗类所有类导致候选爆炸)
+        coarse_logits = torch.stack(
+            [pred_scores[:, :, idx].max(dim=-1).values for idx in self._coarse_cls_idx],
+            dim=-1,
+        )  # (bs, na, n_coarse)
+        coarse_targets = (target_scores @ self.coarse_mat).clamp(max=1.0)
         coarse_bce = self.bce(coarse_logits, coarse_targets.to(dtype))
         if fg_mask.sum():
             loss[1] = loss[1] + self.coarse_gain * (coarse_bce[fg_mask].sum() / target_scores_sum)
