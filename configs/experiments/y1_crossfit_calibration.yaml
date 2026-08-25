@@ -1,0 +1,14 @@
+experiment_id: Y1-CROSSFIT-CALIBRATION-V1
+project_config: configs/project.yaml
+aggregate_dir: outputs/M1-CV3-OOF-return-no-checkpoints-extracted-20260725/M1-CV3-OOF-aggregate
+formal_crop_manifest: outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv
+expected_images: 4481
+expected_annotations: 20933
+candidate_floor: 0.001
+grid:
+  threshold_start: 0.001
+  threshold_stop: 0.301
+  threshold_step: 0.01
+  betas: [2.0, 3.0, 5.0, 10.0]
+  spatial_lambdas: [0.25, 0.5, 1.0, 2.0]
+  max_grid_size: 64

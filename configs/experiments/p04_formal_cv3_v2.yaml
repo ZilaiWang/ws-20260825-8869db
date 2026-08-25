@@ -1,0 +1,89 @@
+experiment:
+  id: "P04-FORMAL-CV3-V2-THREE-TEACHER"
+  purpose: "formal grouped-CV3 frozen teacher representation comparison"
+  status: "preregistered_requires_formal_cache_reuse_audit"
+
+data:
+  manifest_version: "formal_crop_manifest_v2"
+  manifest_sha256: "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128"
+  cv3_version: "cv3_airport_proxy_k60_v2"
+  cv3_manifest_sha256: "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331"
+  policy: "tight"
+  canonical_resolution: 224
+  views: [r0, r90, r180, r270, flip_r0, flip_r90, flip_r180, flip_r270]
+  folds: [0, 1, 2]
+
+cache_identity:
+  # Full fingerprints are emitted by the server-side input audit.  These
+  # reviewed prefixes come from the completed P04 extraction reports; the
+  # cache metadata must additionally bind the live, verified ASSET_LOCK.json.
+  convnext:
+    fingerprint_prefix: "a01c6a127"
+    teacher_id: "convnext_tiny_imagenet1k_v1"
+  dinov2b:
+    fingerprint_prefix: "d5a1c283"
+    teacher_id: "dinov2_vitb14"
+  cleandift:
+    fingerprint_prefix: "2d50def4"
+    teacher_id: "cleandift_sd15"
+
+formal_matrix:
+  - id: "R0-convnext-native"
+    cache: "convnext-tight224-d4-v1"
+    feature_name: "convnext_gap"
+    native_dimension: 768
+    pca_dim: null
+  - id: "R0-convnext-pca384"
+    cache: "convnext-tight224-d4-v1"
+    feature_name: "convnext_gap"
+    native_dimension: 768
+    pca_dim: 384
+  - id: "R2b-dinov2b-native"
+    cache: "dinov2-vitb14-tight224-d4-v1"
+    feature_name: "dino_cls_patchmean"
+    native_dimension: 1536
+    pca_dim: null
+  - id: "R2b-dinov2b-pca384"
+    cache: "dinov2-vitb14-tight224-d4-v1"
+    feature_name: "dino_cls_patchmean"
+    native_dimension: 1536
+    pca_dim: 384
+  - id: "R3-cleandift-map0-native"
+    cache: "cleandift-tight224-d4-v1"
+    feature_name: "clean_map0"
+    native_dimension: 1280
+    pca_dim: null
+  - id: "R3-cleandift-map0-pca384"
+    cache: "cleandift-tight224-d4-v1"
+    feature_name: "clean_map0"
+    native_dimension: 1280
+    pca_dim: 384
+
+probe:
+  checkpoint_selection: "fixed_epoch_last"
+  seed: 42
+  batch_size: 96
+  epochs: 15
+  minimum_epochs: 15
+  lr: 0.001
+  weight_decay: 0.01
+  warmup_epochs: 1.0
+  patience: 0
+  min_delta: 0.0
+  grad_clip: 1.0
+  validation_view: "r0"
+  normalization: "train_rms"
+  head_init: "p04_default"
+  fit_contract:
+    pca: "each fold train objects and all D4 views only; whiten=false"
+    train_rms: "one scalar fitted on each fold train objects and all D4 views only"
+    linear_head: "each fold train objects only"
+
+reporting:
+  primary: ["native three-fold macro recall", "PCA384 three-fold macro recall"]
+  secondary: ["pooled OOF macro recall", "macro F1", "aircraft20 macro recall"]
+  decision:
+    - "DINOv2-B is the discriminative teacher candidate."
+    - "CleanDIFT is retained only with stable independent value beyond DINOv2-B."
+    - "PCA384 is a capacity control, not a replacement for the native primary row."
+  scientific_scope: "frozen feature probe; not detector comparison or official Recall/FDR"

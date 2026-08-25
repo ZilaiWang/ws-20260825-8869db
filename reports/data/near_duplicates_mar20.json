@@ -1,0 +1,39 @@
+{
+  "method": "dhash8_hamming",
+  "threshold": 6,
+  "min_std": 0.0,
+  "prefix": "MAR20",
+  "total_images": 3073,
+  "duplicate_groups": [
+    [
+      "MAR20_1570",
+      "MAR20_3258",
+      "MAR20_366"
+    ],
+    [
+      "MAR20_198",
+      "MAR20_2124",
+      "MAR20_3698"
+    ],
+    [
+      "MAR20_1046",
+      "MAR20_2507"
+    ],
+    [
+      "MAR20_1182",
+      "MAR20_1957"
+    ],
+    [
+      "MAR20_1346",
+      "MAR20_1810"
+    ],
+    [
+      "MAR20_1836",
+      "MAR20_890"
+    ],
+    [
+      "MAR20_440",
+      "MAR20_441"
+    ]
+  ]
+}

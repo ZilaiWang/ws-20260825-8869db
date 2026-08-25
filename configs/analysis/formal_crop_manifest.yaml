@@ -1,0 +1,14 @@
+formal_crop:
+  version: "formal_crop_manifest_v2"
+  schema_version: "formal_crop_manifest_v2"
+  source_manifest_version: "exploratory_crop_manifest_v1"
+  source_manifest_schema_version: "crop_manifest_v1"
+  source_manifest_sha256: "f259cd33542f4bfaad8f6af31cc71a87819fe3e4fd27ebd9a8b3da5922a0e26e"
+  expected_rows: 62799
+  expected_annotations: 20933
+  expected_source_images: 4481
+  expected_policies: ["tight", "context_1p25", "jitter_light"]
+  expected_fold_object_counts: [7350, 7179, 6404]
+  preserve_crop_id: true
+  preserve_non_assignment_fields: true
+  pixel_io_policy: "forbidden_metadata_only"

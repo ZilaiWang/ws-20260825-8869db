@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets & env
+.env
+*.local.yaml
+configs/local.yaml
+secrets/
+*.key
+*.pem
+
+# Data — keep READMEs only
+data/*
+!data/README.md
+!data/groups/
+data/groups/*
+!data/groups/README.md
+!data/groups/*.csv
+!data/splits/
+data/splits/*
+!data/splits/README.md
+!data/splits/*.json
+
+# Outputs — keep .gitkeep only
+outputs/*
+!outputs/.gitkeep
+
+# Model artifacts
+runs/
+work_dirs/
+checkpoints/
+weights/
+pretrained/
+artifacts/
+cache/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.engine
+*.trt
+
+# Large binary
+*.npz
+*.npy
+*.parquet
+
+# Experiment tracking
+wandb/
+mlruns/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Backups
+*.bak.*
+.Rhistory
+.DS_Store
+.venv-mar20-cluster/
+tmp/
+
+# Claude
+.claude/

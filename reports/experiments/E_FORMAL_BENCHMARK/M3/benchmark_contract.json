@@ -1,0 +1,18 @@
+{
+  "contract_version": "runtime_10k_benchmark_v1",
+  "image_source_type": "synthetic",
+  "model_key": "M3",
+  "image_manifest_sha256": "7c02b113f1da38ecfb1533972c3f4e2fb57db75d795e7186720734352cae7258",
+  "checkpoint_sha256": "72dd3b4de83a88c44b83f494e8b59cfe77f5fd03e889338bdd4addc728f3f493",
+  "checkpoint_provenance_sha256": "304db20251a13194a3a68f0b212cf37d21921e6337b421b1c33f235341cf5a24",
+  "config_sha256": "b5a75393625ea94f71db452fd4912c487975c95cc74505a9e5791884fcac28c6",
+  "hardware_sha256": "5fa1fa8e109e15bd4c4d12aebd03258f7c7c24585d838565d5039602b343147f",
+  "engineering_checkpoint_only": false,
+  "cuda_synchronized": true,
+  "timing_method": "perf_counter_with_torch_cuda_synchronize",
+  "tile_size": 1280,
+  "overlap": 256,
+  "expected_tile_count": 100,
+  "warmup_runs": 3,
+  "minimum_measured_runs": 10
+}

@@ -1,0 +1,6 @@
+# 个人本地配置示例
+# 复制为 configs/local.yaml 后填写（已在 .gitignore 中忽略）
+
+data_root: "/path/to/your/data"
+device: "cuda"            # 或 "cpu"
+output_root: "outputs"

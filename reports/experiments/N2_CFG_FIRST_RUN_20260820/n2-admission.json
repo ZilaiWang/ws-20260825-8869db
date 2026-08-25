@@ -1,0 +1,138 @@
+{
+  "protocol": "N2-CFG Level-E 正式准入门禁（改进方案1 3.4 / 执行总纲 8.5）",
+  "sealed": true,
+  "inputs": {
+    "s0": "/workspace/results/N2-CFG-BACKGROUND-GATE-V1/evaluation/evaluate_S0.json",
+    "s1": "/workspace/results/N2-CFG-BACKGROUND-GATE-V1/evaluation/evaluate_S1.json",
+    "s2": "/workspace/results/N2-CFG-BACKGROUND-GATE-V1/evaluation/evaluate_S2.json",
+    "recall_budget": 0,
+    "n_bootstrap": 2000,
+    "seed": 202625
+  },
+  "applied": {
+    "per_fold": {
+      "0": {
+        "s0": 6,
+        "s2": 64
+      },
+      "1": {
+        "s0": 1,
+        "s2": 58
+      },
+      "2": {
+        "s0": 12,
+        "s2": 64
+      }
+    },
+    "pooled": {
+      "s0_fp_bg": 19,
+      "s1_fp_bg": 1,
+      "s2_fp_bg": 186
+    }
+  },
+  "gates": {
+    "g1_pooled_fp_bg_reduction": {
+      "pass": true,
+      "removed_s2": 186,
+      "removed_s0": 19,
+      "delta_s2_minus_s0": 167,
+      "heldout_fp_bg_total": 1539,
+      "ratio": 0.1209,
+      "min_ratio": 0.1
+    },
+    "g2_coarse_reduction": {
+      "ship": {
+        "removed_s2": 1,
+        "removed_s0": 7,
+        "heldout_total": 723,
+        "ratio": 0.0014,
+        "min_ratio": 0.15,
+        "pass": false
+      },
+      "vehicle": {
+        "removed_s2": 6,
+        "removed_s0": 2,
+        "heldout_total": 232,
+        "ratio": 0.0259,
+        "min_ratio": 0.1,
+        "pass": false
+      },
+      "aircraft": {
+        "removed_s2": 179,
+        "removed_s0": 10,
+        "heldout_total": 584,
+        "ratio": 0.3065,
+        "min_ratio": null,
+        "pass": null
+      }
+    },
+    "g3_fold_consistency": {
+      "pass": true,
+      "consistent_folds": 3,
+      "min_folds": 2,
+      "per_fold": {
+        "0": {
+          "s0": 6,
+          "s2": 64
+        },
+        "1": {
+          "s0": 1,
+          "s2": 58
+        },
+        "2": {
+          "s0": 12,
+          "s2": 64
+        }
+      }
+    },
+    "g4_source_concentration": {
+      "pass": true,
+      "max_source_group": "mar20-airport-proxy-051",
+      "max_share": 0.0968,
+      "max_share_limit": 0.4,
+      "n_groups_with_removal": 51
+    },
+    "g5_paired_bootstrap": {
+      "pass": true,
+      "n_groups": 55,
+      "point": 167.0,
+      "se": 27.891,
+      "ci_low": 117.0,
+      "ci_high": 228.0,
+      "n_bootstrap": 2000,
+      "meaning": "S2 相对 S0 的 FP_BG 删除增量（按 source group 配对）；95% CI 下界 > 0 即显著"
+    },
+    "g6_focus_classes": {
+      "HM": {
+        "removed_s2": 0,
+        "note": "原始计数；精确区间依赖候选级 GT 配对，计数过小时 bootstrap 区间意义有限。"
+      },
+      "LQS": {
+        "removed_s2": 0,
+        "note": "原始计数；精确区间依赖候选级 GT 配对，计数过小时 bootstrap 区间意义有限。"
+      },
+      "A6_TU-160": {
+        "removed_s2": 0,
+        "note": "原始计数；精确区间依赖候选级 GT 配对，计数过小时 bootstrap 区间意义有限。"
+      },
+      "A15_F-22": {
+        "removed_s2": 1,
+        "note": "原始计数；精确区间依赖候选级 GT 配对，计数过小时 bootstrap 区间意义有限。"
+      }
+    },
+    "g7_zero_tp_loss": {
+      "pass": false,
+      "inner_fit_removed_tp_by_fold": {
+        "0": 0,
+        "1": 0,
+        "2": 0
+      },
+      "applied_removed_tp": 3,
+      "recall_budget": 0
+    }
+  },
+  "overall": {
+    "pass": false
+  },
+  "note": "Sealed runner：三折全部完成后一次性计算；口径为 held-out 应用（applied_removed），与快筛 fit_stats（inner 拟合口径）区分。不显示逐类阈值曲线；如需逐类曲线请单独人工审计。G6 为报数项：HM/LQS/TU-160 原始计数与精确区间（候选级 GT 配对 bootstrap），计数过小时区间意义有限。"
+}

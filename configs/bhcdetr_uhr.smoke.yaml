@@ -1,0 +1,74 @@
+# One-step software-path check for the UHR small-object extension.
+# Do not use this tiny model for reported metrics.
+experiment_id: "BHCDETR-UHR-software-smoke"
+model: "bhcdetr"
+seed: 7
+output_dir: "outputs/BHCDETR-UHR-software-smoke"
+resume: null
+init_checkpoint: null
+
+data:
+  root: "../data"
+  manifest: "data/splits/dev_v2_airport_proxy_k60.json"
+  held_out_fold: null
+
+architecture:
+  num_classes: 25
+  image_size: 64
+  backbone: "resnet50"
+  backbone_pretrained: false
+  backbone_weights: null
+  train_backbone: true
+  hidden_dim: 32
+  num_queries: 10
+  encoder_layers: 1
+  decoder_layers: 1
+  nheads: 4
+  dim_feedforward: 64
+  dropout: 0.0
+  projection_dim: 16
+  prior_probability: 0.01
+  uhr_enabled: true
+  uhr_gain_bin_limit: 6
+  uhr_patch_size: 32
+  uhr_patch_budget: 2
+  uhr_max_local_tokens: 64
+  uhr_gain_head_groups: 8
+
+loss:
+  match_class_cost: 2.0
+  match_bbox_cost: 5.0
+  match_giou_cost: 2.0
+  class_loss_weight: 2.0
+  bbox_loss_weight: 5.0
+  giou_loss_weight: 2.0
+  bhcl_weight: 0.6
+  auxiliary_loss_weight: 1.0
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  temperature: 0.1
+  prototype_momentum: 0.1
+  gain_map_weight: 1.0
+  gain_lpm_weight: 1.0
+  gain_lpm_margin: 0.05
+
+train:
+  device: "cpu"
+  epochs: 2
+  batch_size: 1
+  views_per_image: 2
+  gradient_accumulation_steps: 1
+  workers: 0
+  learning_rate: 0.0001
+  backbone_learning_rate: 0.00001
+  weight_decay: 0.0001
+  scheduler: "warmup_multistep"
+  warmup_steps: 1
+  lr_milestones: [1]
+  lr_gamma: 0.1
+  amp: false
+  deterministic: true
+  clip_max_norm: 0.1
+  augmentation:
+    flip_probability: 0.5
+    max_shift_ratio: 0.1

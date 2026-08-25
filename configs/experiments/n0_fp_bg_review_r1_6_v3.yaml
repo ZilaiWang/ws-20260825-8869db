@@ -1,0 +1,24 @@
+contract_version: n0_fp_bg_review_final_chain_v1
+experiment_id: N0-FP-BG-AUDIT-R1-6-V3
+project_config: configs/project.yaml
+
+inputs:
+  selected_predictions: outputs/R1-6-POST-RERANK-NMS/selected_predictions_xyxy.json
+  selected_predictions_sha256: d07f43e5a1b610d44cdedbedd844719e003aa6e978380fb2257093648975d047
+  formal_crop_manifest: outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  image_ledger: outputs/M1-CV3-OOF-return-no-checkpoints-extracted-20260725/M1-CV3-OOF-aggregate/oof_images.csv
+  image_ledger_sha256: fc2aa7ca947f71d841700b656ece5e90f3112746e0c3f592a78a231d958a750c
+  expected_images: 4481
+  expected_fp_bg: 1539
+
+sampling:
+  max_per_stratum: 10
+  repeat_control_fraction: 0.20
+  seed: 42
+  strata: coarse_class_x_fold_x_fixed_score_bin
+
+review:
+  minimum_repeat_consistency: 0.85
+  automatic_background_admission: false
+  final_chain: CE_D4_C2_AIRCRAFT_POST_NMS_IOU0.50

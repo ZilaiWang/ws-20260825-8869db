@@ -1,0 +1,83 @@
+{
+  "experiment": "E1-Y5-R1-REPLAY",
+  "n_proposals": 65301,
+  "per_fold": [
+    {
+      "held_out": 0,
+      "variant": "R3_fuse_a0.40",
+      "threshold": 0.081,
+      "val_metric": {
+        "recall": 0.9213070115724983,
+        "fdr": 0.1873423802089588,
+        "tp": 6767,
+        "fp": 1560,
+        "fn": 578,
+        "macro_recall": 0.8495113680227697,
+        "aircraft_recall": 0.9310290153797368,
+        "ship_recall": 0.8806629834254144,
+        "vehicle_recall": 0.7368421052631579
+      }
+    },
+    {
+      "held_out": 1,
+      "variant": "R3_fuse_a0.40",
+      "threshold": 0.101,
+      "val_metric": {
+        "recall": 0.9568184983981056,
+        "fdr": 0.18710059171597634,
+        "tp": 6869,
+        "fp": 1581,
+        "fn": 310,
+        "macro_recall": 0.8370828062206878,
+        "aircraft_recall": 0.9729773462783171,
+        "ship_recall": 0.8890173410404625,
+        "vehicle_recall": 0.6492537313432836
+      }
+    },
+    {
+      "held_out": 2,
+      "variant": "R3_fuse_a0.40",
+      "threshold": 0.091,
+      "val_metric": {
+        "recall": 0.9284486798937666,
+        "fdr": 0.19285617275567024,
+        "tp": 5943,
+        "fp": 1420,
+        "fn": 458,
+        "macro_recall": 0.815807325656134,
+        "aircraft_recall": 0.9467985812955012,
+        "ship_recall": 0.8635863586358636,
+        "vehicle_recall": 0.6370370370370371
+      }
+    }
+  ],
+  "merged_e1": {
+    "recall": 0.9348397267472413,
+    "fdr": 0.18945450026922916,
+    "tp": 19569,
+    "fp": 4574,
+    "fn": 1364,
+    "macro_recall": 0.8310670560630232,
+    "aircraft_recall": 0.9495770071152445,
+    "ship_recall": 0.8769574944071589,
+    "vehicle_recall": 0.6666666666666666
+  },
+  "d0_baseline": {
+    "recall": 0.929680408923709,
+    "fdr": 0.18875317854016424,
+    "tp": 19461,
+    "fp": 4528,
+    "fn": 1472,
+    "macro_recall": 0.8124543231431423,
+    "aircraft_recall": 0.9455991932321138,
+    "ship_recall": 0.8698732289336316,
+    "vehicle_recall": 0.6218905472636815
+  },
+  "delta": {
+    "recall": 0.0052,
+    "fdr": 0.0007,
+    "macro_recall": 0.0186,
+    "aircraft_recall": 0.004
+  },
+  "note": "未套用 M1 的 C2 分数校准(Y5 分数域需单独重拟合); R1 变体仅 aircraft/ship 同粗类重标, vehicle 旁路(目标粗类默认)或全粗类"
+}

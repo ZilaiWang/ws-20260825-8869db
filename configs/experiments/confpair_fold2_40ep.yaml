@@ -1,0 +1,39 @@
+# confpair 实验 — fold2 短训验证(方案5)
+experiment_id: "F3-CONFPAIR-fold2-40ep"
+seed: 42
+output_dir: "/workspace/results/F3-CONFPAIR-FOLD2-40EP"
+model:
+  family: "yolo"
+  weights: "/workspace/results/Y5-ROT90-CV3-OOF/fold_2/training/runs/foundation/weights/last.pt"
+data:
+  root: "/workspace/data"
+  manifest: "/workspace/results/Y5-ROT90-CV3-OOF/fold_2/split_view.json"
+imbalance:
+  repeat_threshold: 0.05
+  max_repeat: 4.0
+  effective_beta: 0.9999
+  max_class_weight: 5.0
+train:
+  device: "cuda:0"
+  checkpoint_selection: "last"
+  args:
+    imgsz: 1024
+    batch: 12
+    workers: 8
+    optimizer: "AdamW"
+    lr0: 0.0005
+    lrf: 0.01
+    weight_decay: 0.0005
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true
+    deterministic: true
+    patience: 0
+    val: false
+    plots: false
+  stages:
+    - name: "foundation"
+      epochs: 40
+      balanced: false
+      args:
+        close_mosaic: 20

@@ -1,0 +1,33 @@
+{
+  "schema_version": "cv3_model_asset_env_spec_v1",
+  "python_version": "3.10.12",
+  "packages": {
+    "Pillow": "10.4.0",
+    "PyYAML": "6.0.2",
+    "numpy": "1.26.4",
+    "torch": "2.5.1+cu121",
+    "torchvision": "0.20.1+cu121",
+    "ultralytics": "8.4.103"
+  },
+  "cuda": {
+    "required": true,
+    "runtime_version": "12.1"
+  },
+  "gpu": {
+    "required": true
+  },
+  "assets": {
+    "m1_yolo26s": {
+      "filename": "yolo26s.pt",
+      "official_url": "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26s.pt",
+      "size_bytes": 20422725,
+      "sha256": "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b"
+    },
+    "m3_rtdetr_l": {
+      "filename": "rtdetr-l.pt",
+      "official_url": "https://github.com/ultralytics/assets/releases/download/v8.3.0/rtdetr-l.pt",
+      "size_bytes": 66511432,
+      "sha256": "6de60b10d4bc566f00cda0f5b4d64afe4b66d48dc9695d2171effb7859d8e73f"
+    }
+  }
+}

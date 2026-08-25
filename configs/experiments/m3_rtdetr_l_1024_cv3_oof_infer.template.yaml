@@ -1,0 +1,30 @@
+# Template only. RT-DETR-L exposes 300 object queries.
+model:
+  adapter: "ultralytics"
+  family: "rtdetr"
+  checkpoint: "__FOLD_LAST_CHECKPOINT__"
+  imgsz: 1024
+  confidence: 0.001
+  iou: 0.70
+  max_detections: 300
+  half: true
+  agnostic_nms: false
+device: "cuda:0"
+batch_size: 4
+input:
+  data_root: "__DATA_ROOT__"
+  manifest: "__FOLD_SPLIT_VIEW__"
+  split: "val"
+tiling:
+  enabled: false
+  force: false
+score_thresholds:
+  ship: 0.001
+  aircraft: 0.001
+  vehicle: 0.001
+fine_score_thresholds: {}
+output_json: "__FOLD_OUTPUT_DIR__/predictions_low.json"
+evaluation:
+  gt: ""
+  project_config: "configs/project.yaml"
+  metrics_output: ""

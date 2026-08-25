@@ -1,0 +1,41 @@
+experiment_id: "E-M3-rtdetr-l-1024-devv1-seed42"
+seed: 42
+output_dir: "outputs/E-M3-rtdetr-l-1024-devv1-seed42"
+model:
+  family: "rtdetr"
+  weights: "rtdetr-l.pt"
+data:
+  root: ""
+  manifest: "data/splits/dev_v1.json"
+imbalance:
+  repeat_threshold: 0.05
+  max_repeat: 3.0
+  effective_beta: 0.9999
+  max_class_weight: 5.0
+train:
+  device: "cuda:0"
+  args:
+    imgsz: 1024
+    batch: 4
+    workers: 8
+    optimizer: "AdamW"
+    lr0: 0.0002
+    lrf: 0.01
+    weight_decay: 0.0001
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true
+    deterministic: true
+    patience: 30
+    val: true
+    plots: true
+  stages:
+    - name: "foundation"
+      epochs: 120
+      balanced: false
+      args: {}
+    - name: "rare_rebalance"
+      epochs: 20
+      balanced: true
+      args:
+        lr0: 0.00005

@@ -1,0 +1,60 @@
+{
+  "protocol_version": "mar20-source-grouping-v1.2",
+  "selection_contract": "calibration_only_then_heldout_audit",
+  "routes": [
+    {
+      "name": "masked_block9_gem_p3",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-masked-patch-full-v1p2/cache",
+      "feature": "block9_masked_signed_gem_p3",
+      "view_type": "masked_patch_original_input"
+    },
+    {
+      "name": "masked_block10_gem_p3",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-masked-patch-full-v1p2/cache",
+      "feature": "block10_masked_signed_gem_p3",
+      "view_type": "masked_patch_original_input"
+    },
+    {
+      "name": "masked_block11_gem_p3",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-masked-patch-full-v1p2/cache",
+      "feature": "block11_masked_signed_gem_p3",
+      "view_type": "masked_patch_original_input"
+    },
+    {
+      "name": "masked_block9_vlad_k16_pca512",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-vlad-pca512-full-v1p2/cache",
+      "feature": "block9_masked_vlad_k16_localpca128_pca512",
+      "view_type": "masked_patch_vlad"
+    },
+    {
+      "name": "masked_block9_vlad_k32_pca512",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-vlad-pca512-full-v1p2/cache",
+      "feature": "block9_masked_vlad_k32_localpca128_pca512",
+      "view_type": "masked_patch_vlad"
+    },
+    {
+      "name": "masked_block10_vlad_k16_pca512",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-vlad-pca512-full-v1p2/cache",
+      "feature": "block10_masked_vlad_k16_localpca128_pca512",
+      "view_type": "masked_patch_vlad"
+    },
+    {
+      "name": "masked_block10_vlad_k32_pca512",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-vlad-pca512-full-v1p2/cache",
+      "feature": "block10_masked_vlad_k32_localpca128_pca512",
+      "view_type": "masked_patch_vlad"
+    },
+    {
+      "name": "masked_block11_vlad_k16_pca512",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-vlad-pca512-full-v1p2/cache",
+      "feature": "block11_masked_vlad_k16_localpca128_pca512",
+      "view_type": "masked_patch_vlad"
+    },
+    {
+      "name": "masked_block11_vlad_k32_pca512",
+      "cache_dir": "/workspace/mar20-group-cache/dinov2b-vlad-pca512-full-v1p2/cache",
+      "feature": "block11_masked_vlad_k32_localpca128_pca512",
+      "view_type": "masked_patch_vlad"
+    }
+  ]
+}

@@ -1,0 +1,356 @@
+{
+  "conflict_proposal_count": 13,
+  "conflicts": [
+    {
+      "proposal_uid": "m1-f0-i1554-p007682",
+      "cards": [
+        {
+          "card_id": "card-0052",
+          "label": "poor_localization_of_known_target",
+          "labeler": "codex_assisted_review",
+          "notes": "thin red box is an incomplete aircraft detection beside known aircraft",
+          "fold": "0",
+          "class_name": "aircraft",
+          "score": 0.2649,
+          "image_id": "1554",
+          "is_repeat_control": true
+        },
+        {
+          "card_id": "card-0108",
+          "label": "duplicate_or_fragment_not_captured",
+          "labeler": "codex_assisted_review",
+          "notes": "red box captures a partial aircraft fragment beside known aircraft",
+          "fold": "0",
+          "class_name": "aircraft",
+          "score": 0.2649,
+          "image_id": "1554",
+          "is_repeat_control": false
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f0-i3226-p013239",
+      "cards": [
+        {
+          "card_id": "card-0204",
+          "label": "clear_background",
+          "labeler": "codex_assisted_review",
+          "notes": "runway marking and pavement without a discernible aircraft",
+          "fold": "0",
+          "class_name": "aircraft",
+          "score": 0.3068,
+          "image_id": "3226",
+          "is_repeat_control": true
+        },
+        {
+          "card_id": "card-0313",
+          "label": "duplicate_or_fragment_not_captured",
+          "labeler": "codex_assisted_review",
+          "notes": "partial aircraft-like fragment at image edge beside known aircraft",
+          "fold": "0",
+          "class_name": "aircraft",
+          "score": 0.3068,
+          "image_id": "3226",
+          "is_repeat_control": false
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f0-i4474-p019825",
+      "cards": [
+        {
+          "card_id": "card-0065",
+          "label": "clear_background",
+          "labeler": "codex_assisted_review",
+          "notes": "road or rail-side structure without a discernible vehicle",
+          "fold": "0",
+          "class_name": "vehicle",
+          "score": 0.2456,
+          "image_id": "4474",
+          "is_repeat_control": true
+        },
+        {
+          "card_id": "card-0163",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "blurred ground object is too ambiguous for background label",
+          "fold": "0",
+          "class_name": "vehicle",
+          "score": 0.2456,
+          "image_id": "4474",
+          "is_repeat_control": false
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f0-i485-p002717",
+      "cards": [
+        {
+          "card_id": "card-0061",
+          "label": "clear_background",
+          "labeler": "codex_assisted_review",
+          "notes": "land-side building complex without a discernible vessel",
+          "fold": "0",
+          "class_name": "ship",
+          "score": 0.342,
+          "image_id": "485",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0171",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "visible vessel-like object cannot be safely called background",
+          "fold": "0",
+          "class_name": "ship",
+          "score": 0.342,
+          "image_id": "485",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f0-i799-p005001",
+      "cards": [
+        {
+          "card_id": "card-0100",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "dockside elongated object is too ambiguous for background label",
+          "fold": "0",
+          "class_name": "ship",
+          "score": 0.0797,
+          "image_id": "799",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0223",
+          "label": "clear_background",
+          "labeler": "codex_assisted_review",
+          "notes": "industrial waterfront building structure without a discernible vessel",
+          "fold": "0",
+          "class_name": "ship",
+          "score": 0.0797,
+          "image_id": "799",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f1-i1104-p004411",
+      "cards": [
+        {
+          "card_id": "card-0003",
+          "label": "poor_localization_of_known_target",
+          "labeler": "codex_assisted_review",
+          "notes": "large red box corresponds to known ship structure with material geometry mismatch",
+          "fold": "1",
+          "class_name": "ship",
+          "score": 0.7205,
+          "image_id": "1104",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0277",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "dockside vessel-like structure cannot be safely called background",
+          "fold": "1",
+          "class_name": "ship",
+          "score": 0.7205,
+          "image_id": "1104",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f1-i1593-p006620",
+      "cards": [
+        {
+          "card_id": "card-0020",
+          "label": "poor_localization_of_known_target",
+          "labeler": "codex_assisted_review",
+          "notes": "thin red box is a materially incomplete aircraft detection beside known aircraft",
+          "fold": "1",
+          "class_name": "aircraft",
+          "score": 0.2781,
+          "image_id": "1593",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0298",
+          "label": "duplicate_or_fragment_not_captured",
+          "labeler": "codex_assisted_review",
+          "notes": "red box captures a partial aircraft fragment beside known aircraft",
+          "fold": "1",
+          "class_name": "aircraft",
+          "score": 0.2781,
+          "image_id": "1593",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f1-i3333-p013709",
+      "cards": [
+        {
+          "card_id": "card-0140",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "partial aircraft-like object at image edge cannot be safely called background",
+          "fold": "1",
+          "class_name": "aircraft",
+          "score": 0.2522,
+          "image_id": "3333",
+          "is_repeat_control": true
+        },
+        {
+          "card_id": "card-0312",
+          "label": "duplicate_or_fragment_not_captured",
+          "labeler": "codex_assisted_review",
+          "notes": "red box captures a partial aircraft fragment beside known aircraft",
+          "fold": "1",
+          "class_name": "aircraft",
+          "score": 0.2522,
+          "image_id": "3333",
+          "is_repeat_control": false
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f1-i711-p002441",
+      "cards": [
+        {
+          "card_id": "card-0139",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "visible vessel-like object cannot be safely called background",
+          "fold": "1",
+          "class_name": "ship",
+          "score": 0.3003,
+          "image_id": "711",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0217",
+          "label": "poor_localization_of_known_target",
+          "labeler": "codex_assisted_review",
+          "notes": "red vessel prediction materially overlaps nearby known-target geometry",
+          "fold": "1",
+          "class_name": "ship",
+          "score": 0.3003,
+          "image_id": "711",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f2-i1754-p007172",
+      "cards": [
+        {
+          "card_id": "card-0240",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "partial aircraft-like object cannot be safely called background",
+          "fold": "2",
+          "class_name": "aircraft",
+          "score": 0.3184,
+          "image_id": "1754",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0257",
+          "label": "duplicate_or_fragment_not_captured",
+          "labeler": "codex_assisted_review",
+          "notes": "red box captures a partial aircraft fragment within a dense aircraft row",
+          "fold": "2",
+          "class_name": "aircraft",
+          "score": 0.3184,
+          "image_id": "1754",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f2-i3179-p012372",
+      "cards": [
+        {
+          "card_id": "card-0153",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "visible aircraft cannot be safely called background",
+          "fold": "2",
+          "class_name": "aircraft",
+          "score": 0.7487,
+          "image_id": "3179",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0248",
+          "label": "duplicate_or_fragment_not_captured",
+          "labeler": "codex_assisted_review",
+          "notes": "red box captures a partial aircraft fragment within a dense aircraft row",
+          "fold": "2",
+          "class_name": "aircraft",
+          "score": 0.7487,
+          "image_id": "3179",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f2-i430-p001890",
+      "cards": [
+        {
+          "card_id": "card-0042",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "visible vessel-like object in harbor",
+          "fold": "2",
+          "class_name": "ship",
+          "score": 0.7185,
+          "image_id": "430",
+          "is_repeat_control": false
+        },
+        {
+          "card_id": "card-0301",
+          "label": "poor_localization_of_known_target",
+          "labeler": "codex_assisted_review",
+          "notes": "red vessel prediction materially overlaps nearby known-target geometry",
+          "fold": "2",
+          "class_name": "ship",
+          "score": 0.7185,
+          "image_id": "430",
+          "is_repeat_control": true
+        }
+      ]
+    },
+    {
+      "proposal_uid": "m1-f2-i4420-p016352",
+      "cards": [
+        {
+          "card_id": "card-0072",
+          "label": "poor_localization_of_known_target",
+          "labeler": "codex_assisted_review",
+          "notes": "red box is a materially mismatched aircraft-like object beside known target",
+          "fold": "2",
+          "class_name": "vehicle",
+          "score": 0.0653,
+          "image_id": "4420",
+          "is_repeat_control": true
+        },
+        {
+          "card_id": "card-0315",
+          "label": "plausible_unlabeled_or_ambiguous_target",
+          "labeler": "codex_assisted_review",
+          "notes": "visible aircraft-like object cannot be safely called background",
+          "fold": "2",
+          "class_name": "vehicle",
+          "score": 0.0653,
+          "image_id": "4420",
+          "is_repeat_control": false
+        }
+      ]
+    }
+  ]
+}

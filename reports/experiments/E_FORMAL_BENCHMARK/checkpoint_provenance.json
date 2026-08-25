@@ -1,0 +1,13 @@
+{
+  "contract_version": "checkpoint_provenance_v1",
+  "status": "checkpoint_lineage_verified",
+  "engineering_checkpoint_only": false,
+  "model_key": "M1",
+  "source_fold": 0,
+  "checkpoint": "/workspace/results/M1-CV3-OOF/fold_0/runs/foundation/weights/last.pt",
+  "checkpoint_sha256": "d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d",
+  "fold_metadata": "/workspace/cv3-model-assets/fold_0_fold_metadata.json",
+  "fold_metadata_sha256": "b2bd717d1766ab4fbf870901e56ef6327b81e4d56dbcb6958657ac1c0261af81",
+  "oof_metadata": "/workspace/cv3-model-assets/oof_metadata.json",
+  "oof_metadata_sha256": "53b35f2cff801ce23d9bd211ead9a0ef896e3a01f974b5da060fd2a4ac4bf4c6"
+}

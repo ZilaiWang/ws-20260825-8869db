@@ -1,0 +1,22 @@
+{
+  "experiment": "T4-GATED-INFER 决策",
+  "status": "pending",
+  "gates": {
+    "tp_gain_ge_30": {
+      "required": 30,
+      "actual": 1268,
+      "pass": true
+    },
+    "gate4_fdr_le_0.17": {
+      "required": 0.17,
+      "actual": null,
+      "pass": null
+    },
+    "gate5_10k_p95_le_18": {
+      "required": 18.0,
+      "actual": 14.461,
+      "pass": true
+    }
+  },
+  "note": "T4 仅当校准后净增TP>=30 且 N2-CFG后FDR<=0.17 且 10K p95<=18s 才保留；缺失数据时对应 gate 记 pending。"
+}

@@ -1,0 +1,27 @@
+proposal_uid,card_id,is_repeat_control,label_current,labeler,fold,class_name,score,notes
+m1-f0-i1554-p007682,card-0052,True,poor_localization_of_known_target,codex_assisted_review,0,aircraft,0.2649,thin red box is an incomplete aircraft detection beside known aircraft
+m1-f0-i1554-p007682,card-0108,False,duplicate_or_fragment_not_captured,codex_assisted_review,0,aircraft,0.2649,red box captures a partial aircraft fragment beside known aircraft
+m1-f0-i3226-p013239,card-0204,True,clear_background,codex_assisted_review,0,aircraft,0.3068,runway marking and pavement without a discernible aircraft
+m1-f0-i3226-p013239,card-0313,False,duplicate_or_fragment_not_captured,codex_assisted_review,0,aircraft,0.3068,partial aircraft-like fragment at image edge beside known aircraft
+m1-f0-i4474-p019825,card-0065,True,clear_background,codex_assisted_review,0,vehicle,0.2456,road or rail-side structure without a discernible vehicle
+m1-f0-i4474-p019825,card-0163,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,0,vehicle,0.2456,blurred ground object is too ambiguous for background label
+m1-f0-i485-p002717,card-0061,False,clear_background,codex_assisted_review,0,ship,0.342,land-side building complex without a discernible vessel
+m1-f0-i485-p002717,card-0171,True,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,0,ship,0.342,visible vessel-like object cannot be safely called background
+m1-f0-i799-p005001,card-0100,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,0,ship,0.0797,dockside elongated object is too ambiguous for background label
+m1-f0-i799-p005001,card-0223,True,clear_background,codex_assisted_review,0,ship,0.0797,industrial waterfront building structure without a discernible vessel
+m1-f1-i1104-p004411,card-0003,False,poor_localization_of_known_target,codex_assisted_review,1,ship,0.7205,large red box corresponds to known ship structure with material geometry mismatch
+m1-f1-i1104-p004411,card-0277,True,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,1,ship,0.7205,dockside vessel-like structure cannot be safely called background
+m1-f1-i1593-p006620,card-0020,False,poor_localization_of_known_target,codex_assisted_review,1,aircraft,0.2781,thin red box is a materially incomplete aircraft detection beside known aircraft
+m1-f1-i1593-p006620,card-0298,True,duplicate_or_fragment_not_captured,codex_assisted_review,1,aircraft,0.2781,red box captures a partial aircraft fragment beside known aircraft
+m1-f1-i3333-p013709,card-0140,True,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,1,aircraft,0.2522,partial aircraft-like object at image edge cannot be safely called background
+m1-f1-i3333-p013709,card-0312,False,duplicate_or_fragment_not_captured,codex_assisted_review,1,aircraft,0.2522,red box captures a partial aircraft fragment beside known aircraft
+m1-f1-i711-p002441,card-0139,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,1,ship,0.3003,visible vessel-like object cannot be safely called background
+m1-f1-i711-p002441,card-0217,True,poor_localization_of_known_target,codex_assisted_review,1,ship,0.3003,red vessel prediction materially overlaps nearby known-target geometry
+m1-f2-i1754-p007172,card-0240,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,2,aircraft,0.3184,partial aircraft-like object cannot be safely called background
+m1-f2-i1754-p007172,card-0257,True,duplicate_or_fragment_not_captured,codex_assisted_review,2,aircraft,0.3184,red box captures a partial aircraft fragment within a dense aircraft row
+m1-f2-i3179-p012372,card-0153,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,2,aircraft,0.7487,visible aircraft cannot be safely called background
+m1-f2-i3179-p012372,card-0248,True,duplicate_or_fragment_not_captured,codex_assisted_review,2,aircraft,0.7487,red box captures a partial aircraft fragment within a dense aircraft row
+m1-f2-i430-p001890,card-0042,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,2,ship,0.7185,visible vessel-like object in harbor
+m1-f2-i430-p001890,card-0301,True,poor_localization_of_known_target,codex_assisted_review,2,ship,0.7185,red vessel prediction materially overlaps nearby known-target geometry
+m1-f2-i4420-p016352,card-0072,True,poor_localization_of_known_target,codex_assisted_review,2,vehicle,0.0653,red box is a materially mismatched aircraft-like object beside known target
+m1-f2-i4420-p016352,card-0315,False,plausible_unlabeled_or_ambiguous_target,codex_assisted_review,2,vehicle,0.0653,visible aircraft-like object cannot be safely called background

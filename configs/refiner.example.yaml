@@ -1,0 +1,36 @@
+experiment_id: "E-HPR-128-devv1-seed42"
+seed: 42
+output_dir: "outputs/E-HPR-128-devv1-seed42"
+
+data:
+  root: ""                         # 只读原始数据根目录
+  manifest: "data/splits/dev_v1.json"
+  input_size: 128
+  context_ratio: 0.15
+  box_jitter: 0.08                  # 模拟检测框中心和尺度误差，缩小 GT/预测裁剪域差异
+
+model:
+  num_classes: 25
+  embedding_dim: 128
+  dropout: 0.10
+  prototype_momentum: 0.90
+
+train:
+  device: "cuda:0"
+  epochs: 60
+  batch_size: 128
+  num_workers: 4
+  lr: 0.001
+  min_lr: 0.00001
+  weight_decay: 0.0005
+  sampler_power: 0.5              # 平方根逆频率，避免极少类被完全复制主导
+  amp: true
+
+loss:
+  effective_beta: 0.9999
+  max_class_weight: 3.0
+  focal_gamma: 1.5
+  max_margin: 0.3
+  coarse_weight: 0.25
+  compact_weight: 0.10
+  prototype_weight: 0.10

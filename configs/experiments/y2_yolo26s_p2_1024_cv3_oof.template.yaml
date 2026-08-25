@@ -1,0 +1,35 @@
+# Y2 formal P2 single-factor experiment. Resolve all __...__ tokens per fold.
+experiment_id: "Y2-yolo26s-p2-1024-cv3-k60v2-fold__FOLD__-seed42"
+seed: 42
+output_dir: "__FOLD_OUTPUT_DIR__"
+model:
+  family: "yolo"
+  architecture: "yolo26s-p2.yaml"
+  weights: "__OFFICIAL_YOLO26S_PRETRAINED_PATH__"
+data:
+  root: "__DATA_ROOT__"
+  manifest: "__FOLD_SPLIT_VIEW__"
+train:
+  device: "cuda:0"
+  checkpoint_selection: "last"
+  args:
+    imgsz: 1024
+    batch: 12
+    workers: 8
+    optimizer: "AdamW"
+    lr0: 0.002
+    lrf: 0.01
+    weight_decay: 0.0005
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true
+    deterministic: true
+    patience: 0
+    val: false
+    plots: false
+  stages:
+    - name: "foundation"
+      epochs: 160
+      balanced: false
+      args:
+        close_mosaic: 20

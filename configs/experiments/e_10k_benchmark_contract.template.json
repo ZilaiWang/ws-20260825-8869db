@@ -1,0 +1,18 @@
+{
+  "contract_version": "runtime_10k_benchmark_v1",
+  "image_source_type": "real_project_proxy",
+  "image_manifest_sha256": "__IMAGE_MANIFEST_SHA256__",
+  "model_key": "M1",
+  "checkpoint_sha256": "__CHECKPOINT_SHA256__",
+  "checkpoint_provenance_sha256": "__CHECKPOINT_PROVENANCE_SHA256__",
+  "engineering_checkpoint_only": true,
+  "config_sha256": "__CONFIG_SHA256__",
+  "hardware_sha256": "__HARDWARE_SHA256__",
+  "tile_size": 1280,
+  "overlap": 256,
+  "expected_tile_count": 100,
+  "timing_method": "perf_counter_with_torch_cuda_synchronize",
+  "cuda_synchronized": true,
+  "warmup_runs": 3,
+  "minimum_measured_runs": 10
+}

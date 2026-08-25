@@ -1,0 +1,139 @@
+contract_version: aircraft_physical_attributes_v1
+scope: class_level_semantic_metadata_only
+image_or_checkpoint_reuse: false
+intended_use: training_only_auxiliary_supervision
+provenance:
+  - ExpertDet / PSP.Plane attribute design (public paper and benchmark metadata)
+  - SLIP-RS structured aircraft attribute dictionary (official public repository)
+  - aircraft model specifications checked as class-level public facts
+exclusions:
+  - absolute size, because normalized proposal crops remove metric scale
+  - manufacturer or country, because they are not directly visible physical cues
+  - engine position and canard, because model-variant ambiguity is too high
+  - external PSP/MAR20 bridge images or pretrained weights
+
+dimensions:
+  propulsion:
+    description: dominant visible propulsion family
+    values: [jet, turboprop]
+    class_values:
+      A1_SU-35: jet
+      A2_C-130: turboprop
+      A3_C-17: jet
+      A4_C-5: jet
+      A5_F-16: jet
+      A6_TU-160: jet
+      A7_E-3: jet
+      A8_B-52: jet
+      A9_P-3C: turboprop
+      A10_B-1B: jet
+      A11_E-8: jet
+      A12_TU-22: jet
+      A13_F-15: jet
+      A14_KC-135: jet
+      A15_F-22: jet
+      A16_FA-18: jet
+      A17_TU-95: turboprop
+      A18_KC-10: jet
+      A19_SU-34: jet
+      A20_SU-24: jet
+
+  engine_count:
+    description: physical engine count, not propeller-blade count
+    values: [one, two, three, four, eight]
+    class_values:
+      A1_SU-35: two
+      A2_C-130: four
+      A3_C-17: four
+      A4_C-5: four
+      A5_F-16: one
+      A6_TU-160: four
+      A7_E-3: four
+      A8_B-52: eight
+      A9_P-3C: four
+      A10_B-1B: four
+      A11_E-8: four
+      A12_TU-22: two
+      A13_F-15: two
+      A14_KC-135: four
+      A15_F-22: two
+      A16_FA-18: two
+      A17_TU-95: four
+      A18_KC-10: three
+      A19_SU-34: two
+      A20_SU-24: two
+
+  mission_role:
+    description: coarse operational role shared by visually related models
+    values: [fighter, transport, bomber, surveillance_command, maritime_patrol, tanker, strike]
+    class_values:
+      A1_SU-35: fighter
+      A2_C-130: transport
+      A3_C-17: transport
+      A4_C-5: transport
+      A5_F-16: fighter
+      A6_TU-160: bomber
+      A7_E-3: surveillance_command
+      A8_B-52: bomber
+      A9_P-3C: maritime_patrol
+      A10_B-1B: bomber
+      A11_E-8: surveillance_command
+      A12_TU-22: bomber
+      A13_F-15: fighter
+      A14_KC-135: tanker
+      A15_F-22: fighter
+      A16_FA-18: fighter
+      A17_TU-95: bomber
+      A18_KC-10: tanker
+      A19_SU-34: strike
+      A20_SU-24: strike
+
+  wing_configuration:
+    description: overhead planform family
+    values: [straight_tapered, swept, variable_sweep, delta_trapezoidal, diamond_trapezoidal]
+    class_values:
+      A1_SU-35: swept
+      A2_C-130: straight_tapered
+      A3_C-17: swept
+      A4_C-5: swept
+      A5_F-16: delta_trapezoidal
+      A6_TU-160: variable_sweep
+      A7_E-3: swept
+      A8_B-52: swept
+      A9_P-3C: straight_tapered
+      A10_B-1B: variable_sweep
+      A11_E-8: swept
+      A12_TU-22: variable_sweep
+      A13_F-15: swept
+      A14_KC-135: swept
+      A15_F-22: diamond_trapezoidal
+      A16_FA-18: swept
+      A17_TU-95: swept
+      A18_KC-10: swept
+      A19_SU-34: swept
+      A20_SU-24: variable_sweep
+
+  tail_configuration:
+    description: visible vertical/horizontal tail layout
+    values: [single_vertical, twin_vertical, t_tail]
+    class_values:
+      A1_SU-35: twin_vertical
+      A2_C-130: single_vertical
+      A3_C-17: t_tail
+      A4_C-5: t_tail
+      A5_F-16: single_vertical
+      A6_TU-160: single_vertical
+      A7_E-3: single_vertical
+      A8_B-52: single_vertical
+      A9_P-3C: single_vertical
+      A10_B-1B: single_vertical
+      A11_E-8: single_vertical
+      A12_TU-22: single_vertical
+      A13_F-15: twin_vertical
+      A14_KC-135: single_vertical
+      A15_F-22: twin_vertical
+      A16_FA-18: twin_vertical
+      A17_TU-95: single_vertical
+      A18_KC-10: single_vertical
+      A19_SU-34: twin_vertical
+      A20_SU-24: single_vertical

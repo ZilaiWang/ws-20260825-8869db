@@ -1,0 +1,77 @@
+contract_version: r1_proposal_reranking_v1
+experiment_id: R1-0-P03-TEACHER-M1-OOF
+project_config: configs/project.yaml
+
+inputs:
+  aggregate_dir: outputs/M1-CV3-OOF-return-no-checkpoints-extracted-20260725/M1-CV3-OOF-aggregate
+  formal_crop_manifest: outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  y1_calibration_result: outputs/Y1-CROSSFIT-CALIBRATION-V1/calibration_result.json
+  y1_calibration_result_sha256: 8b9e7a8618b77d167a40bdc2eaf01a9463e9cf8489fdfca7aed1b0059b7b3c12
+  y1_reconstruction_tolerance: 1.0e-12
+  expected_images: 4481
+  expected_annotations: 20933
+  expected_proposals: 55548
+  aggregate_artifact_sha256:
+    oof_metadata: 53b35f2cff801ce23d9bd211ead9a0ef896e3a01f974b5da060fd2a4ac4bf4c6
+    oof_images: fc2aa7ca947f71d841700b656ece5e90f3112746e0c3f592a78a231d958a750c
+    oof_proposals: abc93445693d05ba5454388900c634a63f52e58bdf56713e56e36f9ce249d2e0
+    predictions_oof_low: 5b1cb0581a3951056ccd831eafddbb2c824939078ce2216b02c993558a3fe934
+  convnext_weight_sha256: 983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d
+  p03_checkpoint_sha256:
+    "0": 243d96481f4c6b8c0048c72484b5f395cd2f0c5ba55d103c9b6b665ac4981f54
+    "1": bd56974d6598d4f104f11d75fa38b5771e2c20acd55858d1becc26c7a66a7fb7
+    "2": eb0a13b3f97c42098ff5ba4bcef5deefcf8f0f5604b346e2c9289fa4246a1c10
+
+teacher:
+  architecture: torchvision_convnext_tiny
+  source_experiment: P03-FORMAL-CV3-V2-CONVNEXT-T224
+  input_policy: tight_detector_proposal
+  resolution: 224
+  fold_specific: true
+  num_classes: 25
+  cross_coarse_relabel_allowed: false
+
+runtime:
+  torch_version: 2.5.1
+  torchvision_version: 0.20.1
+  cuda_runtime: "12.1"
+  batch_size: 128
+  num_workers: 8
+  amp: fp16
+
+search:
+  min_top_probabilities: [0.75, 0.90]
+  min_margins: [0.15, 0.35]
+  fusion_alphas: [0.20, 0.40]
+  gated_fusion_alpha: 0.30
+  threshold_start: 0.001
+  threshold_stop: 0.301
+  threshold_step: 0.01
+  maximum_selection_recall_drop: 0.005
+  selection_policy: >-
+    Eligible only when selection Recall drops at most 0.005, FDR does not
+    increase, and the official gate passes; then maximize macro Recall, minimize
+    macro FDR, maximize pooled Recall, minimize pooled FDR. Exact ties prefer D0.
+
+decision_gates:
+  official_recall_min: 0.85
+  official_fdr_max: 0.20
+  maximum_recall_drop: 0.005
+  maximum_fdr_increase: 0.0
+  minimum_incremental_macro_recall: 0.002
+  require_new_tp_not_less_than_broken_tp: true
+
+scientific_scope:
+  status_before_run: preregistered
+  formal_admission_before_run: false
+  claims:
+    - inference-only domain-transfer screen of a GT-crop teacher
+    - fold-specific checkpoints and outer two-fold method selection
+    - frozen Y1 C2 parameters used only for incremental operational comparison
+  exclusions:
+    - no proposal-domain fine-tuning
+    - no background class
+    - no bbox change
+    - no cross-coarse relabel
+    - no latency or 10K deployment claim

@@ -1,0 +1,57 @@
+contract_version: r1_aircraft_refinement_v1
+experiment_id: R1-8-EQUAL-PROBABILITY-ENSEMBLE
+project_config: configs/project.yaml
+
+inputs:
+  inference_manifest: outputs/R1-0-P03-TEACHER-M1-OOF/prepare/proposal_inference_manifest.csv
+  inference_manifest_sha256: 48747c3bba75ec5226e52fff5b488bb92eaa17d9722e377ec393a9cadeafdab0
+  base_logits_sha256:
+    "0": 45701eb30a2bf7ee0e14aa21ef6f998422f45fc1f7126ca227d4d3e9d3b8cd00
+    "1": 72c803e7db8728ea192788c27d49fdda385005860c516216f5970ef807c948a5
+    "2": 5953b1c7660f06d3e68e789fc98b033ad09c8cc0fe35b930d7f92ff0e284e7f7
+  formal_crop_manifest: outputs/P0-2-FORMAL-CROP-LOCALCHECK/formal_crop_manifest.csv
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  y1_calibration_result: outputs/Y1-CROSSFIT-CALIBRATION-V1/calibration_result.json
+  y1_calibration_result_sha256: 8b9e7a8618b77d167a40bdc2eaf01a9463e9cf8489fdfca7aed1b0059b7b3c12
+  expected_images: 4481
+  expected_annotations: 20933
+
+search:
+  min_top_probabilities: [0.55, 0.70, 0.85]
+  min_margins: [0.10, 0.25]
+  fusion_alphas: [0.10, 0.25]
+  gated_fusion_alpha: 0.20
+  threshold_start: 0.001
+  threshold_stop: 0.301
+  threshold_step: 0.01
+  maximum_selection_recall_drop: 0.003
+  probability_semantics: p_fine_class_given_detector_aircraft_route
+
+conditions:
+  reference: ce_d4
+  primary: equal_ensemble_d4
+  evaluate:
+    - ce_d4
+    - equal_ensemble_d4
+
+decision_gates:
+  official_recall_min: 0.85
+  official_fdr_max: 0.20
+  aircraft_macro_recall_tolerance: 0.0
+  aircraft_macro_fdr_tolerance: 0.0
+  minimum_aircraft_macro_recall_gain: 0.0001
+  minimum_net_tp: 1
+  require_nonnegative_net_tp: true
+  require_exact_ship_vehicle_parity: true
+
+scientific_scope:
+  level: iterative_oof_development
+  formal_admission_before_run: false
+  primary_hypothesis: >-
+    A fixed 50/50 probability ensemble of CE and view-consistency D4 heads can
+    retain complementary true positives without accepting the full false
+    positive increase of the view-consistency head.
+  exclusions:
+    - no ensemble-weight search
+    - no training or checkpoint selection
+    - no ship or vehicle relabeling

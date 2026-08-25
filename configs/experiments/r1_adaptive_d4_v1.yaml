@@ -1,0 +1,48 @@
+contract_version: r1_adaptive_d4_v1
+experiment_id: R1-3-ADAPTIVE-D4
+project_config: configs/project.yaml
+
+inputs:
+  inference_manifest_sha256: 48747c3bba75ec5226e52fff5b488bb92eaa17d9722e377ec393a9cadeafdab0
+  formal_crop_manifest_sha256: a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128
+  y1_calibration_result_sha256: 8b9e7a8618b77d167a40bdc2eaf01a9463e9cf8489fdfca7aed1b0059b7b3c12
+  ce_identity_result_sha256: 86d8590a4fcfd7a26bb036b75a9ae380e4be932a03cee9923bff386847b2f7e7
+  ce_d4_result_sha256: 8bed78b010c793473d31625ebc9afe74539f48cceca48641bc6d7b8b383ad932
+  base_logits_sha256:
+    "0": 45701eb30a2bf7ee0e14aa21ef6f998422f45fc1f7126ca227d4d3e9d3b8cd00
+    "1": 72c803e7db8728ea192788c27d49fdda385005860c516216f5970ef807c948a5
+    "2": 5953b1c7660f06d3e68e789fc98b033ad09c8cc0fe35b930d7f92ff0e284e7f7
+  ce_bundle_sha256:
+    "0": 30f67e972dab3d808317a1d659fd31f6e8ee22c22647a8989e6fb1c4e433198a
+    "1": 60d29784a14cd7b5d5d033d24f0c00bcc1733e027da21abcd2c5f5d5ea749386
+    "2": 1aed158a65128f28e914049a252f3c1729224b8b9f65ec49618b360bfb093455
+
+adaptive_d4:
+  maximum_identity_probability: 0.80
+  policy: >-
+    Use identity probability when max p(class|aircraft) >= 0.80; otherwise
+    use the existing eight-view mean probability.
+
+search:
+  min_top_probabilities: [0.55, 0.70, 0.85]
+  min_margins: [0.10, 0.25]
+  fusion_alphas: [0.10, 0.25]
+  gated_fusion_alpha: 0.20
+  threshold_start: 0.001
+  threshold_stop: 0.301
+  threshold_step: 0.01
+  maximum_selection_recall_drop: 0.003
+
+decision_gates:
+  maximum_recall_gap_vs_full_d4: 0.002
+  maximum_fdr_gap_vs_full_d4: 0.002
+  maximum_compute_ratio_vs_full_d4: 0.55
+
+scientific_scope:
+  level: iterative_oof_development
+  formal_admission_before_run: false
+  threshold_provenance: frozen_from_label_free_identity_vs_d4_diagnostic
+  exclusions:
+    - no ground-truth labels used to select the 0.80 gate
+    - no new inference or training
+    - no second threshold grid
