@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.oof_detection import load_formal_ground_truth
 from rsdet.evaluation.official_frontier import official_fixed_risk_frontier
+from rsdet.evaluation.official_metric import evaluate_ranking_metrics
 from rsdet.evaluation.protocol import parse_evaluation_protocol
 from rsdet.hera_guard.resolver import resolve_fine_category
 from rsdet.utils.config import load_config
@@ -96,6 +97,54 @@ def main() -> int:
         int(candidate_id): index for index, candidate_id in enumerate(candidate_ids.tolist())
     }
 
+    def summarize(frontier) -> dict:
+        fixed = {
+            str(level): {
+                "recall": frontier.points[level].recall,
+                "fdr": frontier.points[level].fdr,
+                "tp": frontier.points[level].tp,
+                "fp": frontier.points[level].fp,
+            }
+            for level in levels
+        }
+        selected_ids = set(frontier.selected_candidate_ids[0.12])
+        selected_by_image = {
+            image_id: [
+                row
+                for row in records
+                if int(row["source_prediction_index"]) in selected_ids
+            ]
+            for image_id, records in frontier.kept_predictions.items()
+        }
+        scoped_gt = {image_id: formal.boxes.get(image_id, []) for image_id in image_ids}
+        ranking = evaluate_ranking_metrics(
+            scoped_gt,
+            selected_by_image,
+            class_names=list(dict.fromkeys(protocol.category_mapping.values())),
+            category_mapping=protocol.category_mapping,
+            iou_thresholds=protocol.iou_thresholds,
+            require_complete_taxonomy=True,
+        )
+        six = []
+        coarse = {}
+        for coarse_name in ("ship", "aircraft", "vehicle"):
+            metric = ranking.per_coarse[coarse_name]
+            coarse[coarse_name] = {
+                "macro_recall": metric.macro_recall,
+                "macro_fdr": metric.macro_fdr,
+                "pooled_recall": metric.pooled_recall,
+                "pooled_fdr": metric.pooled_fdr,
+            }
+            six.extend((metric.macro_recall, 1.0 - metric.macro_fdr))
+        return {
+            "frontier": fixed,
+            "ranking_at_fdr_0.12": {
+                "per_coarse": coarse,
+                "six_metric_min": min(six),
+                "six_metric_mean": sum(six) / len(six),
+            },
+        }
+
     def build_variant(
         *,
         rho: float,
@@ -160,16 +209,8 @@ def main() -> int:
             "quality_weight": quality_weight,
             "protect_weight": protect_weight,
             "relabel_count": changed,
-            "frontier": {
-                str(level): {
-                    "recall": frontier.points[level].recall,
-                    "fdr": frontier.points[level].fdr,
-                    "tp": frontier.points[level].tp,
-                    "fp": frontier.points[level].fp,
-                }
-                for level in levels
-            },
         }
+        rows[name].update(summarize(frontier))
     relabel_variant, changed = build_variant(
         rho=0.50,
         fg_weight=0.50,
@@ -189,30 +230,31 @@ def main() -> int:
     rows["guard_soft_plus_safe_relabel"] = {
         "rho": 0.50,
         "relabel_count": changed,
-        "frontier": {
-            str(level): {
-                "recall": relabel_frontier.points[level].recall,
-                "fdr": relabel_frontier.points[level].fdr,
-                "tp": relabel_frontier.points[level].tp,
-                "fp": relabel_frontier.points[level].fp,
-            }
-            for level in levels
-        },
     }
+    rows["guard_soft_plus_safe_relabel"].update(summarize(relabel_frontier))
     baseline_012 = rows["baseline"]["frontier"]["0.12"]["recall"]
     baseline_010 = rows["baseline"]["frontier"]["0.1"]["recall"]
+    baseline_min_six = rows["baseline"]["ranking_at_fdr_0.12"]["six_metric_min"]
     decisions = []
     for name, row in rows.items():
         if name == "baseline":
             continue
         delta_012 = row["frontier"]["0.12"]["recall"] - baseline_012
         delta_010 = row["frontier"]["0.1"]["recall"] - baseline_010
+        delta_min_six = (
+            row["ranking_at_fdr_0.12"]["six_metric_min"] - baseline_min_six
+        )
         decisions.append(
             {
                 "variant": name,
                 "delta_recall_at_fdr_0.12": delta_012,
                 "delta_recall_at_fdr_0.10": delta_010,
-                "passes_exploratory_gate": delta_012 >= 0.002 and delta_010 >= -0.001,
+                "delta_six_metric_min_at_fdr_0.12": delta_min_six,
+                "passes_exploratory_gate": (
+                    delta_012 >= 0.002
+                    and delta_010 >= -0.001
+                    and delta_min_six >= -0.005
+                ),
             }
         )
     output = {

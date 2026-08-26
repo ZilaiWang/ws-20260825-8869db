@@ -136,6 +136,7 @@ PAV manifest：`outputs/HERA-GUARD-PRECHECK/pav-manifest-oer-v1/hera_pav_manifes
 
 - `ΔRecall@FDR0.12 ≥ +0.002`；
 - `ΔRecall@FDR0.10 ≥ -0.001`；
+- FDR=0.12 工作点的六项官方 coarse-macro 最差项下降不超过 0.005；
 - 通过才扩三折；不通过停止或重做 PAV，不用长训练掩盖结构问题。
 
 配置：`configs/experiments/hera_guard_pav_fast_screen_v1.yaml`。
@@ -154,4 +155,3 @@ PAV manifest：`outputs/HERA-GUARD-PRECHECK/pav-manifest-oer-v1/hera_pav_manifes
 3. 三折聚合评估官方 ranking macro-fine Recall/FDR、pooled 刚性门槛和错误分解；
 4. 只在 PAV+MAR 稳定收益后做困难对象门控与 10K 时延；
 5. 未通过：优先检查 crop 尺度、active-FP 采样和 protect loss，不直接增加 epoch。
-

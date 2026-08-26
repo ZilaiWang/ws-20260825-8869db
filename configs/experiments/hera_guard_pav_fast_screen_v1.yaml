@@ -28,4 +28,5 @@ training:
 screen_gate:
   minimum_delta_recall_at_fdr_0.12: 0.002
   maximum_recall_drop_at_fdr_0.10: 0.001
+  maximum_six_metric_min_drop: 0.005
   formal_admission: false
