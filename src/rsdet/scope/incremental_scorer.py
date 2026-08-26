@@ -119,32 +119,50 @@ class IncrementalFrontierScorer:
 
     def score_after(self, candidate_idx: int, action_kind: str, new_cls: int | None = None) -> tuple[float, int, int]:
         """动作后的 (frontier 分数, tp 数, fp 数)。不改变内部状态。"""
-        img = self.idx_to_img.get(candidate_idx)
-        if img is None:
+        return self.score_after_multi({candidate_idx: (action_kind, new_cls)})
+
+    def score_after_multi(self, edits: dict[int, tuple[str, int | None]]) -> tuple[float, int, int]:
+        """多候选动作后的 (frontier, tp, fp)。只重算受影响的 image。
+
+        edits: {candidate_idx: (action_kind, new_cls)}。所有候选须在同一 image
+        （pairwise 交互场景），跨 image 则逐 image 分组重算（通用但稍慢）。
+        不改变内部状态。
+        """
+        if not edits:
             return self.recall_at_fdr_012, self.n_tp, self.n_fp
-        cands = list(self.cand_by_img[img])
-        if action_kind == "drop":
-            cands = [c for c in cands if c._idx != candidate_idx]
-        elif action_kind == "relabel" and new_cls is not None:
-            cands = [
-                CandidateView(c._idx, c.image_id, new_cls if c._idx == candidate_idx else c.category_id,
-                              c.score, c.bbox_xyxy)
-                for c in cands
-            ]
-        else:
-            return self.recall_at_fdr_012, self.n_tp, self.n_fp
-        k, t = self._nms_match(img, cands)
-        # 合并其他 image + 该 image
-        kept_pool = []
-        tp_pool = set()
-        for oimg, ok in self.kept_by_img.items():
-            if oimg == img:
+        # 按 image 分组
+        edits_by_img: dict[int, dict[int, tuple[str, int | None]]] = defaultdict(dict)
+        for idx, (ak, nc) in edits.items():
+            img = self.idx_to_img.get(idx)
+            if img is None:
+                continue
+            edits_by_img[img][idx] = (ak, nc)
+
+        kept_pool: list[CandidateView] = []
+        tp_pool: set[int] = set()
+        touched_imgs = set(edits_by_img.keys())
+        for img, ok in self.kept_by_img.items():
+            if img in touched_imgs:
+                cands = list(self.cand_by_img[img])
+                drops = {idx for idx, (ak, _) in edits_by_img[img].items() if ak == "drop"}
+                relabels = {idx: nc for idx, (ak, nc) in edits_by_img[img].items()
+                            if ak == "relabel" and nc is not None}
+                new_cands = []
+                for c in cands:
+                    if c._idx in drops:
+                        continue
+                    if c._idx in relabels:
+                        new_cands.append(CandidateView(c._idx, c.image_id, relabels[c._idx],
+                                                       c.score, c.bbox_xyxy))
+                    else:
+                        new_cands.append(c)
+                k, t = self._nms_match(img, new_cands)
                 kept_pool.extend(k)
                 tp_pool |= t
             else:
                 kept_pool.extend(ok)
-                tp_pool |= self.tp_by_img[oimg]
-        # numpy 扫描
+                tp_pool |= self.tp_by_img[img]
+
         if not kept_pool:
             return 0.0, 0, 0
         scores = np.asarray([p.score for p in kept_pool], dtype=np.float64)
