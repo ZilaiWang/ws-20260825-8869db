@@ -15,11 +15,11 @@ M1（YOLO26s）当前可下载的工程联调权重与初始预训练权重：
 ```bash
 # 仅工程联调：M1 三折 best.pt（62MB）
 curl -L -o M1-CV3-OOF-fold012-best.tar.gz \
-  https://gitee.com/<UPSTREAM_OWNER>/xh-202625/releases/download/v0.1-m1-weights/M1-CV3-OOF-fold012-best.tar.gz
+  https://gitee.com/zilai-wang/xh-202625/releases/download/v0.1-m1-weights/M1-CV3-OOF-fold012-best.tar.gz
 
 # YOLO26s 官方初始预训练权重（19MB）
 curl -L -o yolo26s.pt \
-  https://gitee.com/<UPSTREAM_OWNER>/xh-202625/releases/download/v0.1-m1-weights/yolo26s.pt
+  https://gitee.com/zilai-wang/xh-202625/releases/download/v0.1-m1-weights/yolo26s.pt
 ```
 
 下载后用 SHA-256 校验（登记于

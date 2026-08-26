@@ -25,7 +25,7 @@
 ### 0.1 拉取最新代码（必须，含 N0 与 SHA 清单更新）
 
 ```bash
-git clone https://gitee.com/<UPSTREAM_OWNER>/xh-202625.git /workspace/xh-202625
+git clone https://gitee.com/zilai-wang/xh-202625.git /workspace/xh-202625
 cd /workspace/xh-202625 && git pull origin master
 # 校验 formal 阶段代码 SHA（必须 74 条全部 OK）
 sha256sum -c docs/server/CV3_FORMAL_EXPERIMENT_CODE_SHA256.txt | grep -v OK || true

@@ -81,3 +81,8 @@ tmp/
 
 # Claude
 .claude/
+
+# 大文件/模型权重打包（GitHub sanitize 排除）
+*.tar.gz
+*.sha256
+artifacts/

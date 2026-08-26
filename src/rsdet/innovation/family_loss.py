@@ -18,6 +18,7 @@ from typing import Any, Sequence
 
 import torch
 
+from rsdet.innovation.aggregation import aggregate_group_scores
 from rsdet.innovation.coarse import (
     COARSE_MAPPING,
     FAMILY_MAPPING,
@@ -68,12 +69,9 @@ class FamilyHierarchicalLoss(HierarchicalCoarseLoss):
         if fg_mask.sum() > 0 and self.family_gain > 0.0:
             pred_scores = preds["scores"].permute(0, 2, 1).contiguous()
             target_scores = self._last_target_scores
-            # family 辅助: max 聚合(梯度只分给 family 内最高类, 避免求和聚合推高
-            # 同 family 所有类导致候选爆炸——F2 fold0 曾因求和聚合候选 9 倍爆炸)
-            family_logits = torch.stack(
-                [pred_scores[:, :, idx].max(dim=-1).values for idx in self._family_cls_idx],
-                dim=-1,
-            )
+            # family 辅助: 统一走 aggregate_group_scores 的 max 聚合（梯度只分给
+            # family 内最高类，避免求和聚合推高同 family 所有类导致候选爆炸）。
+            family_logits = aggregate_group_scores(pred_scores, self._family_cls_idx)
             family_targets = (target_scores @ self.family_mat).clamp(max=1.0)
             family_bce = self.bce(family_logits, family_targets.to(pred_scores.dtype))
             loss[1] = loss[1] + self.family_gain * (

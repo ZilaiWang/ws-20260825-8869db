@@ -1,8 +1,8 @@
 # N1 阶段执行报告：P03-F 与 P04-F 正式 CV3 复验
 
 日期：2026-08-09
-服务器：autodl `<GPU_SERVER_HOST>`（RTX 3090 24GB / Ubuntu 22.04）
-执行人：A远程执行
+服务器：autodl `connect.nmb2.seetacloud.com`（RTX 3090 24GB / Ubuntu 22.04）
+执行人：A（王子莱）远程执行
 状态：`complete`
 
 ## 1. 部署与环境
@@ -31,7 +31,7 @@
 
 ## 3. P04-F 三教师 cache（从原服务器传输）
 
-原服务器 `<GPU_SERVER_HOST>` 的 `p04-cache/` 中找到全部三教师 cache，
+原服务器 `connect.weste.seetacloud.com` 的 `p04-cache/` 中找到全部三教师 cache，
 通过本机中转传输（1.86GB，约 18 分钟），部署到新服务器 `/workspace/p04-cache/`。
 
 **cache 复用审计全部通过**（`formal_replay_inputs_ready`）：
