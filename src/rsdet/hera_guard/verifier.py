@@ -16,6 +16,7 @@ from rsdet.models.crop_classifier import CONVNEXT_TINY_WEIGHT_SHA256, sha256_fil
 try:  # Keep audit-only environments importable when model extras are absent.
     from torch import nn as _nn
 except ImportError:  # pragma: no cover - exercised by environment gates
+
     class _ModuleBase:  # type: ignore[no-redef]
         pass
 else:
@@ -34,6 +35,7 @@ class ProposalVerifierOutput:
     fine_logits: Any
     quality_logit: Any
     protect_logit: Any
+    active_fp_logit: Any
     embedding: Any
 
 
@@ -146,6 +148,7 @@ class ProposalAlignedVerifier(_ModuleBase):
         self.fine_head = nn.Linear(hidden_dim, num_fine_classes)
         self.quality_head = nn.Linear(hidden_dim, 1)
         self.protect_head = nn.Linear(hidden_dim, 1)
+        self.active_fp_head = nn.Linear(hidden_dim, 1)
 
     def _encode(self, images: Any) -> Any:
         feature_map = self.backbone.features(images)
@@ -153,7 +156,9 @@ class ProposalAlignedVerifier(_ModuleBase):
         normalized = self.backbone.classifier[0](pooled)
         return normalized.flatten(1)
 
-    def forward(self, tight: Any, context: Any, metadata: Any | None = None) -> ProposalVerifierOutput:
+    def forward(
+        self, tight: Any, context: Any, metadata: Any | None = None
+    ) -> ProposalVerifierOutput:
         import torch
 
         if tight.shape != context.shape or tight.ndim != 4:
@@ -174,9 +179,7 @@ class ProposalAlignedVerifier(_ModuleBase):
         if self.metadata_projection is not None:
             if metadata is None or metadata.shape != (tight.shape[0], self.metadata_dim):
                 raise ValueError("metadata shape does not match PAV contract")
-            pair_embedding = torch.cat(
-                [pair_embedding, self.metadata_projection(metadata)], dim=1
-            )
+            pair_embedding = torch.cat([pair_embedding, self.metadata_projection(metadata)], dim=1)
         elif metadata is not None and metadata.numel():
             raise ValueError("metadata supplied to a metadata-free PAV")
         embedding = self.fusion(pair_embedding)
@@ -186,6 +189,7 @@ class ProposalAlignedVerifier(_ModuleBase):
             fine_logits=self.fine_head(embedding),
             quality_logit=self.quality_head(embedding).squeeze(1),
             protect_logit=self.protect_head(embedding).squeeze(1),
+            active_fp_logit=self.active_fp_head(embedding).squeeze(1),
             embedding=embedding,
         )
 

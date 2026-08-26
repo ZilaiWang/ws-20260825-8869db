@@ -78,10 +78,7 @@ class PAVManifestDataset:
             )
             context = render_crop(
                 source,
-                tuple(
-                    float(row[f"context_{axis}"])
-                    for axis in ("x0", "y0", "x1", "y1")
-                ),
+                tuple(float(row[f"context_{axis}"]) for axis in ("x0", "y0", "x1", "y1")),
                 self.resolution,
             )
 
@@ -110,6 +107,14 @@ class PAVManifestDataset:
             "fine": torch.tensor(max(int(row["target_fine"]), 0), dtype=torch.long),
             "quality": torch.tensor(float(row["target_quality"])),
             "protect": torch.tensor(float(row["target_protect"])),
+            "active_fp": torch.tensor(
+                float(
+                    row.get(
+                        "target_active_fp",
+                        int(str(row.get("workpoint_role", "")) == "active_fp"),
+                    )
+                )
+            ),
             "candidate_id": torch.tensor(int(row["candidate_id"]), dtype=torch.long),
         }
 
@@ -120,9 +125,7 @@ def balanced_sampling_weights(rows: Sequence[Mapping[str, object]]) -> list[floa
     from collections import Counter
 
     fine_counts = Counter(
-        int(row["target_fine"])
-        for row in rows
-        if int(row["target_foreground"]) == 1
+        int(row["target_fine"]) for row in rows if int(row["target_foreground"]) == 1
     )
     maximum = max(fine_counts.values(), default=1)
     weights: list[float] = []

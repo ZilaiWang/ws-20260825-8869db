@@ -13,6 +13,7 @@ class PAVLossWeights:
     fine: float = 0.75
     quality: float = 0.25
     protect: float = 0.50
+    active_fp: float = 0.50
 
 
 def _connected_zero(tensor: Any) -> Any:
@@ -45,13 +46,14 @@ def pav_multitask_loss(
     fine_class_counts: Any,
     weights: PAVLossWeights = PAVLossWeights(),
     protected_tp_weight: float = 4.0,
+    active_fp_weight: float = 3.0,
 ) -> dict[str, Any]:
     """Compute PAV losses without NaNs on background-only mini-batches.
 
     Required target keys are ``foreground``, ``coarse``, ``fine``, ``quality``
-    and ``protect``.  Coarse/fine identity is supervised only for foreground
-    rows.  Protection positives receive an asymmetric weight because demoting a
-    workpoint TP is substantially more costly than retaining one ambiguous FP.
+    ``protect`` and ``active_fp``.  Coarse/fine identity is supervised only for
+    geometry-level foreground rows.  Protection and active-risk positives use
+    asymmetric weights because both are rare at the frozen workpoint.
     """
 
     import torch
@@ -62,6 +64,7 @@ def pav_multitask_loss(
     fine = targets["fine"].long()
     quality = targets["quality"].float()
     protect = targets["protect"].float()
+    active_fp = targets["active_fp"].float()
     batch_size = output.foreground_logit.shape[0]
     if any(value.shape[0] != batch_size for value in targets.values()):
         raise ValueError("all PAV targets must align with the batch")
@@ -80,9 +83,7 @@ def pav_multitask_loss(
     else:
         coarse_loss = _connected_zero(output.coarse_logits)
         fine_loss = _connected_zero(output.fine_logits)
-    quality_loss = functional.binary_cross_entropy_with_logits(
-        output.quality_logit, quality
-    )
+    quality_loss = functional.binary_cross_entropy_with_logits(output.quality_logit, quality)
     protect_weights = torch.where(
         protect > 0.5,
         torch.full_like(protect, float(protected_tp_weight)),
@@ -93,12 +94,23 @@ def pav_multitask_loss(
         protect,
         weight=protect_weights,
     )
+    active_weights = torch.where(
+        active_fp > 0.5,
+        torch.full_like(active_fp, float(active_fp_weight)),
+        torch.ones_like(active_fp),
+    )
+    active_fp_loss = functional.binary_cross_entropy_with_logits(
+        output.active_fp_logit,
+        active_fp,
+        weight=active_weights,
+    )
     total = (
         weights.foreground * foreground_loss
         + weights.coarse * coarse_loss
         + weights.fine * fine_loss
         + weights.quality * quality_loss
         + weights.protect * protect_loss
+        + weights.active_fp * active_fp_loss
     )
     return {
         "total": total,
@@ -107,6 +119,7 @@ def pav_multitask_loss(
         "fine": fine_loss,
         "quality": quality_loss,
         "protect": protect_loss,
+        "active_fp": active_fp_loss,
         "n_foreground": int(positive.sum().item()),
     }
 

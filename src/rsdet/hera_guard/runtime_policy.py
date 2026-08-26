@@ -59,9 +59,7 @@ def route_ambiguous_candidates(
         image_id = int(record["image_id"])
         score, reasons = ambiguity_score(record)
         if score >= minimum_ambiguity:
-            by_image[image_id].append(
-                RoutedCandidate(candidate_id, image_id, score, reasons)
-            )
+            by_image[image_id].append(RoutedCandidate(candidate_id, image_id, score, reasons))
     selected: list[RoutedCandidate] = []
     for image_id in sorted(by_image):
         ranked = sorted(by_image[image_id], key=lambda row: (-row.ambiguity, row.candidate_id))

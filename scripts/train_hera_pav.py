@@ -23,7 +23,10 @@ from rsdet.hera_guard.dataset import (
     balanced_sampling_weights,
 )
 from rsdet.hera_guard.losses import PAVLossWeights, pav_multitask_loss
-from rsdet.hera_guard.manifest import PAV_MANIFEST_VERSION, PAV_METADATA_COLUMNS
+from rsdet.hera_guard.manifest import (
+    PAV_METADATA_COLUMNS,
+    SUPPORTED_PAV_MANIFEST_VERSIONS,
+)
 from rsdet.hera_guard.verifier import build_proposal_aligned_verifier
 
 
@@ -38,7 +41,8 @@ def _sha256(path: Path) -> str:
 def _load_rows(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
-    if not rows or any(row["manifest_version"] != PAV_MANIFEST_VERSION for row in rows):
+    versions = {row["manifest_version"] for row in rows}
+    if not rows or len(versions) != 1 or not versions.issubset(SUPPORTED_PAV_MANIFEST_VERSIONS):
         raise ValueError("PAV manifest version mismatch")
     return rows
 
@@ -106,9 +110,7 @@ def main() -> int:
         resolution=args.resolution,
         augment_d4=False,
     )
-    sample_weights = torch.as_tensor(
-        balanced_sampling_weights(train_rows), dtype=torch.double
-    )
+    sample_weights = torch.as_tensor(balanced_sampling_weights(train_rows), dtype=torch.double)
     sampler = WeightedRandomSampler(
         sample_weights,
         num_samples=args.samples_per_epoch,
@@ -140,6 +142,8 @@ def main() -> int:
         verify_weight_sha256=args.verify_weight_sha256,
         device=device,
     )
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     backbone_ids = {id(parameter) for parameter in model.backbone.parameters()}
     backbone_parameters = [
         parameter
@@ -153,9 +157,7 @@ def main() -> int:
     ]
     parameter_groups = [{"params": head_parameters, "lr": args.head_learning_rate}]
     if backbone_parameters:
-        parameter_groups.append(
-            {"params": backbone_parameters, "lr": args.backbone_learning_rate}
-        )
+        parameter_groups.append({"params": backbone_parameters, "lr": args.backbone_learning_rate})
     optimizer = torch.optim.AdamW(
         parameter_groups,
         weight_decay=args.weight_decay,
@@ -163,9 +165,7 @@ def main() -> int:
     amp_enabled = device.type == "cuda"
     scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
     fine_counts_counter = Counter(
-        int(row["target_fine"])
-        for row in train_rows
-        if int(row["target_foreground"]) == 1
+        int(row["target_fine"]) for row in train_rows if int(row["target_foreground"]) == 1
     )
     if set(fine_counts_counter) != set(range(25)):
         raise ValueError("outer training data does not cover all 25 fine classes")
@@ -187,7 +187,14 @@ def main() -> int:
             metadata = batch["metadata"].to(device, non_blocking=True)
             targets = {
                 key: batch[key].to(device, non_blocking=True)
-                for key in ("foreground", "coarse", "fine", "quality", "protect")
+                for key in (
+                    "foreground",
+                    "coarse",
+                    "fine",
+                    "quality",
+                    "protect",
+                    "active_fp",
+                )
             }
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=amp_enabled):
@@ -205,7 +212,15 @@ def main() -> int:
             scaler.update()
             size = tight.shape[0]
             examples += size
-            for key in ("total", "foreground", "coarse", "fine", "quality", "protect"):
+            for key in (
+                "total",
+                "foreground",
+                "coarse",
+                "fine",
+                "quality",
+                "protect",
+                "active_fp",
+            ):
                 totals[key] += float(losses[key].detach().item()) * size
         record = {"epoch": epoch, "examples": examples}
         record.update({key: totals[key] / examples for key in totals})
@@ -222,9 +237,11 @@ def main() -> int:
             "fine_logits",
             "quality_logit",
             "protect_logit",
+            "active_fp_logit",
             "foreground_target",
             "fine_target",
             "protect_target",
+            "active_fp_target",
         )
     }
     with torch.inference_mode():
@@ -241,21 +258,25 @@ def main() -> int:
                 "fine_logits",
                 "quality_logit",
                 "protect_logit",
+                "active_fp_logit",
             ):
                 arrays[key].append(getattr(output, key).float().cpu().numpy())
             arrays["foreground_target"].append(batch["foreground"].numpy())
             arrays["fine_target"].append(batch["fine"].numpy())
             arrays["protect_target"].append(batch["protect"].numpy())
+            arrays["active_fp_target"].append(batch["active_fp"].numpy())
     merged = {key: np.concatenate(values) for key, values in arrays.items()}
     if len(merged["candidate_id"]) != len(validation_rows):
         raise RuntimeError("held-out PAV coverage is incomplete")
     foreground_probability = 1 / (1 + np.exp(-merged["foreground_logit"]))
     protect_probability = 1 / (1 + np.exp(-merged["protect_logit"]))
+    active_fp_probability = 1 / (1 + np.exp(-merged["active_fp_logit"]))
     fine_prediction = merged["fine_logits"].argmax(axis=1)
     foreground_mask = merged["foreground_target"] > 0.5
     scientific_metrics = {
         "foreground": _metrics(merged["foreground_target"], foreground_probability),
         "protect": _metrics(merged["protect_target"], protect_probability),
+        "active_fp": _metrics(merged["active_fp_target"], active_fp_probability),
         "fine_accuracy_on_foreground": float(
             (fine_prediction[foreground_mask] == merged["fine_target"][foreground_mask]).mean()
         ),
@@ -280,6 +301,7 @@ def main() -> int:
     np.savez_compressed(logits_path, **merged)
     result = {
         "status": "complete",
+        "manifest_version": rows[0]["manifest_version"],
         "held_out_fold": args.held_out_fold,
         "n_train": len(train_rows),
         "n_validation": len(validation_rows),
@@ -289,6 +311,11 @@ def main() -> int:
         "history": history,
         "scientific_metrics": scientific_metrics,
         "elapsed_seconds": time.time() - started,
+        "peak_vram_mib": (
+            float(torch.cuda.max_memory_allocated(device) / (1024**2))
+            if device.type == "cuda"
+            else 0.0
+        ),
         "checkpoint_sha256": _sha256(checkpoint_path),
         "logits_sha256": _sha256(logits_path),
         "manifest_sha256": _sha256(args.manifest),

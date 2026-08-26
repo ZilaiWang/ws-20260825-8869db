@@ -1,11 +1,16 @@
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
 nn = pytest.importorskip("torch.nn")
 
 from rsdet.hera_guard.losses import pav_multitask_loss  # noqa: E402
+from rsdet.hera_guard.mar_training import (  # noqa: E402
+    build_mar_features,
+    fit_monotone_mar,
+)
 from rsdet.hera_guard.resolver import (  # noqa: E402
     MonotoneAsymmetricResolver,
     resolve_fine_category,
@@ -23,9 +28,7 @@ class _TinyBackbone(nn.Module):
 
 
 def test_pav_two_view_forward_contract() -> None:
-    model = ProposalAlignedVerifier(
-        _TinyBackbone(), metadata_dim=4, hidden_dim=16, dropout=0.0
-    )
+    model = ProposalAlignedVerifier(_TinyBackbone(), metadata_dim=4, hidden_dim=16, dropout=0.0)
     output = model(
         torch.randn(3, 3, 16, 16),
         torch.randn(3, 3, 16, 16),
@@ -36,6 +39,7 @@ def test_pav_two_view_forward_contract() -> None:
     assert output.fine_logits.shape == (3, 25)
     assert output.quality_logit.shape == (3,)
     assert output.protect_logit.shape == (3,)
+    assert output.active_fp_logit.shape == (3,)
 
 
 def test_pav_loss_is_finite_for_background_only_batch() -> None:
@@ -45,6 +49,7 @@ def test_pav_loss_is_finite_for_background_only_batch() -> None:
         fine_logits=torch.randn(4, 25, requires_grad=True),
         quality_logit=torch.randn(4, requires_grad=True),
         protect_logit=torch.randn(4, requires_grad=True),
+        active_fp_logit=torch.randn(4, requires_grad=True),
     )
     losses = pav_multitask_loss(
         output,
@@ -54,6 +59,7 @@ def test_pav_loss_is_finite_for_background_only_batch() -> None:
             "fine": torch.zeros(4, dtype=torch.long),
             "quality": torch.zeros(4),
             "protect": torch.zeros(4),
+            "active_fp": torch.zeros(4),
         },
         fine_class_counts=torch.ones(25),
     )
@@ -107,3 +113,31 @@ def test_runtime_routing_honors_per_image_cap() -> None:
     ]
     routed = route_ambiguous_candidates(records, max_per_image=2)
     assert [row.candidate_id for row in routed] == [0, 1]
+
+
+def test_mar_feature_and_fit_contract() -> None:
+    rows = [
+        {"detector_category_id": index % 2, "detector_coarse": "aircraft"} for index in range(6)
+    ]
+    predictions = [{"score": 0.2 + index * 0.1} for index in range(6)]
+    logits = {
+        "candidate_id": np.arange(6),
+        "foreground_logit": np.linspace(-1, 1, 6),
+        "quality_logit": np.linspace(-0.5, 0.5, 6),
+        "protect_logit": np.linspace(-2, 2, 6),
+        "fine_logits": np.tile(np.linspace(-1, 1, 25), (6, 1)),
+    }
+    features = build_mar_features(rows=rows, predictions=predictions, logits=logits)
+    fit = fit_monotone_mar(
+        train_base_score=np.asarray([row["score"] for row in predictions[:4]]),
+        train_features=features[:4],
+        train_target=np.asarray([1, 0, 1, 0]),
+        train_role=["protected_tp", "active_fp", "protected_tp", "active_fp"],
+        train_coarse=[0, 0, 0, 0],
+        validation_base_score=np.asarray([0.6, 0.7]),
+        validation_features=features[4:],
+        epochs=3,
+    )
+    assert fit.validation_scores.shape == (2,)
+    assert np.isfinite(fit.validation_scores).all()
+    assert np.all(fit.constrained_weights > 0)

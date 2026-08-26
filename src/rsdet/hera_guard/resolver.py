@@ -14,6 +14,7 @@ from typing import Any, Sequence
 try:
     from torch import nn as _nn
 except ImportError:  # pragma: no cover
+
     class _ModuleBase:  # type: ignore[no-redef]
         pass
 else:

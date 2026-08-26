@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import sys
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -17,16 +18,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.oof_detection import load_formal_ground_truth
 from rsdet.evaluation.official_frontier import official_fixed_risk_frontier
-from rsdet.evaluation.official_metric import evaluate_ranking_metrics
+from rsdet.evaluation.official_metric import compute_iou, evaluate_ranking_metrics
 from rsdet.evaluation.protocol import parse_evaluation_protocol
+from rsdet.hera_guard.manifest import PAV_MANIFEST_VERSION_V2
 from rsdet.hera_guard.resolver import resolve_fine_category
 from rsdet.utils.config import load_config
 
 FUSIONS = {
-    "baseline": (0.0, 0.0, 0.0, 0.0),
-    "guard_soft": (0.50, 0.50, 0.25, 0.25),
-    "guard_balanced": (0.75, 0.50, 0.25, 0.25),
-    "guard_strong": (1.00, 0.50, 0.25, 0.25),
+    "baseline": (0.0, 0.0, 0.0, 0.0, 0.0),
+    "guard_soft": (0.50, 0.50, 0.25, 0.25, 0.25),
+    "guard_balanced": (0.75, 0.50, 0.25, 0.25, 0.50),
+    "guard_strong": (1.00, 0.50, 0.25, 0.25, 0.75),
 }
 
 
@@ -60,7 +62,12 @@ def main() -> int:
     parser.add_argument("--pav-logits", type=Path, required=True)
     parser.add_argument("--formal-crop-manifest", type=Path, required=True)
     parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
-    parser.add_argument("--held-out-fold", type=int, choices=(0, 1, 2), required=True)
+    parser.add_argument(
+        "--held-out-fold",
+        choices=("0", "1", "2", "all"),
+        required=True,
+        help="One formal fold, or 'all' for a merged three-fold OOF confirmation.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -68,26 +75,33 @@ def main() -> int:
     protocol = parse_evaluation_protocol(load_config(args.project_config))
     with args.manifest.open("r", encoding="utf-8", newline="") as handle:
         manifest = {int(row["candidate_id"]): row for row in csv.DictReader(handle)}
+    manifest_versions = {row["manifest_version"] for row in manifest.values()}
+    if len(manifest_versions) != 1:
+        raise ValueError("PAV manifest mixes incompatible versions")
+    manifest_version = next(iter(manifest_versions))
+    uses_objectness_risk = manifest_version == PAV_MANIFEST_VERSION_V2
     predictions = json.loads(args.predictions.read_text(encoding="utf-8"))
     logits = np.load(args.pav_logits, allow_pickle=False)
     candidate_ids = logits["candidate_id"].astype(np.int64)
     if len(np.unique(candidate_ids)) != len(candidate_ids):
         raise ValueError("PAV logits contain duplicate candidate IDs")
+    fold_scope = {0, 1, 2} if args.held_out_fold == "all" else {int(args.held_out_fold)}
     expected_ids = {
-        candidate_id
-        for candidate_id, row in manifest.items()
-        if int(row["fold"]) == args.held_out_fold
+        candidate_id for candidate_id, row in manifest.items() if int(row["fold"]) in fold_scope
     }
     if set(candidate_ids.tolist()) != expected_ids:
         raise ValueError("PAV held-out coverage differs from manifest")
     image_ids = {
-        int(obj.image_id)
-        for obj in formal.objects.values()
-        if int(obj.fold) == args.held_out_fold
+        int(obj.image_id) for obj in formal.objects.values() if int(obj.fold) in fold_scope
     }
     fg = logits["foreground_logit"].astype(np.float64)
     quality = logits["quality_logit"].astype(np.float64)
     protect = logits["protect_logit"].astype(np.float64)
+    active_fp = (
+        logits["active_fp_logit"].astype(np.float64)
+        if "active_fp_logit" in logits.files
+        else np.zeros_like(fg)
+    )
     fine_probability = _softmax(logits["fine_logits"].astype(np.float64))
     coarse_of_fine = [
         {"aircraft": 0, "ship": 1, "vehicle": 2}[protocol.category_mapping[index]]
@@ -110,9 +124,7 @@ def main() -> int:
         selected_ids = set(frontier.selected_candidate_ids[0.12])
         selected_by_image = {
             image_id: [
-                row
-                for row in records
-                if int(row["source_prediction_index"]) in selected_ids
+                row for row in records if int(row["source_prediction_index"]) in selected_ids
             ]
             for image_id, records in frontier.kept_predictions.items()
         }
@@ -151,10 +163,14 @@ def main() -> int:
         fg_weight: float,
         quality_weight: float,
         protect_weight: float,
+        active_fp_weight: float,
         relabel: bool,
-    ) -> tuple[list[dict], int]:
+    ) -> tuple[list[dict], int, dict[str, int], dict[str, int], dict[str, int]]:
         result = []
         changed = 0
+        transitions: Counter[str] = Counter()
+        local_outcomes: Counter[str] = Counter()
+        transition_outcomes: Counter[str] = Counter()
         for candidate_id, raw in enumerate(predictions):
             if candidate_id not in by_candidate:
                 continue
@@ -166,10 +182,13 @@ def main() -> int:
                 fg_weight * fg[local]
                 + quality_weight * quality[local]
                 + protect_weight * protect[local]
+                - active_fp_weight * active_fp[local]
             )
             record["score"] = 1 / (1 + math.exp(-(base_logit + rho * math.tanh(evidence))))
             record["source_prediction_index"] = candidate_id
             if relabel:
+                foreground_probability = float(_sigmoid(fg[local : local + 1])[0])
+                active_fp_probability = float(_sigmoid(active_fp[local : local + 1])[0])
                 resolution = resolve_fine_category(
                     detector_category_id=int(record["category_id"]),
                     fine_probabilities=fine_probability[local],
@@ -179,19 +198,66 @@ def main() -> int:
                     protect_probability=float(_sigmoid(protect[local : local + 1])[0]),
                     maximum_protect_for_change=0.40,
                 )
+                if uses_objectness_risk and (
+                    foreground_probability < 0.70 or active_fp_probability < 0.50
+                ):
+                    resolution = type(resolution)(
+                        int(record["category_id"]),
+                        False,
+                        "objectness_or_active_risk_veto",
+                    )
+                if resolution.changed:
+                    old_category = int(record["category_id"])
+                    transition = f"{old_category}->{resolution.category_id}"
+                    transitions[transition] += 1
+                    image_gt = formal.boxes.get(int(record["image_id"]), [])
+                    threshold = protocol.iou_thresholds[protocol.category_mapping[old_category]]
+
+                    def matches(category_id: int) -> bool:
+                        return any(
+                            int(gt["category_id"]) == category_id
+                            and compute_iou(record["bbox_xyxy"], gt["bbox_xyxy"]) >= threshold
+                            for gt in image_gt
+                        )
+
+                    old_valid = matches(old_category)
+                    new_valid = matches(resolution.category_id)
+                    if not old_valid and new_valid:
+                        outcome = "corrected"
+                    elif old_valid and not new_valid:
+                        outcome = "broken"
+                    elif old_valid and new_valid:
+                        outcome = "both_valid"
+                    else:
+                        outcome = "neither_valid"
+                    local_outcomes[outcome] += 1
+                    transition_outcomes[f"{transition}:{outcome}"] += 1
                 record["category_id"] = resolution.category_id
                 changed += int(resolution.changed)
             result.append(record)
-        return result, changed
+        return (
+            result,
+            changed,
+            dict(sorted(transitions.items())),
+            dict(sorted(local_outcomes.items())),
+            dict(sorted(transition_outcomes.items())),
+        )
 
     rows = {}
     levels = (0.15, 0.12, 0.11, 0.10)
-    for name, (rho, fg_weight, quality_weight, protect_weight) in FUSIONS.items():
-        variant, changed = build_variant(
+    for name, (
+        rho,
+        fg_weight,
+        quality_weight,
+        protect_weight,
+        active_fp_weight,
+    ) in FUSIONS.items():
+        variant, changed, transitions, local_outcomes, transition_outcomes = build_variant(
             rho=rho,
             fg_weight=fg_weight,
             quality_weight=quality_weight,
             protect_weight=protect_weight,
+            active_fp_weight=active_fp_weight,
             relabel=False,
         )
         frontier = official_fixed_risk_frontier(
@@ -208,14 +274,25 @@ def main() -> int:
             "fg_weight": fg_weight,
             "quality_weight": quality_weight,
             "protect_weight": protect_weight,
+            "active_fp_weight": active_fp_weight,
             "relabel_count": changed,
+            "relabel_transitions": transitions,
+            "relabel_local_outcomes": local_outcomes,
+            "relabel_transition_outcomes": transition_outcomes,
         }
         rows[name].update(summarize(frontier))
-    relabel_variant, changed = build_variant(
+    (
+        relabel_variant,
+        changed,
+        transitions,
+        local_outcomes,
+        transition_outcomes,
+    ) = build_variant(
         rho=0.50,
         fg_weight=0.50,
         quality_weight=0.25,
         protect_weight=0.25,
+        active_fp_weight=0.25,
         relabel=True,
     )
     relabel_frontier = official_fixed_risk_frontier(
@@ -229,7 +306,12 @@ def main() -> int:
     )
     rows["guard_soft_plus_safe_relabel"] = {
         "rho": 0.50,
+        "objectness_minimum": 0.70 if uses_objectness_risk else None,
+        "active_fp_minimum": 0.50 if uses_objectness_risk else None,
         "relabel_count": changed,
+        "relabel_transitions": transitions,
+        "relabel_local_outcomes": local_outcomes,
+        "relabel_transition_outcomes": transition_outcomes,
     }
     rows["guard_soft_plus_safe_relabel"].update(summarize(relabel_frontier))
     baseline_012 = rows["baseline"]["frontier"]["0.12"]["recall"]
@@ -241,9 +323,7 @@ def main() -> int:
             continue
         delta_012 = row["frontier"]["0.12"]["recall"] - baseline_012
         delta_010 = row["frontier"]["0.1"]["recall"] - baseline_010
-        delta_min_six = (
-            row["ranking_at_fdr_0.12"]["six_metric_min"] - baseline_min_six
-        )
+        delta_min_six = row["ranking_at_fdr_0.12"]["six_metric_min"] - baseline_min_six
         decisions.append(
             {
                 "variant": name,
@@ -251,16 +331,15 @@ def main() -> int:
                 "delta_recall_at_fdr_0.10": delta_010,
                 "delta_six_metric_min_at_fdr_0.12": delta_min_six,
                 "passes_exploratory_gate": (
-                    delta_012 >= 0.002
-                    and delta_010 >= -0.001
-                    and delta_min_six >= -0.005
+                    delta_012 >= 0.002 and delta_010 >= -0.001 and delta_min_six >= -0.005
                 ),
             }
         )
     output = {
         "status": "complete_exploratory_fast_screen",
         "formal_admission": False,
-        "held_out_fold": args.held_out_fold,
+        "manifest_version": manifest_version,
+        "held_out_fold": ("all" if args.held_out_fold == "all" else int(args.held_out_fold)),
         "n_candidates": len(candidate_ids),
         "variants": rows,
         "decisions": decisions,

@@ -1,0 +1,44 @@
+experiment_id: HERA-PAV-V2-OBJECTNESS-RISK-FOLD0
+scientific_status: exploratory_only
+predecessor: HERA-PAV-THREEFOLD-V1
+reason_for_revision:
+  - v1_foreground_was_official_same_fine_tp_not_geometry_objectness
+  - v1_safe_relabel_corrected_low_score_tail_but_broke_high_score_tp
+  - explicit_active_fp_risk_is_required_for_asymmetric_resolution
+baseline:
+  candidates: Y5_ROT90_D4
+  score: corrected_official_prediction_first_OER_OOF
+data:
+  manifest_version: hera_pav_manifest_v2_objectness_risk
+  manifest_sha256: 165cb51428cb2f721a9516ccd9f7eb459d09a1e96e80ec738c530642a35690ad
+  foreground_semantics: proposal_overlaps_any_gt_at_target_coarse_iou_threshold
+  fine_semantics: best_overlapping_gt_category_independent_of_detector_category
+  active_fp_semantics: selected_fp_at_corrected_oer_fdr_0p12
+  tight_scale: 1.10
+  context_scale: 1.60
+  resolution: 224
+  held_out_fold: 0
+model:
+  backbone: convnext_tiny_imagenet1k_v1
+  freeze: freeze_first_stages
+  hidden_dim: 512
+  metadata_dim: 12
+  heads: [objectness, coarse, fine25, quality, protect, active_fp]
+training:
+  epochs: 4
+  samples_per_epoch: 24000
+  batch_size: 48
+  head_learning_rate: 0.0003
+  backbone_learning_rate: 0.00001
+  weight_decay: 0.05
+  seed: 202625
+screen_gate:
+  minimum_delta_recall_at_fdr_0.12: 0.002
+  maximum_recall_drop_at_fdr_0.10: 0.001
+  maximum_six_metric_min_drop: 0.005
+  relabel_objectness_minimum: 0.70
+  relabel_active_fp_minimum: 0.50
+  relabel_fine_probability_minimum: 0.85
+  relabel_fine_margin_minimum: 0.40
+  relabel_protect_maximum: 0.40
+  formal_admission: false

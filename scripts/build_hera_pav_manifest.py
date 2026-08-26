@@ -18,6 +18,7 @@ from rsdet.analysis.oof_detection import load_formal_ground_truth
 from rsdet.analysis.workpoint_labels import build_workpoint_labels
 from rsdet.evaluation.official_frontier import official_fixed_risk_frontier
 from rsdet.evaluation.protocol import parse_evaluation_protocol
+from rsdet.hera_guard.labels import build_proposal_object_labels
 from rsdet.hera_guard.manifest import (
     PAV_MANIFEST_VERSION,
     PAV_METADATA_COLUMNS,
@@ -128,6 +129,12 @@ def main() -> int:
         category_mapping=protocol.category_mapping,
         iou_thresholds=protocol.iou_thresholds,
     )
+    object_labels = build_proposal_object_labels(
+        gt_boxes=formal.boxes,
+        predictions=normalized_labels,
+        category_mapping=protocol.category_mapping,
+        iou_thresholds=protocol.iou_thresholds,
+    )
     frontier = official_fixed_risk_frontier(
         gt_boxes=formal.boxes,
         predictions=normalized,
@@ -147,14 +154,12 @@ def main() -> int:
         detector_category = pred["category_id"]
         detector_coarse = protocol.category_mapping[detector_category]
         proposal_label = proposal_labels.labels[candidate_id]
-        matched_object = None
-        if proposal_label.matched_gt_index is not None:
-            matched_object = formal.objects[(image_id, proposal_label.matched_gt_index)]
+        object_label = object_labels[candidate_id]
         role = workpoint.get(candidate_id)
         workpoint_role = role.role if role is not None else "inactive_tail"
         role_counts[workpoint_role] += 1
-        target_fine = matched_object.category_id if matched_object is not None else -1
-        target_coarse_name = matched_object.class_name if matched_object is not None else detector_coarse
+        target_fine = object_label.matched_category_id if object_label.is_object else -1
+        target_coarse_name = object_label.matched_coarse or detector_coarse
         if target_fine >= 0:
             fine_counts[target_fine] += 1
         tight = square_crop_box(pred["bbox_xyxy"], scale=args.tight_scale)
@@ -182,11 +187,13 @@ def main() -> int:
             "context_y0": context[1],
             "context_x1": context[2],
             "context_y1": context[3],
-            "target_foreground": int(proposal_label.is_valid),
+            "target_foreground": int(object_label.is_object),
             "target_coarse": COARSE_INDEX[target_coarse_name],
             "target_fine": target_fine,
-            "target_quality": proposal_label.matched_iou,
+            "target_quality": object_label.matched_iou,
             "target_protect": int(workpoint_role == "protected_tp"),
+            "target_active_fp": int(workpoint_role == "active_fp"),
+            "target_official_tp": int(proposal_label.is_valid),
             "workpoint_role": workpoint_role,
             "official_match_iou": proposal_label.matched_iou,
         }
@@ -215,6 +222,8 @@ def main() -> int:
         "context_scale": args.context_scale,
         "role_counts": dict(sorted(role_counts.items())),
         "foreground_count": sum(int(row["target_foreground"]) for row in rows),
+        "official_tp_count": sum(int(row["target_official_tp"]) for row in rows),
+        "active_fp_count": sum(int(row["target_active_fp"]) for row in rows),
         "fine_counts": {str(key): value for key, value in sorted(fine_counts.items())},
         "manifest_sha256": _sha256(manifest_path),
         "input_sha256": {

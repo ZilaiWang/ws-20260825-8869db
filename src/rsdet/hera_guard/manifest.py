@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 from typing import Mapping, Sequence
 
-PAV_MANIFEST_VERSION = "hera_pav_manifest_v1"
+PAV_MANIFEST_VERSION_V1 = "hera_pav_manifest_v1"
+PAV_MANIFEST_VERSION_V2 = "hera_pav_manifest_v2_objectness_risk"
+PAV_MANIFEST_VERSION = PAV_MANIFEST_VERSION_V2
+SUPPORTED_PAV_MANIFEST_VERSIONS = frozenset({PAV_MANIFEST_VERSION_V1, PAV_MANIFEST_VERSION_V2})
 PAV_METADATA_COLUMNS = (
     "meta_detector_score",
     "meta_crop_top1",
@@ -71,7 +74,10 @@ def metadata_from_node(
 
 __all__ = [
     "PAV_MANIFEST_VERSION",
+    "PAV_MANIFEST_VERSION_V1",
+    "PAV_MANIFEST_VERSION_V2",
     "PAV_METADATA_COLUMNS",
+    "SUPPORTED_PAV_MANIFEST_VERSIONS",
     "metadata_from_node",
     "square_crop_box",
 ]
