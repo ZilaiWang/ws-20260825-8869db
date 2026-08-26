@@ -1,7 +1,7 @@
 # N2 阶段执行报告：Pred-OOF 对象学生（X-CROP-03 / X-BG-01）
 
 日期：2026-08-09
-服务器：autodl `connect.nmb2.seetacloud.com`（RTX 3090 24GB）
+服务器：临时 GPU 节点（RTX 3090 24GB；公开报告不保留连接地址）
 执行人：A 远程执行
 状态：`superseded_invalid`（历史数字不得作正式准入证据）
 
