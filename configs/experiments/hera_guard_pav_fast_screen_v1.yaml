@@ -1,0 +1,31 @@
+experiment_id: HERA-PAV-FAST-FOLD0-V1
+scientific_status: exploratory_only
+baseline:
+  candidates: Y5_ROT90_D4
+  score: corrected_official_prediction_first_OER_OOF
+  fixed_risk_fdr: [0.15, 0.12, 0.11, 0.10]
+data:
+  manifest_version: hera_pav_manifest_v1
+  tight_scale: 1.10
+  context_scale: 1.60
+  resolution: 224
+  held_out_fold: 0
+model:
+  backbone: convnext_tiny_imagenet1k_v1
+  freeze: freeze_first_stages
+  hidden_dim: 512
+  metadata_dim: 12
+  heads: [foreground, coarse, fine25, quality, protect]
+training:
+  epochs: 4
+  samples_per_epoch: 24000
+  batch_size: 48
+  head_learning_rate: 0.0003
+  backbone_learning_rate: 0.00001
+  weight_decay: 0.05
+  seed: 202625
+  d4_joint_augmentation: true
+screen_gate:
+  minimum_delta_recall_at_fdr_0.12: 0.002
+  maximum_recall_drop_at_fdr_0.10: 0.001
+  formal_admission: false

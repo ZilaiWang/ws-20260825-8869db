@@ -10,13 +10,12 @@
 """
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
 import numpy as np
 
-from rsdet.evaluation.official_metric import compute_iou
+from rsdet.evaluation.official_frontier import official_fixed_risk_frontier
 
 
 def box_iou_matrix(boxes_a: np.ndarray, boxes_b: np.ndarray) -> np.ndarray:
@@ -50,8 +49,14 @@ class FrontierResult:
     recall_at_fdr: dict[float, float]
     n_gt: int
     n_kept: int
+    # Active counts at the primary (first requested) fixed-risk point.
     n_tp: int
     n_fp: int
+    # Counts after including every NMS-kept prediction.  These must never be
+    # used as active-FP/protected-TP labels for a fixed-risk resolver.
+    n_tp_total: int = 0
+    n_fp_total: int = 0
+    score_threshold_at_fdr: dict[float, float | None] = field(default_factory=dict)
 
 
 class FrontierScorer:
@@ -77,90 +82,40 @@ class FrontierScorer:
             len(gts) for i, gts in gt_boxes.items() if i in self.image_ids
         )
 
-    def _nms(self, candidates: Sequence[CandidateView]) -> list[CandidateView]:
-        """同类 IoU>0.5 贪心 NMS（按 score 降序，per-image）。"""
-        by_img: dict[int, list[CandidateView]] = defaultdict(list)
-        for p in candidates:
-            by_img[p.image_id].append(p)
-        kept: list[CandidateView] = []
-        for img, pl in by_img.items():
-            od = sorted(pl, key=lambda p: -p.score)
-            n = len(od)
-            if n == 0:
-                continue
-            boxes = np.asarray([p.bbox_xyxy for p in od], dtype=np.float64)
-            ious = box_iou_matrix(boxes, boxes)  # [n, n]
-            sup: set[int] = set()
-            for i, p in enumerate(od):
-                if i in sup:
-                    continue
-                kept.append(p)
-                for j in range(i + 1, n):
-                    if j in sup or od[j].category_id != p.category_id:
-                        continue
-                    if ious[i, j] > 0.5:
-                        sup.add(j)
-        return kept
-
-    def _match(self, kept: Sequence[CandidateView]) -> set[int]:
-        """贪心匹配（per-image 向量化 IoU），返回 TP 候选的 _idx 集合。"""
-        by_img: dict[int, list[CandidateView]] = defaultdict(list)
-        for p in kept:
-            by_img[p.image_id].append(p)
-        tp: set[int] = set()
-        for img, gts in self.gt_boxes.items():
-            if img not in self.image_ids:
-                continue
-            pl = by_img.get(img, [])
-            if not pl or not gts:
-                continue
-            od = sorted(pl, key=lambda p: -p.score)
-            cand_boxes = np.asarray([p.bbox_xyxy for p in od], dtype=np.float64)
-            gt_boxes = np.asarray([g["bbox_xyxy"] for g in gts], dtype=np.float64)
-            ious = box_iou_matrix(cand_boxes, gt_boxes)  # [N, G]
-            used_cand: set[int] = set()
-            for gi, g in enumerate(gts):
-                cid = int(g["category_id"])
-                thr = self.proto.iou_thresholds[self.proto.category_mapping[cid]]
-                # 满足类别 + 阈值 + 未使用的候选
-                best_i, best_iou = -1, 0.0
-                for ci, p in enumerate(od):
-                    if ci in used_cand or p.category_id != cid:
-                        continue
-                    iou = float(ious[ci, gi])
-                    if iou > best_iou:
-                        best_iou, best_i = iou, ci
-                if best_i >= 0 and best_iou >= thr:
-                    used_cand.add(best_i)
-                    tp.add(od[best_i]._idx)
-        return tp
-
     def frontier(
         self, candidates: Sequence[CandidateView], fdr_levels: Sequence[float] = (0.12, 0.11, 0.10)
     ) -> FrontierResult:
-        # 只保留作用域内的候选（否则单折评估会把其他折候选计入 FP）
-        candidates = [c for c in candidates if c.image_id in self.image_ids]
-        kept = self._nms(candidates)
-        tp = self._match(kept)
-        od = sorted(kept, key=lambda p: -p.score)
-        tp_ = fp = 0
-        br: dict[float, float] = {v: 0.0 for v in fdr_levels}
-        for p in od:
-            if p._idx in tp:
-                tp_ += 1
-            else:
-                fp += 1
-            rec = tp_ / self.n_gt
-            fdr = fp / (tp_ + fp) if tp_ + fp else 0.0
-            for v in fdr_levels:
-                if fdr <= v:
-                    br[v] = max(br[v], rec)
+        levels = tuple(float(value) for value in fdr_levels)
+        result = official_fixed_risk_frontier(
+            gt_boxes=self.gt_boxes,
+            predictions=(
+                {
+                    "image_id": candidate.image_id,
+                    "category_id": candidate.category_id,
+                    "score": candidate.score,
+                    "bbox_xyxy": candidate.bbox_xyxy,
+                    "source_prediction_index": candidate._idx,
+                }
+                for candidate in candidates
+            ),
+            category_mapping=self.proto.category_mapping,
+            iou_thresholds=self.proto.iou_thresholds,
+            image_ids=self.image_ids,
+            fdr_levels=levels,
+            nms_iou=0.50,
+        )
+        primary = result.points[levels[0]]
         return FrontierResult(
-            recall_at_fdr=br,
-            n_gt=self.n_gt,
-            n_kept=len(kept),
-            n_tp=tp_,
-            n_fp=fp,
+            recall_at_fdr={level: result.points[level].recall for level in levels},
+            n_gt=result.n_gt,
+            n_kept=result.n_kept,
+            n_tp=primary.tp,
+            n_fp=primary.fp,
+            n_tp_total=result.total_tp,
+            n_fp_total=result.total_fp,
+            score_threshold_at_fdr={
+                level: result.points[level].score_threshold for level in levels
+            },
         )
 
     def score(self, candidates: Sequence[CandidateView], fdr_level: float = 0.12) -> float:

@@ -28,11 +28,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from rsdet.analysis.oof_detection import load_formal_ground_truth
 from rsdet.evaluation.official_metric import compute_iou
 from rsdet.evaluation.protocol import parse_evaluation_protocol
-from rsdet.utils.config import load_config
-from rsdet.scope.official_scorer import FrontierScorer, CandidateView
 from rsdet.scope.incremental_scorer import IncrementalFrontierScorer
-
-from scope_router.actions import Action, ActionKind, Candidate, apply_action
+from rsdet.scope.official_scorer import CandidateView
+from rsdet.utils.config import load_config
+from scope_router.actions import Candidate
 
 FEAT_BASE = ["y5_score", "crop_top1", "crop_margin", "crop_entropy", "crop_top1_class",
              "detector_crop_agree", "w", "h", "area", "short_edge", "aspect", "local_density"]
@@ -212,7 +211,31 @@ def main() -> int:
     print(f"动作记录: {len(du_list)}")
     print(f"delta_utility: 正收益占比={(du > 0).mean():.3f} 非零占比={(du != 0).mean():.3f}")
     print(f"delta_tp: 正={(dtp > 0).mean():.3f} 负={(dtp < 0).mean():.3f} 零={(dtp == 0).mean():.3f}")
+    output_path = Path(args.output)
+    metadata = {
+        "status": "complete",
+        "label_contract": "official_prediction_first_active_workpoint_v1",
+        "target_fdr": 0.12,
+        "counts_are_active_prefix_not_full_tail": True,
+        "base": {
+            "utility": base_u,
+            "active_tp": base_tp,
+            "active_fp": base_fp,
+            "total_tp": scorer.n_tp_total,
+            "total_fp": scorer.n_fp_total,
+        },
+        "n_candidates": len(all_candidates),
+        "n_action_candidates": len(amb_candidates),
+        "n_action_rows": len(du_list),
+        "output_sha256": hashlib.sha256(output_path.read_bytes()).hexdigest(),
+    }
+    metadata_path = output_path.with_suffix(output_path.suffix + ".metadata.json")
+    metadata_path.write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(f"已写: {args.output}")
+    print(f"标签合同: {metadata_path}")
     return 0
 
 

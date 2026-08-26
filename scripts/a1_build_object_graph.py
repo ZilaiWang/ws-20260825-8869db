@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import sys
@@ -29,6 +30,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from rsdet.analysis.oer_labels import build_official_proposal_labels
 from rsdet.analysis.oof_detection import load_formal_ground_truth
 from rsdet.evaluation.official_metric import compute_iou
 from rsdet.evaluation.protocol import parse_evaluation_protocol
@@ -91,28 +93,36 @@ def main() -> int:
             uid_of_gt[img_id].append("")
         uid_of_gt[img_id][gi] = obj.annotation_uid
 
-    # 贪心匹配(一对一, 官方 TP 判定): 每个候选 -> 匹配的 (gt_index, annotation_uid) 或 None
+    # 官方 prediction-first 一对一匹配。is_valid/matched_uid 只能来自这条
+    # evaluator trace，禁止在数据构建脚本中另写 GT-first 近似。
     pb: dict[int, list[dict]] = defaultdict(list)
     for p in preds:
         pb[p["image_id"]].append(p)
-    match_of: dict[int, tuple[int, str] | None] = {}
-    used: dict[int, set] = defaultdict(set)
-    for img_id, gts in formal.boxes.items():
-        plist = pb.get(img_id, [])
-        ordered = sorted(enumerate(plist), key=lambda t: -t[1]["score"])
-        for gi, g in enumerate(gts):
-            cid = int(g["category_id"])
-            thr = proto.iou_thresholds[proto.category_mapping[cid]]
-            bi, bix = 0.0, None
-            for idx, p in ordered:
-                if p["_idx"] in used[img_id] or p["category_id"] != cid:
-                    continue
-                iou = compute_iou(p["bbox_xyxy"], g["bbox_xyxy"])
-                if iou > bi:
-                    bi, bix = iou, idx
-            if bix is not None and bi >= thr:
-                used[img_id].add(plist[bix]["_idx"])
-                match_of[plist[bix]["_idx"]] = (gi, uid_of_gt[img_id][gi])
+    label_result = build_official_proposal_labels(
+        gt_boxes=formal.boxes,
+        predictions=(
+            {
+                "image_id": p["image_id"],
+                "category_id": p["category_id"],
+                "score": p["score"],
+                "bbox_xyxy": p["bbox_xyxy"],
+                "source_prediction_index": p["_idx"],
+            }
+            for p in preds
+        ),
+        category_mapping=proto.category_mapping,
+        iou_thresholds=proto.iou_thresholds,
+    )
+    match_of: dict[int, tuple[int, str, float]] = {}
+    for candidate_id, label in label_result.labels.items():
+        if not label.is_valid or label.matched_gt_index is None:
+            continue
+        gt_index = label.matched_gt_index
+        match_of[candidate_id] = (
+            gt_index,
+            uid_of_gt[label.image_id][gt_index],
+            label.matched_iou,
+        )
 
     # 位置关联(类无关, 多对多, 用于定义 same/different 边 + fine_correct):
     # 每个候选 -> 位置覆盖的 GT 集合(不看候选细类)
@@ -158,6 +168,7 @@ def main() -> int:
         m = match_of.get(p["_idx"])
         is_valid = 1 if m is not None else 0
         matched_uid = m[1] if m is not None else ""
+        official_match_iou = m[2] if m is not None else 0.0
         # fine_correct: 位置覆盖的 GT 中, 是否有细类与候选一致的 GT
         fine_correct = 0
         for (img_id, gi) in assoc.get(p["_idx"], set()):
@@ -172,19 +183,21 @@ def main() -> int:
             p["score"], crop_top1, crop_margin, crop_ent, top1_c, agree,
             w, h, area, se, aspect, density,
             (x1 + x0) / 2, (y1 + y0) / 2,  # 中心
-            is_valid, fine_correct, matched_uid,
+            is_valid, fine_correct, matched_uid, official_match_iou,
         ])
 
     node_header = ["proposal_uid", "idx", "image_id", "category_id", "coarse_id",
                    "y5_score", "crop_top1", "crop_margin", "crop_entropy",
                    "crop_top1_class", "detector_crop_agree",
                    "w", "h", "area", "short_edge", "aspect", "local_density",
-                   "cx", "cy", "is_valid", "fine_correct", "matched_uid"]
-    with open(out / "nodes.csv", "w", newline="") as f:
+                   "cx", "cy", "is_valid", "fine_correct", "matched_uid",
+                   "official_match_iou"]
+    nodes_path = out / "nodes.csv"
+    with open(nodes_path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(node_header)
         w.writerows(node_rows)
-    print(f"节点表: {out/'nodes.csv'} ({len(node_rows)} 行)")
+    print(f"节点表: {nodes_path} ({len(node_rows)} 行)")
 
     # 边构建(每图空间相邻候选对)
     edge_rows = []
@@ -227,6 +240,23 @@ def main() -> int:
     labc = Counter(r[-1] for r in edge_rows)
     print(f"边表: {out/'edges.csv'} ({len(edge_rows)} 行)")
     print(f"  标签分布: same={labc.get(0,0)} different={labc.get(1,0)} background={labc.get(2,0)}")
+    audit = {
+        "status": "complete",
+        "label_contract_version": label_result.contract_version,
+        "matcher": "rsdet.evaluation.official_metric.evaluate_predictions_with_trace",
+        "matching_policy": label_result.metrics.details["matching_policy"],
+        "n_predictions": len(preds),
+        "n_gt": int(label_result.metrics.details["total_gt"]),
+        "tp": int(label_result.metrics.details["tp"]),
+        "fp": int(label_result.metrics.details["fp"]),
+        "fn": int(label_result.metrics.details["fn"]),
+        "nodes_sha256": hashlib.sha256(nodes_path.read_bytes()).hexdigest(),
+    }
+    (out / "label_contract.json").write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(f"标签合同: {out/'label_contract.json'}")
     return 0
 
 
