@@ -62,7 +62,10 @@ def build_dataset_yaml(split_view: Path, data_root: Path, output_dir: Path,
         raise ValueError(f"split view 训练 {len(train_rel)} / 验证 {len(val_rel)} 有空集合")
 
     if hard_image_ids:
-        hard_rel = [id_to_rel[i] for i in hard_image_ids if i in id_to_rel]
+        # 只保留训练集内的图(硬课程过采样), 严禁把 val 图加进训练集(否则 val 泄漏)
+        train_id_to_rel = {int(s["image_id"]): s["relative_path"]
+                           for s in samples if s.get("split") == "train"}
+        hard_rel = [train_id_to_rel[i] for i in hard_image_ids if i in train_id_to_rel]
         if hard_rel:
             logger.info("E7 困难课程: %d 张困难图重复 1 次(训练图 %d→%d)",
                         len(hard_rel), len(train_rel), len(train_rel) + len(hard_rel))
