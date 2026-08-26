@@ -89,6 +89,16 @@ SCOPE 保留为离线诊断与反事实分析工具，不再直接视为可部�
 
 旧报告 `+D4+has_oto ≈ 0.9620` 不能继续作为可靠正式基线。新的 0.943104 是 HERA 快筛的真实起点。
 
+在该 FDR=0.12 工作点按 V1.6 细类等权 macro 口径重新汇总：
+
+| 大类 | macro Recall | macro FDR | pooled Recall | pooled FDR |
+|---|---:|---:|---:|---:|
+| Ship | 0.703636 | 0.343634 | 0.844892 | 0.266429 |
+| Aircraft | 0.956434 | 0.094643 | 0.964648 | 0.089958 |
+| Vehicle | 0.641791 | 0.385714 | 0.641791 | 0.385714 |
+
+这进一步确认后续优先级：PAV 首先必须改善车辆与舰船的背景拒识，同时保护飞机；单看 pooled Recall 会掩盖 HM/LQS 和 FSC 的排名短板。当前六项最差值为车辆 `1-FDR=0.614286`。
+
 产物：
 
 - `outputs/HERA-GUARD-PRECHECK/corrected-oer-oof-v1/summary.json`
