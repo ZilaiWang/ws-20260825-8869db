@@ -177,7 +177,8 @@ def test_max_aggregation_is_bounded() -> None:
     from rsdet.innovation.aggregation import aggregate_group_scores
 
     torch.manual_seed(0)
-    logits = torch.randn(3, 5, 25)
+    # 用正数 logits（sigmoid 后的 score 空间），此时 max <= sum 恒成立
+    logits = torch.rand(3, 5, 25)
     groups = [[0, 1, 2, 3], list(range(4, 24)), [24]]
 
     out = aggregate_group_scores(logits, groups)
@@ -203,6 +204,33 @@ def test_max_aggregation_is_bounded() -> None:
         aggregate_group_scores(logits, [[0, 25]])
     with pytest.raises(ValueError):
         aggregate_group_scores(logits, [[0, 1], [1, 2]])
+
+
+def test_max_aggregation_gradient_only_flows_to_argmax() -> None:
+    """本质不变量：max 聚合的梯度只流向组内 argmax 类，不推高组内其他类。
+
+    求和聚合会把梯度均匀分给组内所有类——这正是 F2/F3/V2/D4 候选爆炸的根因。
+    """
+    torch = pytest.importorskip("torch")
+    from rsdet.innovation.aggregation import aggregate_group_scores
+
+    torch.manual_seed(1)
+    logits = torch.randn(2, 3, 25, requires_grad=True)
+    groups = [[0, 1, 2, 3], list(range(4, 24)), [24]]
+
+    out = aggregate_group_scores(logits, groups)
+    out.sum().backward()
+    grad = logits.grad  # (2, 3, 25)
+
+    # 每个 (b, a, g) 内，只有 argmax 的细类有梯度，其余为 0
+    for b in range(2):
+        for a in range(3):
+            for g, idx in enumerate(groups):
+                am = logits[b, a, idx].argmax().item()
+                assert grad[b, a, idx[am]] > 0
+                for j, c in enumerate(idx):
+                    if j != am:
+                        assert grad[b, a, c] == 0.0
 
 
 # --------------------------------------------------------------------------
