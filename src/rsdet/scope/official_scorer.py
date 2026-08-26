@@ -14,7 +14,24 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
+import numpy as np
+
 from rsdet.evaluation.official_metric import compute_iou
+
+
+def box_iou_matrix(boxes_a: np.ndarray, boxes_b: np.ndarray) -> np.ndarray:
+    """向量化 IoU 矩阵。boxes_a [N,4], boxes_b [M,4] -> [N,M]。"""
+    x1 = np.maximum(boxes_a[:, None, 0], boxes_b[None, :, 0])
+    y1 = np.maximum(boxes_a[:, None, 1], boxes_b[None, :, 1])
+    x2 = np.minimum(boxes_a[:, None, 2], boxes_b[None, :, 2])
+    y2 = np.minimum(boxes_a[:, None, 3], boxes_b[None, :, 3])
+    iw = np.maximum(0.0, x2 - x1)
+    ih = np.maximum(0.0, y2 - y1)
+    inter = iw * ih
+    area_a = (boxes_a[:, 2] - boxes_a[:, 0]) * (boxes_a[:, 3] - boxes_a[:, 1])
+    area_b = (boxes_b[:, 2] - boxes_b[:, 0]) * (boxes_b[:, 3] - boxes_b[:, 1])
+    union = area_a[:, None] + area_b[None, :] - inter
+    return inter / np.maximum(union, 1e-9)
 
 
 @dataclass
@@ -68,44 +85,54 @@ class FrontierScorer:
         kept: list[CandidateView] = []
         for img, pl in by_img.items():
             od = sorted(pl, key=lambda p: -p.score)
+            n = len(od)
+            if n == 0:
+                continue
+            boxes = np.asarray([p.bbox_xyxy for p in od], dtype=np.float64)
+            ious = box_iou_matrix(boxes, boxes)  # [n, n]
             sup: set[int] = set()
-            for p in od:
-                if p._idx in sup:
+            for i, p in enumerate(od):
+                if i in sup:
                     continue
                 kept.append(p)
-                for q in od:
-                    if q._idx == p._idx or q._idx in sup:
+                for j in range(i + 1, n):
+                    if j in sup or od[j].category_id != p.category_id:
                         continue
-                    if q.category_id != p.category_id:
-                        continue
-                    if compute_iou(p.bbox_xyxy, q.bbox_xyxy) > 0.5:
-                        sup.add(q._idx)
+                    if ious[i, j] > 0.5:
+                        sup.add(j)
         return kept
 
     def _match(self, kept: Sequence[CandidateView]) -> set[int]:
-        """贪心匹配，返回 TP 候选的 _idx 集合。"""
+        """贪心匹配（per-image 向量化 IoU），返回 TP 候选的 _idx 集合。"""
         by_img: dict[int, list[CandidateView]] = defaultdict(list)
         for p in kept:
             by_img[p.image_id].append(p)
-        used: dict[int, set[int]] = defaultdict(set)
         tp: set[int] = set()
         for img, gts in self.gt_boxes.items():
             if img not in self.image_ids:
                 continue
-            od = sorted(by_img.get(img, []), key=lambda p: -p.score)
-            for g in gts:
+            pl = by_img.get(img, [])
+            if not pl or not gts:
+                continue
+            od = sorted(pl, key=lambda p: -p.score)
+            cand_boxes = np.asarray([p.bbox_xyxy for p in od], dtype=np.float64)
+            gt_boxes = np.asarray([g["bbox_xyxy"] for g in gts], dtype=np.float64)
+            ious = box_iou_matrix(cand_boxes, gt_boxes)  # [N, G]
+            used_cand: set[int] = set()
+            for gi, g in enumerate(gts):
                 cid = int(g["category_id"])
                 thr = self.proto.iou_thresholds[self.proto.category_mapping[cid]]
-                bi, bix = 0.0, None
-                for p in od:
-                    if p._idx in used[img] or p.category_id != cid:
+                # 满足类别 + 阈值 + 未使用的候选
+                best_i, best_iou = -1, 0.0
+                for ci, p in enumerate(od):
+                    if ci in used_cand or p.category_id != cid:
                         continue
-                    iou = compute_iou(p.bbox_xyxy, g["bbox_xyxy"])
-                    if iou > bi:
-                        bi, bix = iou, p
-                if bix is not None and bi >= thr:
-                    used[img].add(bix._idx)
-                    tp.add(bix._idx)
+                    iou = float(ious[ci, gi])
+                    if iou > best_iou:
+                        best_iou, best_i = iou, ci
+                if best_i >= 0 and best_iou >= thr:
+                    used_cand.add(best_i)
+                    tp.add(od[best_i]._idx)
         return tp
 
     def frontier(
