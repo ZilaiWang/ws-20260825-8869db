@@ -19,6 +19,7 @@ from rsdet.postprocess.global_aggregation import (
     fuse_global_predictions,
     global_object_manifest,
 )
+from rsdet.postprocess.safe_tile_fusion import fuse_safe_tile_predictions
 from rsdet.postprocess.tile_fusion import fuse_tile_predictions
 from rsdet.tiling.slicer import generate_tiles
 
@@ -34,10 +35,12 @@ class PipelineConfig:
     fine_nms_iou: float = 0.55  # tile_fusion 细类内 NMS 阈值
     coarse_nms_iou: float | None = 0.85  # tile_fusion 官方粗类 NMS 阈值（None 关闭）
     max_detections: int | None = None  # 最终保留检测数上限
-    fusion: str = "tile"  # "tile" = 基线 tile_fusion；"global" = E 的全局聚合
+    fusion: str = "tile"  # tile / global / safe
     cluster_eps: float = 50.0  # 全局聚合 Spatial Gate 中心距离阈值
     merge_iou: float = 0.3  # 全局聚合语义门 IoU 阈值
     nms_iou: float = 0.5  # 全局聚合同类 NMS 阈值
+    merge_ios: float = 0.75  # safe 路径 intersection-over-smaller 阈值
+    border_margin: float = 8.0  # safe 路径内部 tile 边界宽度
 
 
 @dataclass
@@ -231,6 +234,20 @@ def run_pipeline(
             merge_iou=config.merge_iou,
             nms_iou=config.nms_iou,
             score_threshold=config.score_threshold,
+            max_detections=config.max_detections,
+        )
+    elif config.fusion == "safe":
+        fused = fuse_safe_tile_predictions(
+            tile_predictions,
+            tiles,
+            image_width=w,
+            image_height=h,
+            parent_image_id=parent_image_id,
+            score_threshold=config.score_threshold,
+            merge_iou=config.merge_iou,
+            merge_ios=config.merge_ios,
+            fine_nms_iou=config.fine_nms_iou,
+            border_margin=config.border_margin,
             max_detections=config.max_detections,
         )
     else:
