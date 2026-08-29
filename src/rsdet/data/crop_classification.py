@@ -280,7 +280,10 @@ def render_crop(
     box = tuple(float(value) for value in crop_xyxy)
     if not all(math.isfinite(value) for value in box) or box[2] <= box[0] or box[3] <= box[1]:
         raise ValueError(f"非法 crop_xyxy={crop_xyxy}")
-    rgb = image.convert("RGB")
+    # ``Image.convert("RGB")`` may copy the complete source image.  Reusing an
+    # already-RGB source is pixel-equivalent and is essential when thousands
+    # of proposal crops are rendered from one 10K deployment image.
+    rgb = image if image.mode == "RGB" else image.convert("RGB")
     return rgb.transform(
         (resolution, resolution),
         Image.Transform.EXTENT,

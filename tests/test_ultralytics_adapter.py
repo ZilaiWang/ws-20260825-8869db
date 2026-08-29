@@ -69,6 +69,22 @@ def test_adapter_converts_results_and_preserves_ids(monkeypatch, tmp_path: Path)
     assert fake.kwargs["quantize"] is None
 
 
+def test_adapter_applies_explicit_label_map(monkeypatch, tmp_path: Path) -> None:
+    fake = _FakeModel()
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"placeholder")
+    monkeypatch.setattr(
+        "rsdet.models.ultralytics_adapter.create_ultralytics_model",
+        lambda family, weights: fake,
+    )
+    detector = UltralyticsDetector(label_map={24: 4})
+    detector.load(str(checkpoint))
+
+    outputs = detector.predict([InferenceSample(1, "image.jpg", 100, 80)])
+
+    assert outputs[0].labels == [4]
+
+
 def test_adapter_converts_rgb_numpy_to_bgr(monkeypatch, tmp_path: Path) -> None:
     fake = _FakeModel()
     checkpoint = tmp_path / "model.pt"
