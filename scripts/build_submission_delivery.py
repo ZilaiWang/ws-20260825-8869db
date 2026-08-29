@@ -36,15 +36,19 @@ def build_delivery(
     output: Path,
     expected_sha256: str,
     environment: Path,
+    config: Path,
     force: bool,
 ) -> dict[str, object]:
     weights = weights.expanduser().resolve()
     environment = environment.expanduser().resolve()
+    config_source = config.expanduser().resolve()
     output = output.expanduser().resolve()
     if not weights.is_file():
         raise FileNotFoundError(weights)
     if not environment.is_file():
         raise FileNotFoundError(environment)
+    if not config_source.is_file():
+        raise FileNotFoundError(config_source)
     actual_sha = sha256_file(weights)
     if actual_sha != expected_sha256.lower():
         raise ValueError(
@@ -61,13 +65,13 @@ def build_delivery(
     shutil.copy2(TEMPLATE_ROOT / ".dockerignore", output / ".dockerignore")
     shutil.copy2(environment, output / "environment.yml")
     shutil.copy2(TEMPLATE_ROOT / "app" / "main.py", output / "app" / "main.py")
-    shutil.copy2(TEMPLATE_ROOT / "config.json", output / "app" / "config.json")
+    shutil.copy2(config_source, output / "app" / "config.json")
     _copy_tree(REPO_ROOT / "src" / "rsdet", output / "app" / "rsdet")
     shutil.copy2(weights, output / "models" / "model.pt")
 
     config_path = output / "app" / "config.json"
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    configured_sha = str(config["model"]["expected_sha256"]).lower()
+    materialized_config = json.loads(config_path.read_text(encoding="utf-8"))
+    configured_sha = str(materialized_config["model"]["expected_sha256"]).lower()
     if configured_sha != actual_sha:
         raise ValueError(
             "submission/docker/config.json 的 model.expected_sha256 与所选权重不一致；"
@@ -93,6 +97,7 @@ def build_delivery(
         "weight_destination": "models/model.pt",
         "weight_sha256": actual_sha,
         "environment_source": str(environment),
+        "config_source": str(config_source),
         "files": included,
     }
     manifest_path = output / "BUILD_MANIFEST.json"
@@ -141,6 +146,11 @@ def parse_args() -> argparse.Namespace:
         default=TEMPLATE_ROOT / "environment.yml",
     )
     parser.add_argument(
+        "--config",
+        type=Path,
+        default=TEMPLATE_ROOT / "config.json",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=REPO_ROOT / "dist" / "detector-docker-delivery",
@@ -156,6 +166,7 @@ def main() -> int:
         output=args.output,
         expected_sha256=args.expected_sha256,
         environment=args.environment,
+        config=args.config,
         force=args.force,
     )
     print(

@@ -78,8 +78,8 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("pipeline 必须满足 tile_size > overlap >= 0")
     if int(pipeline.get("batch_size", 0)) <= 0:
         raise ValueError("pipeline.batch_size 必须 > 0")
-    if str(pipeline.get("fusion", "")) not in {"tile", "global"}:
-        raise ValueError("pipeline.fusion 只允许 tile 或 global")
+    if str(pipeline.get("fusion", "")) not in {"tile", "global", "safe"}:
+        raise ValueError("pipeline.fusion 只允许 tile、global 或 safe")
     if not 0.0 <= float(pipeline.get("score_threshold", -1.0)) <= 1.0:
         raise ValueError("pipeline.score_threshold 必须在 [0, 1]")
     return config
@@ -180,6 +180,13 @@ class _SubmissionYoloDetector(BaseDetector):
             xyxy = boxes.xyxy.detach().cpu().numpy().astype(np.float64).tolist()
             scores = boxes.conf.detach().cpu().numpy().astype(np.float64).tolist()
             labels = boxes.cls.detach().cpu().numpy().astype(np.int64).tolist()
+            if len(boxes) >= int(self.config["max_detections"]):
+                print(
+                    "[submission][warning] tile reached max_det: "
+                    f"tile_id={sample.image_id} count={len(boxes)} "
+                    f"limit={self.config['max_detections']}",
+                    flush=True,
+                )
             outputs.append(Prediction(sample.image_id, xyxy, scores, labels))
         return outputs
 
@@ -222,7 +229,15 @@ class CompetitionDetector:
             cluster_eps=float(pipeline.get("cluster_eps", 50.0)),
             merge_iou=float(pipeline.get("merge_iou", 0.3)),
             nms_iou=float(pipeline.get("nms_iou", 0.5)),
+            merge_ios=float(pipeline.get("merge_ios", 0.75)),
+            border_margin=float(pipeline.get("border_margin", 8.0)),
         )
+        if int(pipeline["tile_size"]) > int(model_config["imgsz"]):
+            print(
+                "[submission][warning] tile is downscaled before inference: "
+                f"tile_size={pipeline['tile_size']} imgsz={model_config['imgsz']}",
+                flush=True,
+            )
         print(
             f"[submission] model loaded: {weight_path.name} sha256={actual_sha} "
             f"workpoint={self.config.get('workpoint_id', 'unspecified')}",

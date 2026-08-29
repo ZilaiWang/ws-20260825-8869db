@@ -1,0 +1,19 @@
+{
+  "contract_version": "competition_docker_v1",
+  "deployment_role": "pre_eval_ab_t5_precision_only",
+  "workpoint_id": "t5_m1_fold0_tile_1024_fp32",
+  "device": "cuda:0",
+  "model": {
+    "family": "yolo", "weight_path": "/app/models/model.pt",
+    "expected_sha256": "d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d",
+    "imgsz": 1024, "confidence": 0.001, "iou": 0.7,
+    "max_detections": 500, "half": false
+  },
+  "pipeline": {
+    "tile_size": 1024, "overlap": 256, "batch_size": 8,
+    "fusion": "tile", "score_threshold": 0.051,
+    "fine_nms_iou": 0.55, "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0, "merge_iou": 0.3, "nms_iou": 0.5,
+    "max_detections": 2000
+  }
+}
