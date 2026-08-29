@@ -1,0 +1,21 @@
+[submission] CUDA ready: device=cuda:0 name=NVIDIA GeForce RTX 3090 torch=2.5.1+cu121
+Creating new Ultralytics Settings v0.0.6 file ✅
+View Ultralytics Settings with 'yolo settings' or at '/root/autodl-tmp/submission-preflight-20260829/yolo-config/Ultralytics/settings.json'
+Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.
+[submission] model loaded: model.pt sha256=d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d workpoint=trial_m1_fold0_score_0p051
+/root/autodl-tmp/venvs/cv3-model-cu121/lib/python3.10/site-packages/PIL/Image.py:3368: DecompressionBombWarning: Image size (100000000 pixels) exceeds limit of 89478485 pixels, could be decompression bomb DOS attack.
+  warnings.warn(
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+[submission] finished synthetic_10k_00.jpg: objects=1 timestamp=1787972690320

@@ -1,0 +1,19 @@
+# Linux x86_64 deployment bootstrap. Before the formal submission, regenerate this
+# file from the verified Linux environment with scripts/export_submission_environment.sh.
+name: detector
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10.12
+  - pip=24.2
+  - numpy=1.26.4
+  - pillow=10.4.0
+  - pyyaml=6.0.2
+  - scipy=1.14.1
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - pytorch-cuda=12.1
+  - pip:
+      - ultralytics==8.4.103
