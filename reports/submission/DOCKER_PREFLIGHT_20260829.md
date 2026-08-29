@@ -8,7 +8,8 @@ NVIDIA Container Runtime”这一层仍由官方预测评完成。
 ## 1. 冻结对象
 
 - 本地镜像：`xh-detector:trial-preflight`
-- 镜像 ID：`sha256:5863634a03611715cb1c4c5c733735c077414252229d0dba11ac1b92de2c3741`
+- 镜像 ID：交付目录每次重新物化会改变 Docker `COPY` 层元数据；push 前用
+  `docker image inspect xh-detector:trial-preflight` 登记本次实际 ID/digest
 - 平台：`amd64|linux`
 - 入口：`["python", "/app/main.py"]`
 - 镜像大小：`4,351,050,544` bytes
