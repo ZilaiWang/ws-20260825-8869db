@@ -1,0 +1,8 @@
+[submission] CUDA ready: device=cuda:0 name=NVIDIA GeForce RTX 3090 torch=2.5.1+cu121
+[submission] model loaded: model.pt sha256=d403ca0d5f760f8d7271af33c467426a3bd8ce8095b6d13e5dc63a6d8e19501d workpoint=trial_m1_fold0_score_0p051
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+[submission] finished 01-PAN-20240418-318-232-L00000010061-CCD14_3_crop1.jpg: objects=2 timestamp=1787972777371
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+[submission] finished MAR20_1.jpg: objects=3 timestamp=1787972777466
+WARNING ⚠️ 'half' is deprecated and will be removed in the future. Use 'quantize' instead.
+[submission] finished fsc_AGZ-N22.66-E120.46-lv20-Google_crop0002.jpg: objects=4 timestamp=1787972777490

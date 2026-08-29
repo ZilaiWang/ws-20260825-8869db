@@ -1,0 +1,8 @@
+test-input/
+test-output/
+*.tar
+*.tar.gz
+*.zip
+__pycache__/
+*.pyc
+.DS_Store

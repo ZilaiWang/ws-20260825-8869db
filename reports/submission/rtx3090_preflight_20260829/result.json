@@ -1,0 +1,25 @@
+{
+  "status": "success",
+  "images": [
+    {
+      "image_id": "synthetic_10k_00",
+      "file_name": "synthetic_10k_00.jpg",
+      "width": 10000,
+      "height": 10000,
+      "run_end_timestamp": 1787972690320,
+      "objects": [
+        {
+          "category_id": 3,
+          "category_name": "MS",
+          "score": 0.46875,
+          "bbox": [
+            6011.875,
+            3885.125,
+            6058.125,
+            3935.125
+          ]
+        }
+      ]
+    }
+  ]
+}
