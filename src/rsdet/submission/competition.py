@@ -24,6 +24,7 @@ from rsdet.contracts import InferenceSample, Prediction
 from rsdet.data.xh_dataset import FINE_NAMES
 from rsdet.models.base import BaseDetector
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
+from rsdet.postprocess.nms import nms
 
 IMAGE_EXTS = frozenset({".jpg", ".jpeg", ".png", ".bmp"})
 DEFAULT_CONFIG_PATH = Path("/app/config.json")
@@ -71,6 +72,20 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("model.iou 必须在 [0, 1]")
     if int(model.get("max_detections", 0)) <= 0:
         raise ValueError("model.max_detections 必须 > 0")
+    rot90_views = model.get("rot90_views", [0])
+    if (
+        not isinstance(rot90_views, list)
+        or not rot90_views
+        or any(isinstance(value, bool) or not isinstance(value, int) for value in rot90_views)
+        or any(value not in {0, 1, 2, 3} for value in rot90_views)
+        or len(set(rot90_views)) != len(rot90_views)
+    ):
+        raise ValueError("model.rot90_views 必须是 [0,1,2,3] 的非空无重复子集")
+    if 0 not in rot90_views:
+        raise ValueError("model.rot90_views 必须包含恒等视图 0")
+    tta_nms_iou = float(model.get("tta_nms_iou", 0.55))
+    if not 0.0 <= tta_nms_iou <= 1.0:
+        raise ValueError("model.tta_nms_iou 必须在 [0, 1]")
 
     tile_size = int(pipeline.get("tile_size", 0))
     overlap = int(pipeline.get("overlap", -1))
@@ -143,18 +158,40 @@ class _SubmissionYoloDetector(BaseDetector):
         if inner is not None and hasattr(inner, "eval"):
             inner.eval()
 
-    def predict(self, batch: Sequence[InferenceSample]) -> list[Prediction]:
+    @staticmethod
+    def _invert_rot90_box(
+        box: Sequence[float], rotation: int, width: int, height: int
+    ) -> list[float]:
+        """Map an xyxy box from ``np.rot90(image, rotation)`` back to the source."""
+        x1, y1, x2, y2 = (float(value) for value in box)
+        rotation %= 4
+        if rotation == 0:
+            restored = [x1, y1, x2, y2]
+        elif rotation == 1:
+            restored = [width - y2, x1, width - y1, x2]
+        elif rotation == 2:
+            restored = [width - x2, height - y2, width - x1, height - y1]
+        else:
+            restored = [y1, height - x2, y2, height - x1]
+        restored[0] = min(max(restored[0], 0.0), float(width))
+        restored[2] = min(max(restored[2], 0.0), float(width))
+        restored[1] = min(max(restored[1], 0.0), float(height))
+        restored[3] = min(max(restored[3], 0.0), float(height))
+        return restored
+
+    def _predict_view(
+        self, batch: Sequence[InferenceSample], rotation: int
+    ) -> list[Any]:
         if self.model is None:
             raise RuntimeError("YOLO 权重尚未加载")
-        if not batch:
-            return []
         sources = []
         for sample in batch:
             image = np.asarray(sample.image, dtype=np.uint8)
             if image.ndim != 3 or image.shape[2] != 3:
                 raise ValueError(f"YOLO 输入必须是 HWC RGB，实际 {image.shape}")
-            sources.append(np.ascontiguousarray(image[..., ::-1]))
-        results = list(
+            rotated = np.rot90(image, rotation, axes=(0, 1))
+            sources.append(np.ascontiguousarray(rotated[..., ::-1]))
+        return list(
             self.model.predict(
                 source=sources,
                 imgsz=int(self.config["imgsz"]),
@@ -167,27 +204,66 @@ class _SubmissionYoloDetector(BaseDetector):
                 stream=False,
             )
         )
-        if len(results) != len(batch):
-            raise RuntimeError(
-                f"Ultralytics 返回 {len(results)} 张结果，但输入 batch 为 {len(batch)}"
-            )
-        outputs: list[Prediction] = []
-        for sample, result in zip(batch, results):
-            boxes = getattr(result, "boxes", None)
-            if boxes is None or len(boxes) == 0:
-                outputs.append(Prediction(sample.image_id, [], [], []))
-                continue
-            xyxy = boxes.xyxy.detach().cpu().numpy().astype(np.float64).tolist()
-            scores = boxes.conf.detach().cpu().numpy().astype(np.float64).tolist()
-            labels = boxes.cls.detach().cpu().numpy().astype(np.int64).tolist()
-            if len(boxes) >= int(self.config["max_detections"]):
-                print(
-                    "[submission][warning] tile reached max_det: "
-                    f"tile_id={sample.image_id} count={len(boxes)} "
-                    f"limit={self.config['max_detections']}",
-                    flush=True,
+
+    def predict(self, batch: Sequence[InferenceSample]) -> list[Prediction]:
+        if self.model is None:
+            raise RuntimeError("YOLO 权重尚未加载")
+        if not batch:
+            return []
+        rotations = tuple(int(value) for value in self.config.get("rot90_views", [0]))
+        accumulated = [([], [], []) for _ in batch]
+        for rotation in rotations:
+            results = self._predict_view(batch, rotation)
+            if len(results) != len(batch):
+                raise RuntimeError(
+                    f"Ultralytics 返回 {len(results)} 张结果，但输入 batch 为 {len(batch)}"
                 )
-            outputs.append(Prediction(sample.image_id, xyxy, scores, labels))
+            for index, (sample, result) in enumerate(zip(batch, results)):
+                boxes = getattr(result, "boxes", None)
+                if boxes is None or len(boxes) == 0:
+                    continue
+                raw_xyxy = boxes.xyxy.detach().cpu().numpy().astype(np.float64).tolist()
+                scores = boxes.conf.detach().cpu().numpy().astype(np.float64).tolist()
+                labels = boxes.cls.detach().cpu().numpy().astype(np.int64).tolist()
+                if len(boxes) >= int(self.config["max_detections"]):
+                    print(
+                        "[submission][warning] tile reached max_det: "
+                        f"tile_id={sample.image_id} rotation={rotation} count={len(boxes)} "
+                        f"limit={self.config['max_detections']}",
+                        flush=True,
+                    )
+                height, width = np.asarray(sample.image).shape[:2]
+                restored = [
+                    self._invert_rot90_box(box, rotation, width, height) for box in raw_xyxy
+                ]
+                out_boxes, out_scores, out_labels = accumulated[index]
+                out_boxes.extend(restored)
+                out_scores.extend(scores)
+                out_labels.extend(labels)
+
+        outputs: list[Prediction] = []
+        tta_nms_iou = float(self.config.get("tta_nms_iou", 0.55))
+        limit = int(self.config["max_detections"])
+        for sample, (boxes, scores, labels) in zip(batch, accumulated):
+            keep: list[int] = []
+            for label in sorted(set(labels)):
+                indices = [index for index, value in enumerate(labels) if value == label]
+                local = nms(
+                    [boxes[index] for index in indices],
+                    [scores[index] for index in indices],
+                    tta_nms_iou,
+                )
+                keep.extend(indices[index] for index in local)
+            keep.sort(key=lambda index: (-float(scores[index]), index))
+            keep = keep[:limit]
+            outputs.append(
+                Prediction(
+                    sample.image_id,
+                    [boxes[index] for index in keep],
+                    [scores[index] for index in keep],
+                    [labels[index] for index in keep],
+                )
+            )
         return outputs
 
 

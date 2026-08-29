@@ -48,6 +48,7 @@ class UltralyticsDetector(BaseDetector):
         max_detections: int = 500,
         half: bool = True,
         agnostic_nms: bool = False,
+        label_map: Mapping[int, int] | None = None,
         refiner: Mapping[str, Any] | None = None,
     ) -> None:
         if imgsz <= 0:
@@ -65,6 +66,11 @@ class UltralyticsDetector(BaseDetector):
         self.max_detections = int(max_detections)
         self.half = bool(half)
         self.agnostic_nms = bool(agnostic_nms)
+        self.label_map = (
+            {int(source): int(target) for source, target in label_map.items()}
+            if label_map is not None
+            else None
+        )
         self.refiner_config = dict(refiner or {})
         self._device = "cpu"
         self._model: Any | None = None
@@ -168,6 +174,11 @@ class UltralyticsDetector(BaseDetector):
             ]
             raw_scores = [float(score) for score in self._as_list(boxes.conf)]
             raw_labels = [int(label) for label in self._as_list(boxes.cls)]
+            if self.label_map is not None:
+                unknown = sorted(set(raw_labels) - set(self.label_map))
+                if unknown:
+                    raise ValueError(f"Ultralytics 返回未配置映射的类别: {unknown}")
+                raw_labels = [self.label_map[label] for label in raw_labels]
             valid = [
                 index
                 for index, box in enumerate(raw_boxes)

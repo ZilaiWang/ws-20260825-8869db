@@ -81,18 +81,21 @@ def expand_context_bbox(
 ) -> tuple[float, float, float, float]:
     """以候选框长边 ``* ratio`` 为正方形边长、中心不变地扩展。
 
-    与 formal crop manifest 的 ``context_1p25`` 语义一致：长边乘 ratio 得到
-    正方形边长，中心点保持不变。不做裁剪——越界部分交给 ``render_crop``
-    的 ``EXTENT`` 变换用 ``fillcolor`` 填充（对应 ``outside_policy=pad``）。
+    ``ratio=1`` 明确表示原始紧框；``ratio>1`` 与 formal crop manifest 的
+    ``context_1p25`` 语义一致：长边乘 ratio 得到正方形边长，中心点保持
+    不变。不做裁剪——越界部分交给 ``render_crop`` 的 ``EXTENT`` 变换用
+    ``fillcolor`` 填充（对应 ``outside_policy=pad``）。
     """
-    if not math.isfinite(ratio) or ratio <= 1.0:
-        raise ValueError(f"ratio 必须 > 1 的有限数，实际 {ratio}")
+    if not math.isfinite(ratio) or ratio < 1.0:
+        raise ValueError(f"ratio 必须 >= 1 的有限数，实际 {ratio}")
     box = tuple(float(value) for value in bbox_xyxy)
     if len(box) != 4 or not all(math.isfinite(value) for value in box):
         raise ValueError(f"非法 bbox_xyxy={bbox_xyxy}")
     x0, y0, x1, y1 = box
     if x1 <= x0 or y1 <= y0:
         raise ValueError(f"非法 bbox_xyxy（宽高非正）: {bbox_xyxy}")
+    if ratio == 1.0:
+        return (x0, y0, x1, y1)
     center_x = (x0 + x1) / 2.0
     center_y = (y0 + y1) / 2.0
     side = max(x1 - x0, y1 - y0) * ratio

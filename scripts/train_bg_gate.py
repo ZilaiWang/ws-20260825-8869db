@@ -20,9 +20,12 @@ import argparse
 import csv
 import json
 import random
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.background_gate import COARSE_CLASSES, INPUT_RESOLUTION
 
@@ -155,6 +158,8 @@ def _render_batch(
     batch_rows: Sequence[Mapping[str, Any]],
     data_root: Path,
     resolution: int,
+    image_cache: dict[Path, Any] | None = None,
+    crop_cache: dict[str, Any] | None = None,
 ) -> tuple[Any, list[int], list[str]]:
     """渲染一批 context crop，返回 (tensor, foreground_labels, coarses)。"""
     import numpy as np
@@ -163,16 +168,29 @@ def _render_batch(
 
     from rsdet.data.crop_classification import render_crop
 
-    image_cache: dict[Path, Image.Image] = {}
+    cache: dict[Path, Image.Image]
+    cache = image_cache if image_cache is not None else {}
     tensors: list[Any] = []
     labels: list[int] = []
     coarses: list[str] = []
     for row in batch_rows:
+        proposal_uid = str(row["proposal_uid"])
+        if crop_cache is not None and proposal_uid in crop_cache:
+            tensors.append(crop_cache[proposal_uid])
+            labels.append(
+                1
+                if str(row["is_foreground"]).strip() in {"1", "true", "True"}
+                else 0
+            )
+            coarses.append(str(row["coarse"]).strip())
+            continue
         path = (data_root / row["source_relative_path"]).resolve()
-        if path not in image_cache:
-            image_cache[path] = Image.open(path)
+        if path not in cache:
+            image = Image.open(path)
+            image.load()
+            cache[path] = image
         crop = render_crop(
-            image_cache[path],
+            cache[path],
             (
                 float(row["context_x0"]),
                 float(row["context_y0"]),
@@ -184,6 +202,8 @@ def _render_batch(
         array = np.asarray(crop, dtype=np.float32).transpose(2, 0, 1)
         tensor = torch.from_numpy(array)
         tensors.append(tensor)
+        if crop_cache is not None:
+            crop_cache[proposal_uid] = tensor
         labels.append(1 if str(row["is_foreground"]).strip() in {"1", "true", "True"} else 0)
         coarses.append(str(row["coarse"]).strip())
     return torch.stack(tensors), labels, coarses
@@ -239,6 +259,11 @@ def train_one_fold(
 
     model.train()
     history: list[dict[str, float]] = []
+    # A pseudo-10K manifest repeatedly samples only a handful of large mosaic
+    # images.  Keep decoded images across batches; reopening and decoding a
+    # 10K JPEG for every balanced batch is both unnecessary and dominant.
+    image_cache: dict[Path, Any] = {}
+    crop_cache: dict[str, Any] = {}
     for epoch in range(1, epochs + 1):
         indices = build_balanced_batch_indices(
             train_rows,
@@ -249,7 +274,13 @@ def train_one_fold(
         epoch_loss = 0.0
         for batch_indices in indices:
             batch_rows = [train_rows[index] for index in batch_indices]
-            x, labels, coarses = _render_batch(batch_rows, Path(data_root), resolution)
+            x, labels, coarses = _render_batch(
+                batch_rows,
+                Path(data_root),
+                resolution,
+                image_cache,
+                crop_cache,
+            )
             x = x.to(device_obj)
             x = (x / 255.0 - mean) / std
             labels_t = torch.tensor(labels, dtype=torch.float32, device=device_obj)
@@ -271,6 +302,9 @@ def train_one_fold(
             optimizer.step()
             epoch_loss += float(loss.item()) * len(batch_indices) / batches_per_epoch
         history.append({"epoch": epoch, "loss": epoch_loss / max(len(indices), 1)})
+
+    for image in image_cache.values():
+        image.close()
 
     destination = Path(output_dir).expanduser().resolve()
     destination.mkdir(parents=True, exist_ok=True)

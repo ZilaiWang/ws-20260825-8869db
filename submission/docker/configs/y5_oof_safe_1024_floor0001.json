@@ -1,0 +1,33 @@
+{
+  "contract_version": "competition_docker_v1",
+  "deployment_role": "cv3_oof_pseudo10k_floor",
+  "workpoint_id": "y5_oof_safe1024_floor0p001",
+  "device": "cuda:0",
+  "model": {
+    "family": "yolo",
+    "weight_path": "/app/models/model.pt",
+    "expected_sha256": "65c62b20f48e386f6c909c2ad0ad9daa7ed8cda6d7fbe4a2d54953b25c0adaac",
+    "imgsz": 1024,
+    "confidence": 0.001,
+    "iou": 0.7,
+    "max_detections": 500,
+    "half": true,
+    "rot90_views": [0],
+    "tta_nms_iou": 0.55
+  },
+  "pipeline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "batch_size": 8,
+    "fusion": "safe",
+    "score_threshold": 0.001,
+    "fine_nms_iou": 0.70,
+    "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0,
+    "merge_iou": 0.50,
+    "merge_ios": 0.75,
+    "border_margin": 8.0,
+    "nms_iou": 0.5,
+    "max_detections": 4000
+  }
+}

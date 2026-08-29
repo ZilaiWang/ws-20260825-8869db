@@ -8,6 +8,7 @@ from PIL import Image
 
 from rsdet.data.xh_dataset import FINE_NAMES
 from rsdet.submission.competition import (
+    _SubmissionYoloDetector,
     discover_images,
     load_submission_config,
     run_submission,
@@ -46,6 +47,37 @@ def test_load_submission_config_rejects_relative_model_path(tmp_path: Path) -> N
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="绝对路径"):
         load_submission_config(path)
+
+
+def test_load_submission_config_validates_rot90_views(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["model"]["rot90_views"] = [0, 1, 2, 3]
+    payload["model"]["tta_nms_iou"] = 0.55
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    assert load_submission_config(path)["model"]["rot90_views"] == [0, 1, 2, 3]
+
+    payload["model"]["rot90_views"] = [1, 2, 3]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="恒等视图"):
+        load_submission_config(path)
+
+
+@pytest.mark.parametrize(
+    ("rotation", "rotated_box"),
+    [
+        (0, [10.0, 20.0, 40.0, 60.0]),
+        (1, [20.0, 60.0, 60.0, 90.0]),
+        (2, [60.0, 20.0, 90.0, 60.0]),
+        (3, [20.0, 10.0, 60.0, 40.0]),
+    ],
+)
+def test_invert_rot90_box(rotation: int, rotated_box: list[float]) -> None:
+    # Source canvas is width=100, height=80; source box is fixed below.
+    restored = _SubmissionYoloDetector._invert_rot90_box(
+        rotated_box, rotation, width=100, height=80
+    )
+    assert restored == pytest.approx([10.0, 20.0, 40.0, 60.0])
 
 
 def test_discover_images_first_level_and_sorted(tmp_path: Path) -> None:

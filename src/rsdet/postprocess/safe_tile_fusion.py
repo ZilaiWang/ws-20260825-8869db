@@ -167,6 +167,87 @@ def _canonical(candidates: Sequence[_Candidate]) -> _Candidate:
     )
 
 
+def _grid_cells(
+    box: Sequence[float], cell_size: float = 256.0
+) -> tuple[tuple[int, int], ...]:
+    """Return every half-open spatial cell touched by a positive-area box.
+
+    ``nextafter`` keeps a box whose right/bottom edge lies exactly on a cell
+    boundary out of the adjacent cell.  Two boxes with positive intersection
+    must therefore share at least one returned cell; merely touching edges is
+    not treated as overlap.
+    """
+
+    x1, y1, x2, y2 = (float(value) for value in box)
+    right = math.nextafter(x2, -math.inf)
+    bottom = math.nextafter(y2, -math.inf)
+    column_start = math.floor(x1 / cell_size)
+    column_end = math.floor(right / cell_size)
+    row_start = math.floor(y1 / cell_size)
+    row_end = math.floor(bottom / cell_size)
+    return tuple(
+        (column, row)
+        for row in range(row_start, row_end + 1)
+        for column in range(column_start, column_end + 1)
+    )
+
+
+def _anchor_greedy_canonical(
+    candidates: Sequence[_Candidate], merge_iou: float, merge_ios: float
+) -> list[_Candidate]:
+    """Run the frozen anchor-greedy contract with an exact spatial index.
+
+    Fine labels are independent under the safe-fusion contract.  Indexing each
+    label separately avoids comparing every RT-DETR proposal with proposals of
+    the other 24 classes.  The grid only removes pairs that have zero positive
+    intersection, so the selected clusters are identical to the former
+    all-pairs implementation for positive merge thresholds.
+    """
+
+    by_label: dict[int, list[_Candidate]] = defaultdict(list)
+    for candidate in candidates:
+        by_label[candidate.label].append(candidate)
+
+    canonical: list[_Candidate] = []
+    for label in sorted(by_label):
+        ordered = sorted(by_label[label], key=_candidate_sort_key)
+        assigned = [False] * len(ordered)
+        spatial: dict[tuple[int, int], list[int]] = defaultdict(list)
+        if merge_iou > 0.0 and merge_ios > 0.0:
+            for index, candidate in enumerate(ordered):
+                for cell in _grid_cells(candidate.box):
+                    spatial[cell].append(index)
+
+        for anchor_index, anchor in enumerate(ordered):
+            if assigned[anchor_index]:
+                continue
+            assigned[anchor_index] = True
+            cluster = [anchor]
+            if merge_iou == 0.0 or merge_ios == 0.0:
+                possible = range(anchor_index + 1, len(ordered))
+            else:
+                possible = sorted(
+                    {
+                        index
+                        for cell in _grid_cells(anchor.box)
+                        for index in spatial.get(cell, ())
+                        if index > anchor_index
+                    }
+                )
+            for candidate_index in possible:
+                if assigned[candidate_index]:
+                    continue
+                candidate = ordered[candidate_index]
+                if candidate.tile_id == anchor.tile_id:
+                    continue
+                iou, ios = _overlap(anchor.box, candidate.box)
+                if iou >= merge_iou or ios >= merge_ios:
+                    assigned[candidate_index] = True
+                    cluster.append(candidate)
+            canonical.append(_canonical(cluster))
+    return sorted(canonical, key=_candidate_sort_key)
+
+
 def _fine_nms(candidates: Sequence[_Candidate], iou_threshold: float) -> list[_Candidate]:
     groups: dict[int, list[_Candidate]] = defaultdict(list)
     for candidate in candidates:
@@ -217,25 +298,7 @@ def fuse_safe_tile_predictions(
         score_threshold=score_threshold,
         border_margin=border_margin,
     )
-    ordered = sorted(candidates, key=_candidate_sort_key)
-    assigned = [False] * len(ordered)
-    canonical: list[_Candidate] = []
-    for anchor_index, anchor in enumerate(ordered):
-        if assigned[anchor_index]:
-            continue
-        assigned[anchor_index] = True
-        cluster = [anchor]
-        for candidate_index in range(anchor_index + 1, len(ordered)):
-            if assigned[candidate_index]:
-                continue
-            candidate = ordered[candidate_index]
-            if candidate.label != anchor.label or candidate.tile_id == anchor.tile_id:
-                continue
-            iou, ios = _overlap(anchor.box, candidate.box)
-            if iou >= merge_iou or ios >= merge_ios:
-                assigned[candidate_index] = True
-                cluster.append(candidate)
-        canonical.append(_canonical(cluster))
+    canonical = _anchor_greedy_canonical(candidates, merge_iou, merge_ios)
 
     canonical = _fine_nms(canonical, fine_nms_iou)
     if max_detections is not None:

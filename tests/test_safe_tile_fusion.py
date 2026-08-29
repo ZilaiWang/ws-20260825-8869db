@@ -1,7 +1,16 @@
 """安全切片融合的部署不变量测试。"""
 
+import random
+
 from rsdet.contracts import Prediction, TileRecord
-from rsdet.postprocess.safe_tile_fusion import fuse_safe_tile_predictions
+from rsdet.postprocess.safe_tile_fusion import (
+    _candidate_sort_key,
+    _canonical,
+    _fine_nms,
+    _overlap,
+    _restore_candidates,
+    fuse_safe_tile_predictions,
+)
 
 
 def _tiles() -> list[TileRecord]:
@@ -108,3 +117,93 @@ def test_same_tile_candidates_do_not_enter_same_duplicate_cluster() -> None:
         fine_nms_iou=1.0,
     )
     assert fused.scores == [0.9, 0.8]
+
+
+def _reference_fusion(
+    predictions: list[Prediction],
+    tiles: list[TileRecord],
+    *,
+    merge_iou: float,
+    merge_ios: float,
+    fine_nms_iou: float,
+) -> Prediction:
+    """Former all-pairs implementation retained only as an equivalence oracle."""
+
+    candidates = _restore_candidates(
+        predictions,
+        tiles,
+        parent_image_id=9,
+        image_width=1000,
+        image_height=1000,
+        score_threshold=0.0,
+        border_margin=8.0,
+    )
+    ordered = sorted(candidates, key=_candidate_sort_key)
+    assigned = [False] * len(ordered)
+    canonical = []
+    for anchor_index, anchor in enumerate(ordered):
+        if assigned[anchor_index]:
+            continue
+        assigned[anchor_index] = True
+        cluster = [anchor]
+        for candidate_index in range(anchor_index + 1, len(ordered)):
+            if assigned[candidate_index]:
+                continue
+            candidate = ordered[candidate_index]
+            if candidate.label != anchor.label or candidate.tile_id == anchor.tile_id:
+                continue
+            iou, ios = _overlap(anchor.box, candidate.box)
+            if iou >= merge_iou or ios >= merge_ios:
+                assigned[candidate_index] = True
+                cluster.append(candidate)
+        canonical.append(_canonical(cluster))
+    canonical = _fine_nms(canonical, fine_nms_iou)
+    return Prediction(
+        9,
+        [list(item.box) for item in canonical],
+        [item.score for item in canonical],
+        [item.label for item in canonical],
+    )
+
+
+def test_spatial_index_is_exactly_equivalent_to_all_pairs_reference() -> None:
+    rng = random.Random(20260829)
+    tiles = [
+        TileRecord(index, 9, (index % 3) * 200, (index // 3) * 200, 600, 600)
+        for index in range(6)
+    ]
+    predictions = []
+    for tile in tiles:
+        boxes = []
+        scores = []
+        labels = []
+        for _ in range(90):
+            x1 = rng.uniform(0.0, 540.0)
+            y1 = rng.uniform(0.0, 540.0)
+            width = rng.uniform(8.0, 120.0)
+            height = rng.uniform(8.0, 120.0)
+            boxes.append([x1, y1, min(600.0, x1 + width), min(600.0, y1 + height)])
+            scores.append(rng.random())
+            labels.append(rng.randrange(25))
+        predictions.append(Prediction(tile.tile_id, boxes, scores, labels))
+
+    for merge_iou, merge_ios in ((0.50, 0.75), (0.0, 0.75), (0.50, 0.0)):
+        expected = _reference_fusion(
+            predictions,
+            tiles,
+            merge_iou=merge_iou,
+            merge_ios=merge_ios,
+            fine_nms_iou=0.70,
+        )
+        actual = fuse_safe_tile_predictions(
+            predictions,
+            tiles,
+            parent_image_id=9,
+            image_width=1000,
+            image_height=1000,
+            score_threshold=0.0,
+            merge_iou=merge_iou,
+            merge_ios=merge_ios,
+            fine_nms_iou=0.70,
+        )
+        assert actual == expected

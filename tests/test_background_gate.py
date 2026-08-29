@@ -46,8 +46,7 @@ def test_context_expansion_square_centered() -> None:
 
 
 def test_context_expansion_rejects_bad_ratio() -> None:
-    with pytest.raises(ValueError):
-        expand_context_bbox((0, 0, 10, 10), ratio=1.0)
+    assert expand_context_bbox((0, 0, 10, 20), ratio=1.0) == (0.0, 0.0, 10.0, 20.0)
     with pytest.raises(ValueError):
         expand_context_bbox((0, 0, 10, 10), ratio=0.5)
 
