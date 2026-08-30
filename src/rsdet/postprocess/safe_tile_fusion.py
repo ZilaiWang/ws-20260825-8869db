@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from numbers import Integral
 
@@ -88,6 +88,7 @@ def _restore_candidates(
     image_width: int,
     image_height: int,
     score_threshold: float,
+    score_threshold_by_coarse: Mapping[str, float] | None,
     border_margin: float,
 ) -> list[_Candidate]:
     if len(tile_predictions) != len(tiles):
@@ -116,12 +117,17 @@ def _restore_candidates(
             numeric_score = _validate_threshold(
                 float(score), f"tile_predictions[{index}][{detection_index}].score"
             )
-            if numeric_score < score_threshold:
-                continue
             if isinstance(label, bool) or not isinstance(label, Integral):
                 raise ValueError("fine category id must be an integer")
             numeric_label = int(label)
-            coarse_name(numeric_label)
+            coarse = coarse_name(numeric_label)
+            effective_threshold = (
+                float(score_threshold_by_coarse[coarse])
+                if score_threshold_by_coarse is not None
+                else score_threshold
+            )
+            if numeric_score < effective_threshold:
+                continue
             if len(box) != 4 or not all(math.isfinite(float(value)) for value in box):
                 raise ValueError("box must contain four finite values")
             restored = tile_to_full(box, tile.x_offset, tile.y_offset)
@@ -272,6 +278,7 @@ def fuse_safe_tile_predictions(
     image_width: int,
     image_height: int,
     score_threshold: float = 0.0,
+    score_threshold_by_coarse: Mapping[str, float] | None = None,
     merge_iou: float = 0.50,
     merge_ios: float = 0.75,
     fine_nms_iou: float = 0.70,
@@ -280,6 +287,16 @@ def fuse_safe_tile_predictions(
 ) -> Prediction:
     """Fuse duplicates without changing fine classes or propagating clusters."""
     score_threshold = _validate_threshold(score_threshold, "score_threshold")
+    if score_threshold_by_coarse is not None:
+        expected = {"ship", "aircraft", "vehicle"}
+        if set(score_threshold_by_coarse) != expected:
+            raise ValueError(
+                "score_threshold_by_coarse must contain exactly ship, aircraft, vehicle"
+            )
+        score_threshold_by_coarse = {
+            name: _validate_threshold(value, f"score_threshold_by_coarse.{name}")
+            for name, value in score_threshold_by_coarse.items()
+        }
     merge_iou = _validate_threshold(merge_iou, "merge_iou")
     merge_ios = _validate_threshold(merge_ios, "merge_ios")
     _validate_threshold(fine_nms_iou, "fine_nms_iou")
@@ -296,6 +313,7 @@ def fuse_safe_tile_predictions(
         image_width=image_width,
         image_height=image_height,
         score_threshold=score_threshold,
+        score_threshold_by_coarse=score_threshold_by_coarse,
         border_margin=border_margin,
     )
     canonical = _anchor_greedy_canonical(candidates, merge_iou, merge_ios)

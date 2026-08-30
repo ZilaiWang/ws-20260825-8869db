@@ -21,7 +21,7 @@ import numpy as np
 from PIL import Image
 
 from rsdet.contracts import InferenceSample, Prediction
-from rsdet.data.xh_dataset import FINE_NAMES
+from rsdet.data.xh_dataset import COARSE_NAMES, FINE_NAMES
 from rsdet.models.base import BaseDetector
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 from rsdet.postprocess.nms import nms
@@ -97,6 +97,22 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
         raise ValueError("pipeline.fusion 只允许 tile、global 或 safe")
     if not 0.0 <= float(pipeline.get("score_threshold", -1.0)) <= 1.0:
         raise ValueError("pipeline.score_threshold 必须在 [0, 1]")
+    coarse_thresholds = pipeline.get("score_threshold_by_coarse")
+    if coarse_thresholds is not None:
+        coarse_thresholds = _as_mapping(
+            coarse_thresholds, "pipeline.score_threshold_by_coarse"
+        )
+        if set(coarse_thresholds) != set(COARSE_NAMES):
+            raise ValueError(
+                "pipeline.score_threshold_by_coarse 必须恰好覆盖 ship/aircraft/vehicle"
+            )
+        for name, value in coarse_thresholds.items():
+            if not 0.0 <= float(value) <= 1.0:
+                raise ValueError(
+                    f"pipeline.score_threshold_by_coarse.{name} 必须在 [0, 1]"
+                )
+        if str(pipeline.get("fusion", "")) != "safe":
+            raise ValueError("pipeline.score_threshold_by_coarse 当前只允许 fusion=safe")
     return config
 
 
@@ -294,6 +310,17 @@ class CompetitionDetector:
             overlap=int(pipeline["overlap"]),
             batch_size=int(pipeline["batch_size"]),
             score_threshold=float(pipeline["score_threshold"]),
+            score_threshold_by_coarse=(
+                None
+                if pipeline.get("score_threshold_by_coarse") is None
+                else {
+                    str(name): float(value)
+                    for name, value in _as_mapping(
+                        pipeline["score_threshold_by_coarse"],
+                        "pipeline.score_threshold_by_coarse",
+                    ).items()
+                }
+            ),
             fine_nms_iou=float(pipeline.get("fine_nms_iou", 0.55)),
             coarse_nms_iou=(
                 None

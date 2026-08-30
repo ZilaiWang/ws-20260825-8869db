@@ -66,6 +66,36 @@ def test_low_score_candidate_is_removed_before_fusion() -> None:
     assert fused.boxes_xyxy == [[450.0, 100.0, 550.0, 200.0]]
 
 
+def test_coarse_specific_thresholds_are_applied_before_fusion() -> None:
+    fused = _fuse(
+        [
+            Prediction(
+                0,
+                [[10, 10, 50, 50], [100, 10, 150, 60], [200, 10, 250, 60]],
+                [0.35, 0.35, 0.35],
+                [0, 4, 24],
+            ),
+            Prediction(1, [], [], []),
+        ],
+        score_threshold=0.0,
+        score_threshold_by_coarse={"ship": 0.30, "aircraft": 0.40, "vehicle": 0.34},
+    )
+    assert fused.labels == [0, 24]
+    assert fused.scores == [0.35, 0.35]
+
+
+def test_coarse_specific_thresholds_require_complete_taxonomy() -> None:
+    try:
+        _fuse(
+            [Prediction(0, [], [], []), Prediction(1, [], [], [])],
+            score_threshold_by_coarse={"ship": 0.3},
+        )
+    except ValueError as error:
+        assert "exactly ship, aircraft, vehicle" in str(error)
+    else:
+        raise AssertionError("incomplete coarse thresholds must fail")
+
+
 def test_anchor_clustering_is_non_transitive() -> None:
     tiles = [
         TileRecord(0, 9, 0, 0, 1000, 600),
@@ -136,6 +166,7 @@ def _reference_fusion(
         image_width=1000,
         image_height=1000,
         score_threshold=0.0,
+        score_threshold_by_coarse=None,
         border_margin=8.0,
     )
     ordered = sorted(candidates, key=_candidate_sort_key)

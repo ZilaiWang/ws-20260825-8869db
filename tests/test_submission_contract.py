@@ -63,6 +63,25 @@ def test_load_submission_config_validates_rot90_views(tmp_path: Path) -> None:
         load_submission_config(path)
 
 
+def test_load_submission_config_validates_coarse_thresholds(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["pipeline"]["fusion"] = "safe"
+    payload["pipeline"]["score_threshold_by_coarse"] = {
+        "ship": 0.371,
+        "aircraft": 0.301,
+        "vehicle": 0.366,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["pipeline"]["score_threshold_by_coarse"]["vehicle"] == 0.366
+
+    payload["pipeline"]["score_threshold_by_coarse"].pop("vehicle")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="恰好覆盖"):
+        load_submission_config(path)
+
+
 @pytest.mark.parametrize(
     ("rotation", "rotated_box"),
     [
