@@ -4,7 +4,7 @@ __include__: [
 
 # One-fold heterogeneous detector screen.  The held-out labels are used only
 # for the diagnostic frontier after training, never for threshold selection.
-output_dir: /workspace/results/DEIM-M-FOLD0-40EP-V1/training
+output_dir: /workspace/results/DEIM-M-FOLD0-40EP-V1-R2/training
 num_classes: 25
 remap_mscoco_category: False
 epoches: 40
@@ -34,7 +34,7 @@ warmup_iter: 500
 train_dataloader:
   dataset:
     img_folder: /root/autodl-tmp/data
-    ann_file: /workspace/results/DEIM-M-FOLD0-40EP-V1/coco/instances_train.json
+    ann_file: /workspace/results/DEIM-M-FOLD0-40EP-V1-R2/coco/instances_train.json
     transforms:
       ops:
         - {type: Mosaic, output_size: 512, rotation_range: 10, translation_range: [0.1, 0.1], scaling_range: [0.5, 1.5], probability: 1.0, fill_value: 0, use_cache: False, max_cached_images: 50, random_pop: True}
@@ -59,13 +59,16 @@ train_dataloader:
     base_size_repeat: 1
     mixup_prob: 0.5
     mixup_epochs: [4, 24]
-    stop_epoch: 32
+    # Keep the official augment policy stop at epoch 32, but do not trigger
+    # DEIM's held-out best_stg1 reload.  This screen uses the fixed epoch-40
+    # checkpoint rather than validation-selected model weights.
+    stop_epoch: 40
     ema_restart_decay: 0.9999
 
 val_dataloader:
   dataset:
     img_folder: /root/autodl-tmp/data
-    ann_file: /workspace/results/DEIM-M-FOLD0-40EP-V1/coco/instances_val.json
+    ann_file: /workspace/results/DEIM-M-FOLD0-40EP-V1-R2/coco/instances_val.json
     transforms:
       type: Compose
       ops:
@@ -73,4 +76,3 @@ val_dataloader:
         - {type: ConvertPILImage, dtype: float32, scale: True}
   total_batch_size: 8
   num_workers: 8
-

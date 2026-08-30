@@ -3,7 +3,7 @@ set -euo pipefail
 
 PROJECT=${PROJECT:-/root/autodl-tmp/xh-202625}
 DEIM=${DEIM:-/workspace/third_party/DEIM-codex-20260830}
-OUT=${OUT:-/workspace/results/DEIM-M-FOLD0-40EP-V1}
+OUT=${OUT:-/workspace/results/DEIM-M-FOLD0-40EP-V1-R2}
 PY=${PY:-/root/autodl-tmp/miniconda3/bin/python}
 STATUS=${OUT}/status.txt
 export PYTHONPATH="/workspace/venvs/deim-cu121/lib/python3.10/site-packages:/root/autodl-tmp/venvs/cv3-model-cu121/lib/python3.10/site-packages${PYTHONPATH:+:${PYTHONPATH}}"
