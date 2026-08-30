@@ -539,6 +539,97 @@ ship/aircraft/vehicle联合选择三个最佳阈值。目标FDR=0.15时得到186
 的缺口不是靠继续扫描全局/粗类阈值能够获得；后续只保留背景完整检测训练、粗类目标
 检测、proposal-domain视觉验证和候选互补四类结构实验，关闭进一步阈值工程。
 
+### 5.27 四源自然 proposal verifier 重训：未超过旧工作点
+
+四源自然采样、tight=1.0的 25 细类 + background verifier 已完成三折重训与
+46,566 候选的 held-out 推理。训练、推理均使用合法折权重，候选上限保持
+0.9731。
+
+| 解析方式 | Recall/FDR @0.15 | Recall/FDR @0.20 |
+|---|---:|---:|
+| direct crop blend | 0.8443 / 0.1478 | 0.8772 / 0.1979 |
+| identity pixel-OER | **0.8582 / 0.1493** | **0.8786 / 0.1939** |
+| dual hypothesis pixel-OER | 0.8563 / 0.1519 | 0.8721 / 0.1964 |
+
+identity 仍是三者中最稳定的解析方式，但低于旧四源+tight identity 的
+0.8601/0.1478，因此“单纯增加四源自然负样本并重训”不准入。飞机 Recall 仍为
+0.9873，舰船为0.7851，车辆仅0.5217，证实缺口仍集中在 ship/vehicle 的
+foreground/background 分离，而不是飞机细类表达。
+
+### 5.28 粗类专家路由：开发集仅得到极小的低风险改善
+
+按预注册协议保留自然 ship/aircraft verifier，只将 vehicle 切换为粗类均衡专家。
+中间因服务器代码树缺少已提交的合并脚本而技术失败；补齐同一脚本后原参数重跑，
+未改变科学合同。
+
+| 解析方式 | Recall/FDR @0.15 | Recall/FDR @0.20 |
+|---|---:|---:|
+| hybrid direct | 0.8517 / 0.1495 | 0.8795 / 0.1968 |
+| **hybrid identity** | **0.8605 / 0.1438** | 0.8758 / 0.2015 |
+| hybrid dual | 0.8577 / 0.1458 | 0.8730 / 0.1997 |
+
+hybrid identity 相对旧最好点的 Recall 只增加约0.04pp，但FDR降低约0.40pp。
+这是当前开发 `trial-mix` 上的低风险候选，而不是已证实的跨域收益；不允许
+因此扫描路由比例或融合权重。若要进入正式镜像，必须使用开发集冻结工作点在
+source-disjoint sentinel 复验。
+
+### 5.29 背景完整微调、三粗类检测和 Y3 候选复验：全部触发停止条件
+
+| 路线 | candidate Recall | Recall/FDR @0.15 | Recall/FDR @0.20 | 结论 |
+|---|---:|---:|---:|---|
+| background-complete Y5 | 0.8679 | 0.7210 / 0.1511 | 0.7715 / 0.1984 | 候选损失过大，停止 |
+| 3-coarse detector + P03 | 0.8684 | 0.7836 / 0.1503 | 0.8202 / 0.1995 | 未证实粗类头保护召回，停止 |
+| Y3 single | 0.8842 | 0.5704 / 0.1609 | 0.6881 / 0.2020 | 不作工作点 |
+| four-source + Y3, NMS=.60 | 0.9727 | 0.6390 / 0.1509 | 0.8012 / 0.2032 | 候选上限未超过四源0.9731，停止 |
+
+background-complete 三折每折只固定微调20 epoch，但候选 Recall 直接下降约10.5pp，
+说明当前640张 hard-background tile/折的注入强度过大，将真实低分目标一并抑制。
+不在当前代理集上继续扫描 tile 数、epoch 或负样本强度。三粗类检测同样没有保护
+候选召回，因此不进入四源候选替换。
+
+Y3 的首次推理仅因 checkpoint `names` 为数字0--24被部署25类合同拒绝；将元数据
+确定性写回官方25类名称后重跑，模型张量和训练参数未变。其与四源合并后候选 Recall
+反而从0.9731微降至0.9727，低于预注册的+0.3pp准入线，故不再进入 verifier。
+
+以上小型结果、前沿和技术失败日志已回传到
+`outputs/HERA-GUARD-V2-STRUCTURAL-READOUT-20260830/`，并生成本地 SHA256 清单。
+
+### 5.30 三粗类二分类 verifier：方向正确，但仍不足以跨越目标
+
+三套 fold-heldout coarse-specific ConvNeXt 二分类器已在同一 46,566 个四源候选上
+完成推理。直接使用二分类前景概率会严重破坏 ship/vehicle 排序；把它作为 pixel-OER
+的新增视觉证据后，identity 才形成可比较的结果：
+
+| 解析方式 | Recall/FDR @0.10 | Recall/FDR @0.15 | Recall/FDR @0.20 |
+|---|---:|---:|---:|
+| direct coarse binary | 0.4013 / 0.0979 | 0.5463 / 0.1506 | 0.7665 / 0.2017 |
+| **identity pixel-OER** | **0.8170 / 0.0954** | **0.8624 / 0.1467** | **0.8791 / 0.1952** |
+| dual hypothesis pixel-OER | 0.8174 / 0.1050 | 0.8577 / 0.1450 | 0.8744 / 0.1936 |
+
+identity 在0.15风险点相对旧0.8601/0.1478获得约+0.23pp Recall，同时FDR降低约
+0.11pp，说明显式粗类前景学习方向有效；但它仍远低于0.94目标，且ship/vehicle
+Recall仅0.7935/0.5217。依据5.25的预注册顺序，只准入一次
+`sqrt(detector_score)` hard-negative 单因素复验，不扫描融合权重或采样强度。
+
+source-disjoint sentinel 已确认构造合同为600张新来源、1,969个GT，并与开发
+trial-mix的600来源互斥。首次运行因原Y5 checkpoint仅保存数字类别名而被部署合同
+拒绝；现已仅重写checkpoint类别元数据后按相同冻结参数重启，原技术失败现场保留。
+sentinel 不参与阈值重选。
+
+### 5.31 V3 指标对齐复核与来源互斥 sentinel（2026-08-30）
+
+后续实现、冻结合同和完整结果已转入
+`reports/experiments/HERA_GUARD_V3_METRIC_ALIGNED_EXECUTION_20260830.md`。核心更新为：
+
+- 46,566 候选经官方一目标一胜者审计，候选全集可匹配2,100/2,158 GT；
+- coarse-binary 清单存在381条跨粗类前景污染，已生成唯一变量的干净清单；
+- 指标残差风险头的最好复核仅增加3--4 TP，未准入，停止继续扫描损失权重；
+- 600来源互斥 sentinel 已完成：自身外层CV3为0.8558 Recall / 0.1481 FDR，
+  冻结开发阈值为0.8507 / 0.1506；开发代理没有失真到不可用，但存在约0.8--1.3pp
+  的可测域差；
+- 新七通道 `tight RGB + masked context RGB + mask` 与 VOI 稀疏验证已经按外层CV3
+  启动，取代继续堆叠表格风险字段。
+
 ## 6. 接下来的决策树
 
 ```text
@@ -567,11 +658,12 @@ FN 足够多时重新准入。
 
 ## 7. 资源调度
 
-- 服务器 1：Y5-S 全量 160 epoch 已完成并通过清洗前后逐框等价；当前 M3 full，
-  并行训练四源 hard-negative tight verifier。旧 context=1.25 正式前景迁移已被
-  tight 单因素结果严格覆盖，保留日志并标记 `stopped_superseded`，释放资源；
-- 服务器 2：Y5-L full 与全量 COPH 继续训练；四源 tight 推理、像素 OER、预算路由
-  已完成；
+- 服务器 1：Y5-S与M3 full均已完成；四源自然 tight、粗类专家 hybrid、三粗类检测、
+  Y3复验和均匀coarse-binary均已完成。当前只运行预注册的score-sqrt hard-negative
+  单因素复验；
+- 服务器 2：Y5-L full 160 epoch已完成；background-complete三折及开发代理审计已
+  触发停止条件。四源source-disjoint sentinel在修正checkpoint类别元数据后按冻结
+  参数重新推理；
 - 若新增第三台 3090：优先迁移 M3 full，不复制正在运行的 Y5 训练；
 - 所有正式/代理指标均下载小型 summary、模型 SHA 和日志；大 checkpoint 留服务器，
   最终入选后才回传或发布附件。
@@ -587,5 +679,7 @@ FN 足够多时重新准入。
    但小样本 HGB 不能完成转化；
 5. 四源+tight identity 已使接近官方代理的总体 85%/20% 门槛通过；预算1024具有
    初步部署可行性，但真实端到端测速和舰船/车辆分项仍未过线；
-6. 94% 目前只在候选上限层通过，固定风险 Recall 最高为0.8601。下一阶段必须提升
+6. 94% 目前只在候选上限层通过；开发代理上的最新排序读数为coarse-binary identity
+   0.8624/0.1467，hybrid identity则为0.8605/0.1438，两者改善均小且尚未通过
+   sentinel。下一阶段仍必须提升
    ship/vehicle 风险解析与候选定位，不提交尚未完成全量权重/测速闭环的官方镜像。
