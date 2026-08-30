@@ -205,3 +205,16 @@ Recall，aircraft 为 0.999020/0.048553，vehicle 为 0.940217/0.135000。这些
 
 官方手工转录数据固化于
 `outputs/OFFICIAL-TRIAL-CALIBRATION-20260830/trial_v1_v2_metrics.json`。
+
+候选已构建为 `linux/amd64` 镜像：
+
+```text
+xh-detector:y5s-rot90tta-trial-v2-calibrated-v1
+image digest sha256:734a3c0ba755ecd1ec5ce3737124ddfc4f91d8c403a4f13c2d1540bded1d3fe8
+image size 4,351,058,226 bytes
+```
+
+断网容器内静态验收已核对全量权重 SHA、工作点 ID、双视图列表和三粗类阈值。
+因为唯一改动是融合前的粗类分数过滤，推理结构与已完成 RTX 3090 10K GPU smoke
+的 B 候选相同；下次官方提交前仍需在可用 NVIDIA Docker 宿主机重放一次真实 10K
+输入，不以 Mac arm64 静态检查替代 GPU 运行证据。
