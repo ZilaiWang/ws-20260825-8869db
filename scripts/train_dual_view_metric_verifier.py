@@ -62,7 +62,7 @@ def _load_images(
     image_meta: dict[int, dict[str, Any]],
     folds: set[int],
     image_layout: str,
-) -> dict[int, Image.Image]:
+) -> dict[int, np.ndarray]:
     result = {}
     Image.MAX_IMAGE_PIXELS = None
     for image_id, meta in sorted(image_meta.items()):
@@ -78,8 +78,9 @@ def _load_images(
         if not path.is_file():
             raise FileNotFoundError(f"dual-view source image is missing: {path}")
         with Image.open(path) as source:
-            result[image_id] = source.convert("RGB")
-            result[image_id].load()
+            # Materialize RGB once.  Repeated ``np.asarray(PIL)`` on a 10K
+            # source inside every proposal crop dominates the GPU workload.
+            result[image_id] = np.asarray(source.convert("RGB"), dtype=np.uint8).copy()
     return result
 
 
@@ -87,7 +88,7 @@ def _batch_tensor(
     indices: np.ndarray,
     *,
     records: list[dict[str, Any]],
-    images: dict[int, Image.Image],
+    images: dict[int, np.ndarray],
     resolution: int,
     context_ratio: float,
     augment_codes: np.ndarray | None,
@@ -121,7 +122,7 @@ def _batch_tensor(
 def _precache_views(
     *,
     records: list[dict[str, Any]],
-    images: dict[int, Image.Image],
+    images: dict[int, np.ndarray],
     resolution: int,
     context_ratio: float,
     workers: int,

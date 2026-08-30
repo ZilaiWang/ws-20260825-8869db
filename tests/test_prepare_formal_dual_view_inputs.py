@@ -129,3 +129,15 @@ def test_precache_views_matches_direct_renderer() -> None:
     assert cache.dtype == np.uint8
     assert cache.shape == (1, 7, 16, 16)
     assert np.array_equal(cache[0], expected)
+
+
+def test_numpy_source_matches_pil_source() -> None:
+    module = _train_module()
+    array = np.arange(24 * 32 * 3, dtype=np.uint16).reshape(24, 32, 3).astype(np.uint8)
+    image = Image.fromarray(array)
+    kwargs = {"resolution": 20, "context_ratio": 1.75}
+    from_pil = module.render_seven_channel_view(image, [3.0, 4.0, 17.0, 19.0], **kwargs)
+    from_array = module.render_seven_channel_view(
+        array, [3.0, 4.0, 17.0, 19.0], **kwargs
+    )
+    assert np.array_equal(from_pil, from_array)

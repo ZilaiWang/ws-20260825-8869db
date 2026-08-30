@@ -28,12 +28,17 @@ def square_box(box: Sequence[float], ratio: float = 1.0) -> tuple[float, float, 
 
 
 def _reflect_render(
-    image: Image.Image, box: Sequence[float], resolution: int
+    image: Image.Image | np.ndarray, box: Sequence[float], resolution: int
 ) -> Image.Image:
     if resolution <= 0:
         raise ValueError("resolution must be positive")
-    rgb_image = image if image.mode == "RGB" else image.convert("RGB")
-    rgb = np.asarray(rgb_image)
+    if isinstance(image, np.ndarray):
+        rgb = image
+        if rgb.ndim != 3 or rgb.shape[2] != 3 or rgb.dtype != np.uint8:
+            raise ValueError("cached source image must be uint8 HWC RGB")
+    else:
+        rgb_image = image if image.mode == "RGB" else image.convert("RGB")
+        rgb = np.asarray(rgb_image)
     x0, y0, x1, y1 = (float(value) for value in box)
     ix0, iy0, ix1, iy1 = math.floor(x0), math.floor(y0), math.ceil(x1), math.ceil(y1)
     clipped_x0, clipped_y0 = max(0, ix0), max(0, iy0)
@@ -95,7 +100,7 @@ def _masked_context(context: np.ndarray, mask: np.ndarray) -> np.ndarray:
 
 
 def render_seven_channel_view(
-    image: Image.Image,
+    image: Image.Image | np.ndarray,
     proposal_xyxy: Sequence[float],
     *,
     resolution: int = 224,
