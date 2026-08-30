@@ -218,7 +218,7 @@ def test_spatial_index_is_exactly_equivalent_to_all_pairs_reference() -> None:
             labels.append(rng.randrange(25))
         predictions.append(Prediction(tile.tile_id, boxes, scores, labels))
 
-    for merge_iou, merge_ios in ((0.50, 0.75), (0.0, 0.75), (0.50, 0.0)):
+    for merge_iou, merge_ios in ((0.50, 0.75), (0.35, 0.90), (0.80, 0.50)):
         expected = _reference_fusion(
             predictions,
             tiles,
@@ -238,3 +238,17 @@ def test_spatial_index_is_exactly_equivalent_to_all_pairs_reference() -> None:
             fine_nms_iou=0.70,
         )
         assert actual == expected
+
+
+def test_zero_merge_thresholds_are_rejected() -> None:
+    for merge_iou, merge_ios in ((0.0, 0.75), (0.50, 0.0)):
+        try:
+            _fuse(
+                [Prediction(0, [], [], []), Prediction(1, [], [], [])],
+                merge_iou=merge_iou,
+                merge_ios=merge_ios,
+            )
+        except ValueError as error:
+            assert "must both be > 0" in str(error)
+        else:
+            raise AssertionError("zero merge thresholds must fail closed")

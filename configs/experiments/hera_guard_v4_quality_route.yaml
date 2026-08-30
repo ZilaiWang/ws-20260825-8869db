@@ -1,0 +1,73 @@
+experiment_id: HERA-GUARD-V4-QUALITY-ROUTE
+base_detector: Y5-S-full-single-view-v2
+base_workpoint:
+  ship: 0.150
+  aircraft: 0.301
+  vehicle: 0.366
+frozen_benchmarks:
+  normal_cv3: true
+  hard10k_cv3: true
+  source_disjoint_sentinel: direction_only
+quality_head:
+  feature_source: y5_fpn_roi_core_ring
+  feature_levels: [P3, P4, P5]
+  projection_dim_per_level: 64
+  hidden_dim: 192
+  residual_limit_logit: 1.75
+  targets:
+    intrinsic_match: same_fine_official_iou
+    protected_tp: frozen_workpoint_official_tp
+    active_fp: frozen_workpoint_official_fp
+  official_iou:
+    ship: 0.50
+    aircraft: 0.50
+    vehicle: 0.35
+  losses:
+    match: 1.0
+    protect: 1.0
+    active_fp: 1.0
+    final_quality: 1.0
+    final_positive_weight: 4.0
+    active_pair_rank: 0.35
+    residual_l2: 0.02
+  registered_stages:
+    Q0: {features: metadata, rank: false, sampling: uniform, robustness: erm}
+    Q1: {features: metadata_fpn, rank: false, sampling: uniform, robustness: erm}
+    Q2: {features: metadata_fpn, rank: true, sampling: uniform, robustness: erm}
+    D0: {features: metadata_fpn, rank: true, sampling: uniform, robustness: erm}
+    D1: {features: metadata_fpn, rank: true, sampling: group_balanced, robustness: erm}
+    D2: {features: metadata_fpn, rank: true, sampling: uniform, robustness: group_dro}
+    D3: {features: metadata_fpn, rank: true, sampling: group_balanced, robustness: group_dro}
+  robustness:
+    group_source: source_or_airport_proxy
+    group_dro_step: 0.05
+    weight_decay: 0.05
+selective_tta:
+  identity_always: true
+  second_view: rot90
+  aircraft_bypass: true
+  max_tile_fraction: [0.15, 0.25, 0.35]
+  minimum_router_probability: 0.55
+  same_fine_support_iou: 0.25
+  high_quality_novel_threshold: 0.90
+  novel_budget:
+    ship: 8
+    vehicle: 12
+external_pretraining:
+  label_space: [aircraft, ship, vehicle, other_remote_object]
+  datasets_priority: [FAIR1M, xView, AI-TOD, RarePlanes, DOTA, DIOR]
+  prohibit_external_to_official_fine_mapping: true
+admission:
+  normal_recall_drop_pp_max: 0.30
+  any_coarse_recall_drop_pp_max: 0.50
+  hard10k_recall_gain_pp_min_at_fdr15: 0.50
+  sentinel_same_direction: true
+  vehicle_target:
+    recall_min: 0.95
+    fdr_max: 0.18
+  ship_target:
+    recall_min: 0.95
+    fdr_max: 0.13
+  time_target_seconds:
+    balanced: 5.0
+    attack_max: 9.0

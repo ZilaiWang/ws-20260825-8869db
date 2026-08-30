@@ -1,0 +1,76 @@
+__include__: [
+  '/workspace/third_party/DEIM-codex-20260830/configs/deim_dfine/deim_hgnetv2_m_coco.yml'
+]
+
+# One-fold heterogeneous detector screen.  The held-out labels are used only
+# for the diagnostic frontier after training, never for threshold selection.
+output_dir: /workspace/results/DEIM-M-FOLD0-40EP-V1/training
+num_classes: 25
+remap_mscoco_category: False
+epoches: 40
+checkpoint_freq: 10
+print_freq: 50
+sync_bn: False
+find_unused_parameters: False
+eval_spatial_size: [1024, 1024]
+
+optimizer:
+  type: AdamW
+  params:
+    -
+      params: '^(?=.*backbone)(?!.*bn).*$'
+      lr: 0.000005
+    -
+      params: '^(?=.*(?:norm|bn)).*$'
+      weight_decay: 0.0
+  lr: 0.00005
+  betas: [0.9, 0.999]
+  weight_decay: 0.0001
+
+flat_epoch: 24
+no_aug_epoch: 8
+warmup_iter: 500
+
+train_dataloader:
+  dataset:
+    img_folder: /root/autodl-tmp/data
+    ann_file: /workspace/results/DEIM-M-FOLD0-40EP-V1/coco/instances_train.json
+    transforms:
+      ops:
+        - {type: Mosaic, output_size: 512, rotation_range: 10, translation_range: [0.1, 0.1], scaling_range: [0.5, 1.5], probability: 1.0, fill_value: 0, use_cache: False, max_cached_images: 50, random_pop: True}
+        - {type: RandomPhotometricDistort, p: 0.5}
+        - {type: RandomZoomOut, fill: 0}
+        - {type: RandomIoUCrop, p: 0.8}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: RandomHorizontalFlip}
+        - {type: Resize, size: [1024, 1024]}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: ConvertPILImage, dtype: float32, scale: True}
+        - {type: ConvertBoxes, fmt: cxcywh, normalize: True}
+      policy:
+        epoch: [4, 24, 32]
+        ops: [Mosaic, RandomPhotometricDistort, RandomZoomOut, RandomIoUCrop]
+      mosaic_prob: 0.5
+  total_batch_size: 4
+  num_workers: 8
+  collate_fn:
+    type: BatchImageCollateFunction
+    base_size: 1024
+    base_size_repeat: 1
+    mixup_prob: 0.5
+    mixup_epochs: [4, 24]
+    stop_epoch: 32
+    ema_restart_decay: 0.9999
+
+val_dataloader:
+  dataset:
+    img_folder: /root/autodl-tmp/data
+    ann_file: /workspace/results/DEIM-M-FOLD0-40EP-V1/coco/instances_val.json
+    transforms:
+      type: Compose
+      ops:
+        - {type: Resize, size: [1024, 1024]}
+        - {type: ConvertPILImage, dtype: float32, scale: True}
+  total_batch_size: 8
+  num_workers: 8
+

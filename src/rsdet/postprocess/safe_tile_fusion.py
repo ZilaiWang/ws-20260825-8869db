@@ -207,7 +207,9 @@ def _anchor_greedy_canonical(
     label separately avoids comparing every RT-DETR proposal with proposals of
     the other 24 classes.  The grid only removes pairs that have zero positive
     intersection, so the selected clusters are identical to the former
-    all-pairs implementation for positive merge thresholds.
+    all-pairs implementation.  Public entry points prohibit zero merge
+    thresholds because the ``or`` contract would otherwise merge every
+    cross-tile same-class pair.
     """
 
     by_label: dict[int, list[_Candidate]] = defaultdict(list)
@@ -299,6 +301,8 @@ def fuse_safe_tile_predictions(
         }
     merge_iou = _validate_threshold(merge_iou, "merge_iou")
     merge_ios = _validate_threshold(merge_ios, "merge_ios")
+    if merge_iou <= 0.0 or merge_ios <= 0.0:
+        raise ValueError("merge_iou and merge_ios must both be > 0")
     _validate_threshold(fine_nms_iou, "fine_nms_iou")
     if isinstance(max_detections, bool) or (
         max_detections is not None

@@ -62,6 +62,33 @@ def test_anchor_alignment_and_features() -> None:
     assert np.isfinite(features).all()
 
 
+def test_explicit_crop_probability_alias_and_conflicts() -> None:
+    base = {
+        "image_id": 2,
+        "category_id": 0,
+        "bbox": [1, 2, 10, 20],
+        "score": 0.8,
+        "crop_top1_probability": 0.73,
+        "crop_top1_class": 4,
+    }
+    features = build_metric_features(
+        [base], anchor_scores=[0.8], category_mapping={0: "ship"}
+    )
+    assert features[0][14] == pytest.approx(0.73)
+    with pytest.raises(ValueError, match="conflicting"):
+        build_metric_features(
+            [{**base, "crop_top1": 0.12}],
+            anchor_scores=[0.8],
+            category_mapping={0: "ship"},
+        )
+    with pytest.raises(ValueError, match="within"):
+        build_metric_features(
+            [{**base, "crop_top1_probability": 4.0}],
+            anchor_scores=[0.8],
+            category_mapping={0: "ship"},
+        )
+
+
 def test_rank_pairs_are_deterministic_and_group_local() -> None:
     roles = [
         _role(0, "canonical_positive", "g0"),

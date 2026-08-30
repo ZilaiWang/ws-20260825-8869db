@@ -204,7 +204,7 @@ Recall，aircraft 为 0.999020/0.048553，vehicle 为 0.940217/0.135000。这些
 仅用于检查修订方向，不当作隐藏集估计。
 
 官方手工转录数据固化于
-`outputs/OFFICIAL-TRIAL-CALIBRATION-20260830/trial_v1_v2_metrics.json`。
+`outputs/OFFICIAL-TRIAL-CALIBRATION-20260830/trial_v1_v3_metrics.json`。
 
 候选已构建为 `linux/amd64` 镜像：
 
@@ -218,3 +218,16 @@ image size 4,351,058,226 bytes
 因为唯一改动是融合前的粗类分数过滤，推理结构与已完成 RTX 3090 10K GPU smoke
 的 B 候选相同；下次官方提交前仍需在可用 NVIDIA Docker 宿主机重放一次真实 10K
 输入，不以 Mac arm64 静态检查替代 GPU 运行证据。
+
+## 12. trial-v3 官方回传：候选否决并校准测评误差
+
+trial-v3 使用与 v2 相同的全量 Y5-S 权重，变化为 identity+90° 双视图以及
+ship/aircraft/vehicle=0.150/0.301/0.366 阈值。官方综合分由 86.2274 降至
+85.0018：ship Recall +1.1327pp 但 FDR +3.8707pp，aircraft 轻微改善，vehicle
+FDR -8.1588pp 但 Recall -4.0269pp，平均时延由 2.704833s 增至 4.888833s。
+
+该结果否决整套 v3 部署策略，v2 继续作为最佳回退。内部部署审计正确预测全部三类变化
+方向，也准确预测 ship FDR 和 vehicle FDR 的幅度，但只预计 vehicle Recall 下降约
+0.54pp，明显低估官方 4.03pp 损失。因此 full-model 同源回看仍可作配置审计，不能再
+单独支持高 vehicle 阈值。完整分析、历史方法总账与下一实验树见
+`reports/experiments/OFFICIAL_TRIAL_V1_V3_DEEP_ANALYSIS_AND_GPT_HANDOFF_20260830.md`。
