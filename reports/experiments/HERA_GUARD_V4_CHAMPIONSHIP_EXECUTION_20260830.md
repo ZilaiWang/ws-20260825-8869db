@@ -227,12 +227,12 @@ FDR，但 Hard Recall 为 0.952271，未超过 12 维版本。随后按方案10�
 - 跨 split 图像：0；
 - 1024 输入、40 epoch、固定最后 epoch、score floor 0.001。
 
-状态：`running_r2`。首次启动完成 epoch 0–1 后因 8 个 DataLoader worker 的
+状态：`complete`。首次启动完成 epoch 0–1 后因 8 个 DataLoader worker 的
 Linux 文件描述符传递异常退出；训练数据、权重和优化参数均未改变，只把 train/val
 worker 从 8 降至 2，并增加失败状态 trap。为防止旧 `last.pth` 和 `log.txt` 污染
 血缘，正式重跑使用全新 `DFINE-M-FOLD0-40EP-V1-R2` 目录从零开始。该事件属于运行
-恢复，不构成科学结果。单折结果只作快筛，不用于选择正式提交阈值；准入后才扩三折并执行
-Normal/Hard/Sentinel 三段审计。
+恢复，不构成科学结果。第 40 轮固定 checkpoint 的 COCO AP 为
+`0.690069`，后续完成 1,507 张低阈值推理与 official-matching 前沿。
 
 ### 6.3 DEIM-D-FINE-M fold0 配对快筛
 
@@ -248,14 +248,15 @@ COCO 标注、1024 输入和 40 epoch 快筛合同。主要差异仅为官方 DE
   `5e-6`；前 500 iteration warmup，24 epoch 后 cosine，最后 8 epoch no-aug；
 - 25 类头由正式训练集重新学习，aircraft/ship/vehicle 仍按官方细类和 IoU 规则评估。
 
-状态：`running_r2`。首批 iteration 有限、无 NaN/OOM，峰值训练显存约 9.1 GiB。
+状态：`complete_negative`。首批 iteration 有限、无 NaN/OOM，峰值训练显存约 9.1 GiB。
 预检发现官方 runner 默认在 `stop_epoch=32` 时加载 held-out 验证集上的
 `best_stg1.pth`，与本快筛“固定第 40 轮、不按 outer fold 选模”的合同冲突。早期运行
 因此停止，不进入结果；R2 保留增强 policy 在 epoch 32 关闭，但把 collate/EMA stage
 的 `stop_epoch` 设为 40，使 epoch 0–39 持续保存固定 `last.pth`，并使用全新结果目录。
-D-FINE 与 DEIM 先分别输出 held-out fold0 的 0.001 score-floor 候选，再用同一个
-official-matching 单折诊断前沿比较。只有 DEIM 或 D-FINE 在 ship/vehicle 候选能力和
-FDR15 上明显优于 Y5 fold0，才扩正式三折；二者同时负向则停止 DETR 异构路线。
+D-FINE 与 DEIM 分别输出 held-out fold0 的 0.001 score-floor 候选，再用同一个
+official-matching 单折诊断前沿比较。DEIM 第 40 轮 COCO AP 为 `0.617847`，
+FDR15 pooled Recall 仅 `0.751429`，vehicle Recall 仅 `0.278195`，明显负向，
+不扩三折。
 
 ### 6.4 fold0 冻结 Y5-S 比较点
 
@@ -280,6 +281,37 @@ floor Recall，并在 FDR15 保留更多 ship/vehicle TP；只增加低质量候
 并冻结检查：ship/vehicle 任一 score-floor Recall 至少 +1pp、pooled FDR15 Recall
 至少 +0.5pp、任一粗类 FDR15 Recall 降幅不超过 0.5pp。通过只授权进入来源分组 CV3；
 单折标签选择出的阈值仍严格禁止进入部署。
+
+### 6.5 D-FINE 整体替换判定
+
+D-FINE 在 score floor 0.001 的 pooled Recall 为 `0.998095`，明显提高了候选
+覆盖；但低分候选的 pooled FDR 也达到 `0.983774`。在单折 oracle FDR15 下：
+
+| Detector | pooled R/FDR | ship R/FDR | aircraft R/FDR | vehicle R/FDR |
+|---|---:|---:|---:|---:|
+| Y5-S | 0.895782 / 0.149354 | 0.850829 / 0.289012 | 0.907953 / 0.121147 | 0.624060 / 0.389706 |
+| D-FINE-M | 0.901633 / 0.149731 | 0.844199 / 0.227503 | 0.914290 / 0.134393 | 0.691729 / 0.333333 |
+
+D-FINE pooled Recall `+0.585pp`，vehicle `+6.767pp`，但 ship Recall `-0.663pp`；超出
+预注册的单类最大下降 `0.5pp` 限制，因此整体替换状态为 `screen_rejected`。
+这一拒绝不通过事后放宽门禁撤销。
+
+### 6.6 预注册的 vehicle specialist 路由
+
+由于 D-FINE 的改善高度集中在 vehicle，新增一个无融合权重的可解释路由：
+Y5 提供 ship/aircraft，D-FINE 只提供 vehicle。在 fold0 诊断中，分别使用
+各自 held-out FDR15 工作点 `0.136/0.486`，得到：
+
+- ship/aircraft 的 TP/FP/FN 与 Y5 逐项完全一致；
+- vehicle Recall `0.624060 -> 0.691729`（`+6.767pp`）；
+- vehicle FDR `0.389706 -> 0.333333`（`-5.637pp`）；
+- pooled Recall `+0.122pp`，pooled FDR `-0.094pp`，macro Recall `+0.271pp`。
+
+该结果只授权 D-FINE fold1/2 并行训练和 CV3 交叉拟合阈值验收，不授权直接
+进入 Docker。正式 specialist 门禁为：ship/aircraft 输出完全保持，vehicle Recall
+至少 `+1pp`且 FDR 不变差，pooled Recall/FDR 均不变差。展开三折后阈值只能
+由非目标折拟合，禁止使用目标折标签。诊断 JSON 位于
+`outputs/HERA-GUARD-V4-DETECTOR-SCREEN-20260830/dfine_vehicle_route_fold0.json`。
 
 ## 7. 下一步停止规则
 
