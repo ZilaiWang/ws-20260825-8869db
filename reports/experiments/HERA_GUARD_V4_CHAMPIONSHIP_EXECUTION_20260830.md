@@ -244,7 +244,11 @@ COCO 标注、1024 输入和 40 epoch 快筛合同。主要差异仅为官方 DE
   `5e-6`；前 500 iteration warmup，24 epoch 后 cosine，最后 8 epoch no-aug；
 - 25 类头由正式训练集重新学习，aircraft/ship/vehicle 仍按官方细类和 IoU 规则评估。
 
-状态：`running`。首批 iteration 有限、无 NaN/OOM，峰值训练显存约 9.1 GiB。
+状态：`running_r2`。首批 iteration 有限、无 NaN/OOM，峰值训练显存约 9.1 GiB。
+预检发现官方 runner 默认在 `stop_epoch=32` 时加载 held-out 验证集上的
+`best_stg1.pth`，与本快筛“固定第 40 轮、不按 outer fold 选模”的合同冲突。早期运行
+因此停止，不进入结果；R2 保留增强 policy 在 epoch 32 关闭，但把 collate/EMA stage
+的 `stop_epoch` 设为 40，使 epoch 0–39 持续保存固定 `last.pth`，并使用全新结果目录。
 D-FINE 与 DEIM 先分别输出 held-out fold0 的 0.001 score-floor 候选，再用同一个
 official-matching 单折诊断前沿比较。只有 DEIM 或 D-FINE 在 ship/vehicle 候选能力和
 FDR15 上明显优于 Y5 fold0，才扩正式三折；二者同时负向则停止 DETR 异构路线。
