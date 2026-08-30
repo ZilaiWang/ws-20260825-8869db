@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -49,6 +50,8 @@ def main() -> int:
     parser.add_argument("--imgsz", type=int, default=1024)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--score-floor", type=float, default=0.001)
+    parser.add_argument("--num-classes", type=int, default=25)
+    parser.add_argument("--expected-checkpoint-epoch", type=int, default=39)
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
     if args.batch_size <= 0 or args.imgsz <= 0:
@@ -63,6 +66,12 @@ def main() -> int:
     if "HGNetv2" in cfg.yaml_cfg:
         cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
+    if int(checkpoint.get("epoch", -1)) != args.expected_checkpoint_epoch:
+        raise RuntimeError(
+            "checkpoint is not the frozen final epoch: "
+            f"observed={checkpoint.get('epoch')!r}, "
+            f"expected={args.expected_checkpoint_epoch}"
+        )
     state = checkpoint["ema"]["module"] if "ema" in checkpoint else checkpoint["model"]
     cfg.model.load_state_dict(state)
     device = torch.device(args.device)
@@ -98,22 +107,36 @@ def main() -> int:
                     item_scores[keep].cpu().tolist(),
                     strict=True,
                 ):
+                    label = int(label)
+                    score = float(score)
                     x0, y0, x1, y1 = (float(value) for value in box)
+                    if not 0 <= label < args.num_classes:
+                        raise RuntimeError(f"prediction category outside taxonomy: {label}")
+                    if not all(math.isfinite(value) for value in (score, x0, y0, x1, y1)):
+                        raise RuntimeError("non-finite detector output")
+                    width = float(item["width"])
+                    height = float(item["height"])
+                    x0 = min(max(x0, 0.0), width)
+                    y0 = min(max(y0, 0.0), height)
+                    x1 = min(max(x1, 0.0), width)
+                    y1 = min(max(y1, 0.0), height)
+                    if x1 <= x0 or y1 <= y0:
+                        raise RuntimeError("non-positive detector box after clipping")
                     predictions.append(
                         {
                             "image_id": int(item["id"]),
-                            "category_id": int(label),
+                            "category_id": label,
                             "bbox": [x0, y0, x1 - x0, y1 - y0],
-                            "score": float(score),
+                            "score": score,
                         }
                     )
             if device.type == "cuda":
                 peak_memory = max(peak_memory, torch.cuda.max_memory_allocated(device))
     elapsed = time.perf_counter() - started
+    if not predictions:
+        raise RuntimeError("detector exported no predictions at the frozen score floor")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        json.dumps(predictions, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    args.output.write_text(json.dumps(predictions, ensure_ascii=False) + "\n", encoding="utf-8")
     summary = {
         "status": "complete",
         "protocol": "dfine_fixed_checkpoint_coco_candidate_export_v1",
@@ -122,6 +145,8 @@ def main() -> int:
         "score_floor": args.score_floor,
         "imgsz": args.imgsz,
         "batch_size": args.batch_size,
+        "checkpoint_epoch": int(checkpoint["epoch"]),
+        "num_classes": args.num_classes,
         "elapsed_seconds": elapsed,
         "images_per_second": len(images) / elapsed,
         "peak_cuda_bytes": peak_memory,
