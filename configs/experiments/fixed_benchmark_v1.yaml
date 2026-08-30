@@ -1,0 +1,29 @@
+benchmark:
+  version: fixed_benchmark_v1
+  official_matcher: official_eval_v1_6_same_fine_greedy
+  ranking: official_ranking_v1_6_fine_macro_average
+  fdr_levels: [0.10, 0.12, 0.15, 0.20]
+  threshold_grid:
+    start: 0.001
+    stop: 0.996
+    step: 0.005
+  protocols:
+    normal_cv3:
+      description: 4481 official training images, airport/source grouped, exact 3-fold OOF
+      expected_images: 4481
+      expected_ground_truth: 20933
+      selection: other_two_folds_only
+    hard10k_cv3:
+      description: six pseudo-10K canvases, 600 source-disjoint placements, exact 3-fold OOF
+      expected_images: 6
+      expected_ground_truth: 2158
+      expected_unique_sources: 600
+      selection: other_two_folds_only
+      robustness_seal: frozen_source_disjoint_sentinel
+  admission:
+    normal_max_recall_drop: 0.003
+    normal_max_any_coarse_recall_drop: 0.005
+    hard_min_recall_gain: 0.005
+    hard_max_fdr: 0.15
+    sentinel_required_same_direction: true
+    claim_internal_to_hidden_gap_max: 0.02
