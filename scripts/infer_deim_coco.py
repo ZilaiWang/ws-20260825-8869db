@@ -66,10 +66,10 @@ def main() -> int:
     if "HGNetv2" in cfg.yaml_cfg:
         cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
-    if int(checkpoint.get("epoch", -1)) != args.expected_checkpoint_epoch:
+    if int(checkpoint.get("last_epoch", -1)) != args.expected_checkpoint_epoch:
         raise RuntimeError(
             "checkpoint is not the frozen final epoch: "
-            f"observed={checkpoint.get('epoch')!r}, "
+            f"observed={checkpoint.get('last_epoch')!r}, "
             f"expected={args.expected_checkpoint_epoch}"
         )
     state = checkpoint["ema"]["module"] if "ema" in checkpoint else checkpoint["model"]
@@ -144,7 +144,7 @@ def main() -> int:
         "score_floor": args.score_floor,
         "imgsz": args.imgsz,
         "batch_size": args.batch_size,
-        "checkpoint_epoch": int(checkpoint["epoch"]),
+        "checkpoint_epoch": int(checkpoint["last_epoch"]),
         "num_classes": args.num_classes,
         "elapsed_seconds": elapsed,
         "images_per_second": len(images) / elapsed,

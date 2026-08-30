@@ -12,7 +12,7 @@
 
 冻结的准入门为：Normal-CV3 pooled Recall 降幅不超过 0.3pp、任一粗类 Recall 降幅不超过 0.5pp、Hard10K@FDR15 Recall 至少提高 0.5pp、source-disjoint sentinel 同方向、飞机不退化。任何 pooled oracle 只作诊断，不形成准入结论。
 
-异构推理链额外 fail closed：checkpoint 内部 epoch 必须恰为 39（固定完成 40 轮），
+异构推理链额外 fail closed：checkpoint 内部 `last_epoch` 必须恰为 39（固定完成 40 轮），
 输出类别必须位于 `[0,25)`，分数和框坐标必须有限，框裁剪到原图后宽高必须为正；
 任何一项不满足都中止，不生成可比较前沿。
 
