@@ -21,7 +21,8 @@ printf '%s\n' training > "${OUT}/status.txt"
   --pseudo-root "${PSEUDO_ROOT}" --imagenet-weight "${IMAGENET_WEIGHT}" \
   --output-dir "${OUT}/model" --epochs 3 --batches-per-epoch 100 \
   --batch-size 32 --inference-batch-size 96 --resolution 224 \
-  --context-ratio 1.75 --residual-limit 2.5 --device cuda:0 \
+  --context-ratio 1.75 --residual-limit 2.5 --render-workers 24 \
+  --precache-views --device cuda:0 \
   > "${OUT}/train.log" 2>&1
 printf '%s\n' frontier > "${OUT}/status.txt"
 "${PYTHON_BIN}" scripts/analyze_cv3_oof_pseudo_frontier.py \
