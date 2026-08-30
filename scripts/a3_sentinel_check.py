@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -29,83 +28,16 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.oof_detection import load_formal_ground_truth
-from rsdet.evaluation.official_metric import compute_iou
+from rsdet.evaluation.official_frontier import (
+    min_fdr_at_recall,
+    official_fixed_risk_frontier,
+)
 from rsdet.evaluation.protocol import parse_evaluation_protocol
 from rsdet.utils.config import load_config
 
 FEATURES = ["y5_score", "crop_top1", "crop_margin", "crop_entropy",
             "crop_top1_class", "detector_crop_agree",
             "w", "h", "area", "short_edge", "aspect", "local_density"]
-
-
-def greedy_match(preds, formal, proto, image_ids):
-    pb = defaultdict(list)
-    for p in preds:
-        if p["image_id"] in image_ids:
-            pb[p["image_id"]].append(p)
-    tp = {}
-    used = defaultdict(set)
-    for img, gts in formal.boxes.items():
-        if img not in image_ids:
-            continue
-        pl = pb.get(img, [])
-        od = sorted(enumerate(pl), key=lambda t: -t[1]["score"])
-        for g in gts:
-            cid = int(g["category_id"])
-            thr = proto.iou_thresholds[proto.category_mapping[cid]]
-            bi, bix = 0.0, None
-            for idx, p in od:
-                if p["_idx"] in used[img] or p["category_id"] != cid:
-                    continue
-                iou = compute_iou(p["bbox_xyxy"], g["bbox_xyxy"])
-                if iou > bi:
-                    bi, bix = iou, idx
-            if bix is not None and bi >= thr:
-                used[img].add(pl[bix]["_idx"])
-                tp[pl[bix]["_idx"]] = True
-    return tp
-
-
-def nms_all(preds, key, image_ids, thr=0.5):
-    pb = defaultdict(list)
-    for p in preds:
-        if p["image_id"] in image_ids:
-            pb[p["image_id"]].append(p)
-    kept = []
-    for img, pl in pb.items():
-        od = sorted(pl, key=lambda p: -p[key])
-        sup = set()
-        for p in od:
-            if p["_idx"] in sup:
-                continue
-            kept.append(p)
-            for q in od:
-                if q["_idx"] == p["_idx"] or q["_idx"] in sup or q["category_id"] != p["category_id"]:
-                    continue
-                if compute_iou(p["bbox_xyxy"], q["bbox_xyxy"]) > thr:
-                    sup.add(q["_idx"])
-    return kept
-
-
-def frontier(preds, key, tp, n_gt):
-    od = sorted(preds, key=lambda p: -p[key])
-    tp_ = fp = 0
-    br = {v: 0.0 for v in (0.10, 0.12, 0.15)}
-    bf = {v: 1.0 for v in (0.94, 0.95, 0.96)}
-    for p in od:
-        if tp.get(p["_idx"]):
-            tp_ += 1
-        else:
-            fp += 1
-        rec = tp_ / n_gt
-        fdr = fp / (tp_ + fp) if tp_ + fp else 0.0
-        for v in br:
-            if fdr <= v:
-                br[v] = max(br[v], rec)
-        for v in bf:
-            if rec >= v:
-                bf[v] = min(bf[v], fdr)
-    return br, bf
 
 
 def main() -> int:
@@ -162,18 +94,6 @@ def main() -> int:
     Xs = sent_df[FEATURES].to_numpy(dtype=float)
     sent_oer = clf_all.predict_proba(Xs)[:, 1]
 
-    # 位置关联 GT 细类
-    pb = defaultdict(list)
-    for p in preds:
-        pb[p["image_id"]].append(p)
-    gt_fine_of = defaultdict(set)
-    for img, gts in formal.boxes.items():
-        for p in pb.get(img, []):
-            for g in gts:
-                thr = proto.iou_thresholds[proto.category_mapping[int(g["category_id"])]]
-                if compute_iou(p["bbox_xyxy"], g["bbox_xyxy"]) >= thr:
-                    gt_fine_of[p["_idx"]].add(int(g["category_id"]))
-
     node_map = {int(r.idx): r for r in nodes.itertuples()}
     oer_map = {}
     for j, (_, r) in enumerate(tr_df.iterrows()):
@@ -186,33 +106,40 @@ def main() -> int:
     for p in sent_preds:
         p["score"] = oer_map.get(p["_idx"], p["score"])
         p["oer"] = p["score"]
+        p["source_prediction_index"] = p["_idx"]
+
+    def evaluate(records):
+        result = official_fixed_risk_frontier(
+            gt_boxes=formal.boxes,
+            predictions=records,
+            category_mapping=proto.category_mapping,
+            iou_thresholds=proto.iou_thresholds,
+            image_ids=sentinel_ids,
+            fdr_levels=(0.10, 0.12, 0.15),
+            nms_iou=0.50,
+        )
+        br = {level: result.points[level].recall for level in (0.10, 0.12, 0.15)}
+        bf = min_fdr_at_recall(result, recall_levels=(0.94, 0.95, 0.96))
+        return br, bf
 
     # 基线: 不改类
-    k0 = nms_all(sent_preds, "oer", sentinel_ids)
-    tp0 = greedy_match(k0, formal, proto, sentinel_ids)
-    br0, bf0 = frontier(k0, "oer", tp0, n_gt)
+    br0, bf0 = evaluate(sent_preds)
 
-    # 全改: yolo 错 → crop top1
-    changed = corrected = 0
+    # 可部署全改：所有 detector/crop 分歧均使用 crop top1，不查 GT。
+    changed = 0
     sent_preds2 = [dict(p) for p in sent_preds]
     for p in sent_preds2:
         r = node_map.get(p["_idx"])
-        if r is None or p["_idx"] not in gt_fine_of:
-            continue
-        yolo_fine = p["category_id"]
-        if yolo_fine in gt_fine_of[p["_idx"]]:
+        if r is None:
             continue
         top1 = int(r.crop_top1_class)
-        p["category_id"] = top1
-        changed += 1
-        if top1 in gt_fine_of[p["_idx"]]:
-            corrected += 1
-    k1 = nms_all(sent_preds2, "oer", sentinel_ids)
-    tp1 = greedy_match(k1, formal, proto, sentinel_ids)
-    br1, bf1 = frontier(k1, "oer", tp1, n_gt)
+        if top1 >= 0 and top1 != p["category_id"]:
+            p["category_id"] = top1
+            changed += 1
+    br1, bf1 = evaluate(sent_preds2)
 
     print(f"sentinel 图: {len(sentinel_ids)}, GT: {n_gt}")
-    print(f"全改 {changed} 个(corrected {corrected})")
+    print(f"全改 {changed} 个（部署字段决定，无 GT oracle）")
     print(f"\n[基线 OER+NMS]  R@FDR=.12={br0[0.12]:.4f} | FDR@R=.94={bf0[0.94]:.4f}")
     print(f"[全改 OER+NMS]  R@FDR=.12={br1[0.12]:.4f} | FDR@R=.94={bf1[0.94]:.4f}")
     print(f"Δ: R@FDR=.12 {br1[0.12]-br0[0.12]:+.4f} | FDR@R=.94 {bf1[0.94]-bf0[0.94]:+.4f}")
@@ -223,7 +150,7 @@ def main() -> int:
         "sentinel": {"n_images": len(sentinel_ids), "n_gt": n_gt},
         "baseline": {"r_at_fdr_0.12": br0[0.12], "fdr_at_r_0.94": bf0[0.94]},
         "full_relabel": {"r_at_fdr_0.12": br1[0.12], "fdr_at_r_0.94": bf1[0.94],
-                         "changed": changed, "corrected": corrected},
+                         "changed": changed},
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"\n已写: {out}")
     return 0

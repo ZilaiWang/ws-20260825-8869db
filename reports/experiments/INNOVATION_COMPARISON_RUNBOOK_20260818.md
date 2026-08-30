@@ -7,7 +7,7 @@
 ## 一、队列完成判定
 
 ```bash
-ssh -p 47096 -o ControlPath=/tmp/n2cfg_ssh root@connect.nmb2.seetacloud.com \
+ssh -p <PORT> -o ControlPath=/tmp/n2cfg_ssh root@<SERVER_HOST> \
   "tail -3 /workspace/results/innovation-run-all.log; ls /workspace/results/*-CV3-OOF-return-no-checkpoints.tar.gz* 2>/dev/null"
 ```
 
@@ -17,14 +17,14 @@ ssh -p 47096 -o ControlPath=/tmp/n2cfg_ssh root@connect.nmb2.seetacloud.com \
 ## 二、拉回三个 evaluate + diagnose 结果
 
 ```bash
-ssh -p 47096 -o ControlPath=/tmp/n2cfg_ssh root@connect.nmb2.seetacloud.com \
+ssh -p <PORT> -o ControlPath=/tmp/n2cfg_ssh root@<SERVER_HOST> \
   "cd /workspace/results && for k in Y3-HIER Y5-ROT90 Y4-AFSS; do \
      tar czf /tmp/\$k-eval.tar.gz \$k-CV3-OOF/evaluate_\$k.json \$k-CV3-OOF/evaluate_\$k.cases.json \$k-CV3-OOF/diagnose_\$k.json; \
    done"
 # 本地拉回
 for k in Y3-HIER Y5-ROT90 Y4-AFSS; do
-  scp -P 47096 -o ControlPath=/tmp/n2cfg_ssh \
-    "root@connect.nmb2.seetacloud.com:/tmp/$k-eval.tar.gz" /tmp/
+  scp -P <PORT> -o ControlPath=/tmp/n2cfg_ssh \
+    "root@<SERVER_HOST>:/tmp/$k-eval.tar.gz" /tmp/
   tar xzf /tmp/$k-eval.tar.gz -C /tmp/
 done
 ```

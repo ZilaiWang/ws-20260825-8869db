@@ -80,25 +80,48 @@ def normalize_prediction(raw: Mapping[str, Any], *, candidate_id: int) -> dict[s
     }
 
 
-def _best_support(
+def _best_supports(
     *,
     image_id: int,
     box: Sequence[float],
+    predicted_category_id: int,
+    predicted_coarse: str,
     gt_boxes: Mapping[int, Sequence[Mapping[str, Any]]],
     category_mapping: Mapping[int, str],
-) -> tuple[int, int, str, float] | None:
-    best: tuple[float, int, int, str] | None = None
+) -> dict[str, tuple[int, int, str, float] | None]:
+    """Find same-fine, same-coarse and unconstrained support independently.
+
+    A closer wrong-class object must not hide a valid same-fine association.
+    Deterministic ties always select the first GT row.
+    """
+
+    best: dict[str, tuple[float, int, int, str] | None] = {
+        "same_fine": None,
+        "same_coarse": None,
+        "any": None,
+    }
     for gt_index, gt in enumerate(gt_boxes.get(image_id, ())):
         category_id = int(gt["category_id"])
         coarse = str(category_mapping[category_id])
         iou = compute_iou(list(box), [float(value) for value in gt["bbox_xyxy"]])
         candidate = (iou, -gt_index, category_id, coarse)
-        if best is None or candidate[:2] > best[:2]:
-            best = candidate
-    if best is None:
-        return None
-    iou, negative_index, category_id, coarse = best
-    return -negative_index, category_id, coarse, iou
+        keys = ["any"]
+        if coarse == predicted_coarse:
+            keys.append("same_coarse")
+        if category_id == predicted_category_id:
+            keys.append("same_fine")
+        for key in keys:
+            if best[key] is None or candidate[:2] > best[key][:2]:
+                best[key] = candidate
+
+    output: dict[str, tuple[int, int, str, float] | None] = {}
+    for key, value in best.items():
+        if value is None:
+            output[key] = None
+        else:
+            iou, negative_index, category_id, coarse = value
+            output[key] = (-negative_index, category_id, coarse, iou)
+    return output
 
 
 def build_metric_aligned_roles(
@@ -137,9 +160,11 @@ def build_metric_aligned_roles(
         predicted_category = int(item["category_id"])
         predicted_coarse = str(category_mapping[predicted_category])
         official_label = official.labels[candidate_id]
-        support = _best_support(
+        supports = _best_supports(
             image_id=image_id,
             box=item["bbox_xyxy"],
+            predicted_category_id=predicted_category,
+            predicted_coarse=predicted_coarse,
             gt_boxes=gt_boxes,
             category_mapping=category_mapping,
         )
@@ -149,9 +174,6 @@ def build_metric_aligned_roles(
         support_iou = 0.0
         qualifies = False
         object_group_id = ""
-        if support is not None:
-            support_index, support_category, support_coarse, support_iou = support
-            qualifies = support_iou >= float(iou_thresholds[support_coarse])
         if official_label.is_valid:
             role = CANONICAL
             support_index = int(official_label.matched_gt_index)
@@ -160,17 +182,36 @@ def build_metric_aligned_roles(
             support_coarse = str(category_mapping[support_category])
             support_iou = float(official_label.matched_iou)
             qualifies = True
-        elif qualifies and predicted_category == support_category:
-            role = DUPLICATE
-        elif qualifies and predicted_coarse == support_coarse:
-            role = CROSS_FINE
-        elif qualifies:
-            role = CROSS_COARSE
-            cross_coarse_pollution += 1
-        elif support_iou > background_iou:
-            role = LOCALIZATION
         else:
-            role = BACKGROUND
+            same_fine = supports["same_fine"]
+            same_coarse = supports["same_coarse"]
+            any_support = supports["any"]
+            if (
+                same_fine is not None
+                and same_fine[3] >= float(iou_thresholds[predicted_coarse])
+            ):
+                support_index, support_category, support_coarse, support_iou = same_fine
+                qualifies = True
+                role = DUPLICATE
+            elif (
+                same_coarse is not None
+                and same_coarse[3] >= float(iou_thresholds[predicted_coarse])
+            ):
+                support_index, support_category, support_coarse, support_iou = same_coarse
+                qualifies = True
+                role = CROSS_FINE
+            elif (
+                any_support is not None
+                and any_support[3] >= float(iou_thresholds[any_support[2]])
+            ):
+                support_index, support_category, support_coarse, support_iou = any_support
+                qualifies = True
+                role = CROSS_COARSE
+                cross_coarse_pollution += 1
+            else:
+                if any_support is not None:
+                    support_index, support_category, support_coarse, support_iou = any_support
+                role = LOCALIZATION if support_iou > background_iou else BACKGROUND
         if qualifies:
             object_group_id = f"image{image_id}:gt{support_index}"
             group_sizes[object_group_id] += 1

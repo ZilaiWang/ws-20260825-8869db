@@ -5,7 +5,7 @@
 
 ## 一、服务器与代码同步
 
-- 新服务器: `ssh -p 17879 root@connect.nmb2.seetacloud.com`(RTX 3090 24GB)
+- 新服务器：临时 GPU 节点（RTX 3090 24GB；公开报告不保留连接地址）
 - 已配免密; 环境 torch 2.5.1+cu121 / ultralytics 8.4.103 / venv p06-cu121
 - 代码经 gitee 同步到最新(服务器有旧 R1 未提交改动 → 备份后 reset --hard 对齐)
 - Y5 权重: `/workspace/results/Y5-ROT90-CV3-OOF/fold_{0,1,2}/training/runs/foundation/weights/last.pt`

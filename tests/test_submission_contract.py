@@ -63,6 +63,44 @@ def test_load_submission_config_validates_rot90_views(tmp_path: Path) -> None:
         load_submission_config(path)
 
 
+def test_load_submission_config_validates_coarse_thresholds(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["pipeline"]["fusion"] = "safe"
+    payload["pipeline"]["score_threshold_by_coarse"] = {
+        "ship": 0.371,
+        "aircraft": 0.301,
+        "vehicle": 0.366,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["pipeline"]["score_threshold_by_coarse"]["vehicle"] == 0.366
+
+    payload["pipeline"]["score_threshold_by_coarse"].pop("vehicle")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="恰好覆盖"):
+        load_submission_config(path)
+
+
+def test_trial_v2_calibrated_config_freezes_only_exposed_risks() -> None:
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "submission/docker/configs"
+        / "y5_full_s_safe_1024_rot90cwtta_trial_v2_calibrated_v1.json"
+    )
+    loaded = load_submission_config(path)
+    assert loaded["model"]["rot90_views"] == [0, 1]
+    assert loaded["pipeline"]["score_threshold_by_coarse"] == {
+        "ship": 0.15,
+        "aircraft": 0.301,
+        "vehicle": 0.366,
+    }
+    assert (
+        loaded["model"]["expected_sha256"]
+        == "f7e30fac3391d7048314d1c41df0e878a4d5f0423e5c55b68ee7df5917418229"
+    )
+
+
 @pytest.mark.parametrize(
     ("rotation", "rotated_box"),
     [

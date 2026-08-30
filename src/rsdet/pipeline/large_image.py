@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Mapping
 
 import numpy as np
 
@@ -32,6 +32,7 @@ class PipelineConfig:
     overlap: int = 128
     batch_size: int = 16
     score_threshold: float = 0.0  # tile 路径：融合前过滤；global 路径：聚合后过滤
+    score_threshold_by_coarse: Mapping[str, float] | None = None
     fine_nms_iou: float = 0.55  # tile_fusion 细类内 NMS 阈值
     coarse_nms_iou: float | None = 0.85  # tile_fusion 官方粗类 NMS 阈值（None 关闭）
     max_detections: int | None = None  # 最终保留检测数上限
@@ -244,6 +245,7 @@ def run_pipeline(
             image_height=h,
             parent_image_id=parent_image_id,
             score_threshold=config.score_threshold,
+            score_threshold_by_coarse=config.score_threshold_by_coarse,
             merge_iou=config.merge_iou,
             merge_ios=config.merge_ios,
             fine_nms_iou=config.fine_nms_iou,

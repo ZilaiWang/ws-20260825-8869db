@@ -54,6 +54,27 @@ def safe_logit(value: float, epsilon: float = 1e-6) -> float:
     return math.log(clipped / (1.0 - clipped))
 
 
+def _crop_top1_probability(item: Mapping[str, Any]) -> float:
+    """Read the probability field without confusing it with the class ID.
+
+    Historical ledgers used ``crop_top1`` for the probability and
+    ``crop_top1_class`` for the category.  New ledgers should emit the explicit
+    ``crop_top1_probability`` name.  If both probability aliases are present,
+    disagreement is treated as schema corruption instead of silently choosing
+    one value.
+    """
+
+    explicit = item.get("crop_top1_probability")
+    legacy = item.get("crop_top1")
+    if explicit is not None and legacy is not None:
+        if not math.isclose(float(explicit), float(legacy), abs_tol=1e-6):
+            raise ValueError("conflicting crop top-1 probability aliases")
+    value = float(explicit if explicit is not None else legacy or 0.0)
+    if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+        raise ValueError("crop top-1 probability must be finite and within [0, 1]")
+    return value
+
+
 def candidate_key(row: Mapping[str, Any]) -> tuple[Any, ...]:
     """Stable identity shared by evidence and incumbent-score ledgers."""
 
@@ -122,7 +143,7 @@ def build_metric_features(
             safe_logit(coarse_foreground),
             float(item.get("crop_class_probability", 0.0)),
             float(item.get("crop_conditional_class_probability", 0.0)),
-            float(item.get("crop_top1", 0.0)),
+            _crop_top1_probability(item),
             float(item.get("crop_margin", 0.0)),
             float(item.get("crop_entropy", 0.0)) / math.log(25.0),
             float(item.get("detector_crop_agree", 0.0)),

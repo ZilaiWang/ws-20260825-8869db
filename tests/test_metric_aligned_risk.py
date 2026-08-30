@@ -56,3 +56,24 @@ def test_metric_aligned_tie_is_deterministic() -> None:
         iou_thresholds={"ship": 0.5, "aircraft": 0.5, "vehicle": 0.35},
     )
     assert [row.role for row in result.roles] == [CANONICAL, DUPLICATE]
+
+
+def test_closer_wrong_class_does_not_hide_same_fine_support() -> None:
+    gt = {
+        1: [
+            {"bbox_xyxy": [0, 0, 10, 10], "category_id": 0},
+            {"bbox_xyxy": [1, 1, 11, 11], "category_id": 4},
+        ]
+    }
+    predictions = [
+        {"image_id": 1, "category_id": 0, "bbox_xyxy": [0, 0, 10, 10], "score": 0.9},
+        {"image_id": 1, "category_id": 0, "bbox_xyxy": [1, 1, 10, 10], "score": 0.8},
+    ]
+    result = build_metric_aligned_roles(
+        gt_boxes=gt,
+        predictions=predictions,
+        category_mapping={0: "ship", 4: "aircraft"},
+        iou_thresholds={"ship": 0.5, "aircraft": 0.5, "vehicle": 0.35},
+    )
+    assert [row.role for row in result.roles] == [CANONICAL, DUPLICATE]
+    assert result.roles[1].support_category_id == 0

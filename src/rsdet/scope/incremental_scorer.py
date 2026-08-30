@@ -15,7 +15,9 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from .official_scorer import box_iou_matrix, CandidateView
+from rsdet.evaluation.official_frontier import scan_fixed_risk_points
+
+from .official_scorer import CandidateView, box_iou_matrix
 
 
 class IncrementalFrontierScorer:
@@ -68,20 +70,23 @@ class IncrementalFrontierScorer:
             kept_boxes = np.asarray([p.bbox_xyxy for p in kept], dtype=np.float64)
             gt_arr = np.asarray([g["bbox_xyxy"] for g in gts], dtype=np.float64)
             m_ious = box_iou_matrix(kept_boxes, gt_arr)
-            used: set[int] = set()
-            for gi, g in enumerate(gts):
-                cid = int(g["category_id"])
-                thr = self.proto.iou_thresholds[self.proto.category_mapping[cid]]
-                best_i, best_iou = -1, 0.0
-                for ci, p in enumerate(kept):
-                    if ci in used or p.category_id != cid:
+            # Official semantics are prediction-first, score-descending.  Each
+            # prediction claims its best still-unmatched same-fine GT.
+            used_gt: set[int] = set()
+            for ci, p in enumerate(kept):
+                thr = self.proto.iou_thresholds[
+                    self.proto.category_mapping[p.category_id]
+                ]
+                best_gi, best_iou = -1, -1.0
+                for gi, g in enumerate(gts):
+                    if gi in used_gt or int(g["category_id"]) != p.category_id:
                         continue
                     iou = float(m_ious[ci, gi])
-                    if iou > best_iou:
-                        best_iou, best_i = iou, ci
-                if best_i >= 0 and best_iou >= thr:
-                    used.add(best_i)
-                    tp.add(kept[best_i]._idx)
+                    if iou >= thr and iou > best_iou:
+                        best_iou, best_gi = iou, gi
+                if best_gi >= 0:
+                    used_gt.add(best_gi)
+                    tp.add(p._idx)
         return kept, tp
 
     def _recompute_base(self) -> None:
@@ -99,20 +104,24 @@ class IncrementalFrontierScorer:
         if not all_kept:
             self.recall_at_fdr_012 = 0.0
             return
-        scores = np.asarray([p.score for p in all_kept], dtype=np.float64)
-        tp_flags = np.asarray(
-            [1.0 if p._idx in self.tp_by_img.get(p.image_id, set()) else 0.0 for p in all_kept]
-        )
-        order = np.argsort(-scores, kind="stable")
-        tp_cum = np.cumsum(tp_flags[order])
-        n = len(order)
-        fp_cum = np.arange(1, n + 1) - tp_cum
-        rec = tp_cum / self.n_gt
-        fdr = fp_cum / np.maximum(tp_cum + fp_cum, 1.0)
-        mask = fdr <= 0.12
-        self.recall_at_fdr_012 = float(rec[mask].max()) if mask.any() else 0.0
-        self.n_tp = int(tp_cum[-1]) if n else 0
-        self.n_fp = int(n - self.n_tp)
+        rows = [
+            (
+                p.score,
+                p._idx,
+                p._idx in self.tp_by_img.get(p.image_id, set()),
+            )
+            for p in all_kept
+        ]
+        point = scan_fixed_risk_points(
+            scored_tp_rows=rows,
+            n_gt=self.n_gt,
+            fdr_levels=(0.12,),
+        )[0.12]
+        self.recall_at_fdr_012 = point.recall
+        self.n_tp = point.tp
+        self.n_fp = point.fp
+        self.n_tp_total = sum(bool(row[2]) for row in rows)
+        self.n_fp_total = len(rows) - self.n_tp_total
 
     def score(self) -> float:
         return self.recall_at_fdr_012
@@ -165,15 +174,11 @@ class IncrementalFrontierScorer:
 
         if not kept_pool:
             return 0.0, 0, 0
-        scores = np.asarray([p.score for p in kept_pool], dtype=np.float64)
-        tp_flags = np.asarray([1.0 if p._idx in tp_pool else 0.0 for p in kept_pool])
-        order = np.argsort(-scores, kind="stable")
-        tp_cum = np.cumsum(tp_flags[order])
-        n = len(order)
-        fp_cum = np.arange(1, n + 1) - tp_cum
-        rec = tp_cum / self.n_gt
-        fdr = fp_cum / np.maximum(tp_cum + fp_cum, 1.0)
-        mask = fdr <= 0.12
-        val = float(rec[mask].max()) if mask.any() else 0.0
-        n_tp = int(tp_cum[-1]) if n else 0
-        return val, n_tp, int(n - n_tp)
+        point = scan_fixed_risk_points(
+            scored_tp_rows=(
+                (p.score, p._idx, p._idx in tp_pool) for p in kept_pool
+            ),
+            n_gt=self.n_gt,
+            fdr_levels=(0.12,),
+        )[0.12]
+        return point.recall, point.tp, point.fp

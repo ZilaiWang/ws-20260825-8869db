@@ -57,18 +57,30 @@ def _tensor(view: np.ndarray, *, augment_code: int = 0) -> Any:
 
 
 def _load_images(
-    *, pseudo_root: Path, image_meta: dict[int, dict[str, Any]], folds: set[int]
-) -> dict[int, Image.Image]:
+    *,
+    pseudo_root: Path,
+    image_meta: dict[int, dict[str, Any]],
+    folds: set[int],
+    image_layout: str,
+) -> dict[int, np.ndarray]:
     result = {}
     Image.MAX_IMAGE_PIXELS = None
     for image_id, meta in sorted(image_meta.items()):
         fold = int(meta["fold"])
         if fold not in folds:
             continue
-        path = pseudo_root / f"fold_{fold}" / "images" / str(meta["file_name"])
+        if image_layout == "pseudo_fold":
+            path = pseudo_root / f"fold_{fold}" / "images" / str(meta["file_name"])
+        elif image_layout == "relative":
+            path = pseudo_root / str(meta["file_name"])
+        else:  # protected by argparse, retained as a defensive contract
+            raise ValueError(f"unsupported image layout: {image_layout}")
+        if not path.is_file():
+            raise FileNotFoundError(f"dual-view source image is missing: {path}")
         with Image.open(path) as source:
-            result[image_id] = source.convert("RGB")
-            result[image_id].load()
+            # Materialize RGB once.  Repeated ``np.asarray(PIL)`` on a 10K
+            # source inside every proposal crop dominates the GPU workload.
+            result[image_id] = np.asarray(source.convert("RGB"), dtype=np.uint8).copy()
     return result
 
 
@@ -76,21 +88,25 @@ def _batch_tensor(
     indices: np.ndarray,
     *,
     records: list[dict[str, Any]],
-    images: dict[int, Image.Image],
+    images: dict[int, np.ndarray],
     resolution: int,
     context_ratio: float,
     augment_codes: np.ndarray | None,
     executor: concurrent.futures.Executor | None = None,
+    view_cache: np.ndarray | None = None,
 ) -> Any:
     def render_one(arguments: tuple[int, int]) -> Any:
         offset, index = arguments
-        row = records[index]
-        view = render_seven_channel_view(
-            images[int(row["image_id"])],
-            _xywh_to_xyxy(row["bbox"]),
-            resolution=resolution,
-            context_ratio=context_ratio,
-        )
+        if view_cache is None:
+            row = records[index]
+            view = render_seven_channel_view(
+                images[int(row["image_id"])],
+                _xywh_to_xyxy(row["bbox"]),
+                resolution=resolution,
+                context_ratio=context_ratio,
+            )
+        else:
+            view = view_cache[index]
         code = 0 if augment_codes is None else int(augment_codes[offset])
         return _tensor(view, augment_code=code)
 
@@ -103,12 +119,53 @@ def _batch_tensor(
     return __import__("torch").stack(views)
 
 
+def _precache_views(
+    *,
+    records: list[dict[str, Any]],
+    images: dict[int, np.ndarray],
+    resolution: int,
+    context_ratio: float,
+    workers: int,
+) -> np.ndarray:
+    """Render every deterministic base view once into host RAM.
+
+    The cache is deliberately uint8.  Augmentation and normalization remain in
+    ``_tensor`` and therefore have exactly the same numerical contract as the
+    streaming renderer.
+    """
+
+    cache = np.empty((len(records), 7, resolution, resolution), dtype=np.uint8)
+
+    def render(index: int) -> tuple[int, np.ndarray]:
+        row = records[index]
+        return (
+            index,
+            render_seven_channel_view(
+                images[int(row["image_id"])],
+                _xywh_to_xyxy(row["bbox"]),
+                resolution=resolution,
+                context_ratio=context_ratio,
+            ),
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        for index, view in executor.map(render, range(len(records))):
+            cache[index] = view
+    return cache
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gt", type=Path, required=True)
     parser.add_argument("--evidence-pred", type=Path, required=True)
     parser.add_argument("--anchor-pred", type=Path, required=True)
     parser.add_argument("--pseudo-root", type=Path, required=True)
+    parser.add_argument(
+        "--image-layout",
+        choices=("pseudo_fold", "relative"),
+        default="pseudo_fold",
+        help="pseudo_fold uses fold_N/images/file_name; relative uses root/file_name",
+    )
     parser.add_argument("--imagenet-weight", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
@@ -117,6 +174,11 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--inference-batch-size", type=int, default=96)
     parser.add_argument("--render-workers", type=int, default=8)
+    parser.add_argument(
+        "--precache-views",
+        action="store_true",
+        help="render deterministic uint8 7-channel views once into host RAM",
+    )
     parser.add_argument("--resolution", type=int, default=224)
     parser.add_argument("--context-ratio", type=float, default=1.75)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
@@ -163,6 +225,22 @@ def main() -> int:
     device = torch.device(args.device)
     oof_scores = np.full(len(evidence), np.nan, dtype=np.float64)
     fold_summaries = []
+    view_cache: np.ndarray | None = None
+    if args.precache_views:
+        all_images = _load_images(
+            pseudo_root=args.pseudo_root,
+            image_meta=image_meta,
+            folds={0, 1, 2},
+            image_layout=args.image_layout,
+        )
+        view_cache = _precache_views(
+            records=evidence,
+            images=all_images,
+            resolution=args.resolution,
+            context_ratio=args.context_ratio,
+            workers=args.render_workers,
+        )
+        del all_images
 
     for held_out in (0, 1, 2):
         rng = np.random.default_rng(args.seed + held_out)
@@ -172,10 +250,15 @@ def main() -> int:
         negatives = train[~foreground[train]]
         if not len(positives) or not len(negatives):
             raise ValueError(f"fold {held_out} lacks positive/negative training candidates")
-        train_images = _load_images(
-            pseudo_root=args.pseudo_root,
-            image_meta=image_meta,
-            folds={0, 1, 2} - {held_out},
+        train_images = (
+            {}
+            if view_cache is not None
+            else _load_images(
+                pseudo_root=args.pseudo_root,
+                image_meta=image_meta,
+                folds={0, 1, 2} - {held_out},
+                image_layout=args.image_layout,
+            )
         )
         model = build_dual_view_verifier(weight_path=args.imagenet_weight).to(device)
         optimizer = torch.optim.AdamW(
@@ -205,6 +288,7 @@ def main() -> int:
                         context_ratio=args.context_ratio,
                         augment_codes=rng.integers(0, 8, size=len(indices)),
                         executor=render_executor,
+                        view_cache=view_cache,
                     ).to(device, non_blocking=True)
                     target_fg = torch.from_numpy(foreground[indices].astype(np.float32)).to(device)
                     target_canonical = torch.from_numpy(canonical[indices]).to(device)
@@ -250,8 +334,15 @@ def main() -> int:
                 )
         del train_images
 
-        validation_images = _load_images(
-            pseudo_root=args.pseudo_root, image_meta=image_meta, folds={held_out}
+        validation_images = (
+            {}
+            if view_cache is not None
+            else _load_images(
+                pseudo_root=args.pseudo_root,
+                image_meta=image_meta,
+                folds={held_out},
+                image_layout=args.image_layout,
+            )
         )
         model.eval()
         with torch.inference_mode(), concurrent.futures.ThreadPoolExecutor(
@@ -267,6 +358,7 @@ def main() -> int:
                     context_ratio=args.context_ratio,
                     augment_codes=None,
                     executor=render_executor,
+                    view_cache=view_cache,
                 ).to(device, non_blocking=True)
                 output = model(images)
                 base_logits = torch.as_tensor(
@@ -326,6 +418,9 @@ def main() -> int:
         "input_candidates": len(evidence),
         "resolution": args.resolution,
         "context_ratio": args.context_ratio,
+        "image_layout": args.image_layout,
+        "precache_views": args.precache_views,
+        "view_cache_bytes": 0 if view_cache is None else int(view_cache.nbytes),
         "residual_limit": args.residual_limit,
         "folds": fold_summaries,
         "input_sha256": {
