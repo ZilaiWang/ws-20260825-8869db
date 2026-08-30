@@ -271,6 +271,12 @@ floor Recall，并在 FDR15 保留更多 ship/vehicle TP；只增加低质量候
 本地冻结输入与输出索引：
 `outputs/HERA-GUARD-V4-DETECTOR-SCREEN-20260830/y5_fold0/`。
 
+为避免 detector 训练结束后人工挑选指标，新增
+`scripts/decide_detector_fold_screen.py`。它只接受 GT SHA 完全一致的两个单折前沿，
+并冻结检查：ship/vehicle 任一 score-floor Recall 至少 +1pp、pooled FDR15 Recall
+至少 +0.5pp、任一粗类 FDR15 Recall 降幅不超过 0.5pp。通过只授权进入来源分组 CV3；
+单折标签选择出的阈值仍严格禁止进入部署。
+
 ## 7. 下一步停止规则
 
 1. Q0 若不改变 TP–FP 排序，则 metadata-only 停止；
