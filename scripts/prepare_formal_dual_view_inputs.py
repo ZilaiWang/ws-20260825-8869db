@@ -79,7 +79,10 @@ def _normalize_candidates(
                 "bbox": [box[0], box[1], box[2] - box[0], box[3] - box[1]],
                 "score": float(item["score"]),
                 "source_fold": int(registry[image_id]["fold"]),
-                "source_model": str(item.get("source_model", label)),
+                # Evidence and anchor describe the same detector candidate.
+                # Their source identity must therefore be identical even when
+                # the two input files use different score-generation stages.
+                "source_model": str(item.get("source_model", "FORMAL_Y5_D4")),
             }
         )
     return result

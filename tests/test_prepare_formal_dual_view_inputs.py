@@ -102,7 +102,7 @@ def test_normalize_candidates_freezes_fold_and_xywh() -> None:
             "bbox": [1.5, 2.5, 10.0, 20.0],
             "score": 0.75,
             "source_fold": 2,
-            "source_model": "evidence",
+            "source_model": "FORMAL_Y5_D4",
         }
     ]
 
