@@ -25,7 +25,12 @@ def _load(path: Path) -> dict:
     return payload
 
 
-def _row(payload: dict, level: str) -> dict:
+def _row(payload: dict, level: str, selection_mode: str) -> dict:
+    if selection_mode == "absolute_score":
+        try:
+            return payload["absolute_score_crossfit"]["crossfit"]
+        except (KeyError, TypeError) as error:
+            raise ValueError("frontier lacks absolute-score crossfit result") from error
     try:
         return payload["frontiers"][level]["crossfit"]
     except KeyError as error:
@@ -99,11 +104,16 @@ def _compare_rows(base: dict, candidate: dict, base_path: Path, candidate_path: 
     }
 
 
-def _compare(base_path: Path, candidate_path: Path, level: str) -> dict:
+def _compare(
+    base_path: Path, candidate_path: Path, level: str, selection_mode: str
+) -> dict:
     base_payload = _load(base_path)
     candidate_payload = _load(candidate_path)
     return _compare_rows(
-        _row(base_payload, level), _row(candidate_payload, level), base_path, candidate_path
+        _row(base_payload, level, selection_mode),
+        _row(candidate_payload, level, selection_mode),
+        base_path,
+        candidate_path,
     )
 
 
@@ -134,6 +144,9 @@ def main() -> int:
     parser.add_argument("--sentinel-base-frozen", type=Path)
     parser.add_argument("--sentinel-candidate-frozen", type=Path)
     parser.add_argument("--fdr-level", default="0.150")
+    parser.add_argument(
+        "--selection-mode", choices=("fdr_level", "absolute_score"), default="fdr_level"
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if (args.sentinel_base_frozen is None) != (args.sentinel_candidate_frozen is None):
@@ -143,6 +156,7 @@ def main() -> int:
             getattr(args, f"{condition}_base"),
             getattr(args, f"{condition}_candidate"),
             args.fdr_level,
+            args.selection_mode,
         )
         for condition in ("normal", "hard", "sentinel")
     }
@@ -183,8 +197,9 @@ def main() -> int:
     )
     payload = {
         "status": "complete",
-        "protocol": "hera_guard_final_three_benchmark_frozen_candidate_gate_v3",
+        "protocol": "hera_guard_final_three_benchmark_frozen_candidate_gate_v4",
         "fdr_level": args.fdr_level,
+        "selection_mode": args.selection_mode,
         "sentinel_thresholds_frozen_from_hard": sentinel_thresholds_frozen_from_hard,
         "threshold_tuning_on_sentinel": not sentinel_thresholds_frozen_from_hard,
         "comparisons": comparisons,

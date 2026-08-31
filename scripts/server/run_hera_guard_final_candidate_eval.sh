@@ -12,6 +12,7 @@ set -euo pipefail
 : "${NORMAL_ROOT:?set NORMAL_ROOT}"
 : "${HARD_ROOT:?set HARD_ROOT}"
 : "${SENTINEL_ROOT:?set SENTINEL_ROOT}"
+LATENCY_SECONDS="${LATENCY_SECONDS:-2.704833}"
 
 [[ "${CANDIDATE_FOLD}" =~ ^[012]$ ]] || { echo invalid CANDIDATE_FOLD >&2; exit 2; }
 mkdir -p "${OUT}"
@@ -69,6 +70,7 @@ for condition in normal hard sentinel; do
       --gt "${ROOT}/ground_truth.json" --pred "${PRED}" \
       --output "${OUT}/${condition}/${route}_frontier.json" \
       --threshold-start 0.0 --threshold-stop 1.0 --threshold-step 0.001 \
+      --latency-seconds "${LATENCY_SECONDS}" \
       --fdr-levels 0.10 0.12 0.15 0.20 >"${OUT}/${condition}-${route}-frontier.log" 2>&1
   done
 done
@@ -78,7 +80,8 @@ for route in base candidate; do
     PRED="${BASELINE_EVAL_ROOT}/sentinel/predictions.json"
   "${PYTHON_BIN}" scripts/evaluate_pseudo_with_frozen_thresholds.py \
     --gt "${SENTINEL_ROOT}/ground_truth.json" --pred "${PRED}" \
-    --source-frontier "${OUT}/hard/${route}_frontier.json" --fdr-level 0.15 \
+    --source-frontier "${OUT}/hard/${route}_frontier.json" \
+    --selection-mode absolute_score \
     --output "${OUT}/sentinel/${route}_frozen_from_hard.json" \
     >"${OUT}/sentinel-${route}-frozen.log" 2>&1
 done
@@ -92,6 +95,7 @@ printf '%s\n' decision >"${STATUS}"
   --sentinel-candidate "${OUT}/sentinel/candidate_frontier.json" \
   --sentinel-base-frozen "${OUT}/sentinel/base_frozen_from_hard.json" \
   --sentinel-candidate-frozen "${OUT}/sentinel/candidate_frozen_from_hard.json" \
+  --selection-mode absolute_score \
   --output "${OUT}/decision.json" >"${OUT}/decision.log" 2>&1
 find "${OUT}" -type f \( -name '*frontier.json' -o -name 'decision.json' -o -name 'run_summary.json' \) -print0 | sort -z | xargs -0 sha256sum >"${OUT}/SHA256SUMS"
 printf '%s\n' complete >"${STATUS}"
