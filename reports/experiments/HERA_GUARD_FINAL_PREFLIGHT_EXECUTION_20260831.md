@@ -267,11 +267,15 @@ D-FINE 与外部 coarse head 不进入部署。
 - 全仓 ruff 仍有 131 个早期遗留脚本问题，未把无关机械修复混进本实验；本次新增/修改文件
   需单独 ruff 全绿后提交。
 
-剩余项只有：
+当前剩余项只有：
 
-1. 完成正在运行的 EXT-G/EXT-V 80 epoch、两路 fine transfer 与 patch/control；
-2. 完成正在运行的 HAD branch-only 三折完整复验；
-3. 只扩通过门禁的候选，生成唯一 full 权重、3090 时延与 Docker。
+1. 完成正在运行的 EXT-V 三卡 DDP 80 epoch；
+2. 完成 `EXT-V→patch / official→patch / official→omit` 三路并行配对 fine；
+3. 运行冻结 Normal/Hard/Sentinel 外层门，只有通过才生成唯一 full 权重、3090 时延与 Docker。
+
+EXT-G 的早期未完成 run 已归档且不形成结论；HAD branch-only 三折复验已经拒绝，不再占用
+GPU。当前可独立交给策略讨论的时点总览见
+`reports/experiments/HERA_GUARD_FINAL_GPT_STRATEGY_BRIEF_20260831.md`。
 
 这意味着“能在单卡、有限本地磁盘上诚实完成的准备和验证”已经完成；下一步需要的是训练
 证据，不再是继续增加离线模块。
