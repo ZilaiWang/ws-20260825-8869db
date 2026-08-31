@@ -1,0 +1,23 @@
+name: detector
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10.12
+  - pip=24.2
+  - numpy=1.26.4
+  - pillow=10.4.0
+  - pyyaml=6.0.2
+  - scipy=1.14.1
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - pytorch-cuda=12.1
+  - pip:
+      - ultralytics==8.4.103
+      - calflops==0.3.2
+      - faster-coco-eval==1.8.0
+      - loguru==0.7.3
+      - pycocotools==2.0.11
+      - tensorboard==2.21.0
+      - transformers==5.16.1

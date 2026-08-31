@@ -1,0 +1,48 @@
+{
+  "protocol": "hera_guard_final_external_source_admission_v1",
+  "primary_first_round": ["DOTA-v1.0", "DIOR"],
+  "sources": {
+    "DOTA-v1.0": {
+      "status": "full_prepare_driver_ready_and_real_data_smoke_pass",
+      "access": "automatic_official_google_drive_assets",
+      "license": "academic purposes only; commercial use prohibited; Google Earth terms apply",
+      "first_round_role": "EXT-G and EXT-V single-source causal screen"
+    },
+    "DIOR": {
+      "status": "download_extract_layout_import_slice_and_audit_driver_ready",
+      "access": "official_google_drive_folder",
+      "license": "CC BY-NC 4.0",
+      "first_round_role": "second-source generalization and ship/background coverage"
+    },
+    "SODA-A": {
+      "status": "scientifically_relevant_but_download_requires_onedrive_or_baidu_session",
+      "access": "official OneDrive/Baidu",
+      "license": "CC BY-NC 4.0",
+      "first_round_role": "reserve tiny-aircraft/vehicle/ship source after deterministic asset lock"
+    },
+    "xView": {
+      "status": "blocked_by_account_registration",
+      "access": "registered official portal",
+      "license": "CC BY-NC-SA 4.0",
+      "first_round_role": "not admitted without independent asset and competition-license audit"
+    },
+    "AI-TOD": {
+      "status": "blocked_by_xview_dependency",
+      "access": "requires xView plus official synthesis tool",
+      "license": "CC BY-NC-SA 4.0",
+      "first_round_role": "not admitted in first round"
+    },
+    "FAIR1M": {
+      "status": "deferred_large_asset_and_sharealike_review",
+      "access": "official benchmark/ModelScope mirrors",
+      "license": "academic/non-commercial; published descriptions report CC BY-NC-SA 3.0",
+      "first_round_role": "not mixed before DOTA and DIOR causal screens"
+    },
+    "RarePlanes": {
+      "status": "deferred_because_aircraft_recall_is_saturated",
+      "access": "official AWS open-data distribution",
+      "license": "must lock exact real/synthetic subset terms before use",
+      "first_round_role": "tail-aircraft guard only, not ship/vehicle primary"
+    }
+  }
+}

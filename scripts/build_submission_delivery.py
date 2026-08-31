@@ -26,7 +26,7 @@ def _copy_tree(source: Path, destination: Path) -> None:
     shutil.copytree(
         source,
         destination,
-        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"),
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".git"),
     )
 
 
@@ -38,6 +38,10 @@ def build_delivery(
     environment: Path,
     config: Path,
     force: bool,
+    agreement_weights: Path | None = None,
+    agreement_expected_sha256: str | None = None,
+    agreement_root: Path | None = None,
+    agreement_config: Path | None = None,
 ) -> dict[str, object]:
     weights = weights.expanduser().resolve()
     environment = environment.expanduser().resolve()
@@ -49,6 +53,33 @@ def build_delivery(
         raise FileNotFoundError(environment)
     if not config_source.is_file():
         raise FileNotFoundError(config_source)
+    agreement_values = (
+        agreement_weights,
+        agreement_expected_sha256,
+        agreement_root,
+        agreement_config,
+    )
+    agreement_enabled = any(value is not None for value in agreement_values)
+    if agreement_enabled != all(value is not None for value in agreement_values):
+        raise ValueError("agreement delivery arguments must be provided together")
+    agreement_actual_sha: str | None = None
+    if agreement_enabled:
+        agreement_weights = agreement_weights.expanduser().resolve()  # type: ignore[union-attr]
+        agreement_root = agreement_root.expanduser().resolve()  # type: ignore[union-attr]
+        agreement_config = agreement_config.expanduser().resolve()  # type: ignore[union-attr]
+        if not agreement_weights.is_file():
+            raise FileNotFoundError(agreement_weights)
+        if not agreement_root.is_dir():
+            raise FileNotFoundError(agreement_root)
+        if not agreement_config.is_file():
+            raise FileNotFoundError(agreement_config)
+        agreement_actual_sha = sha256_file(agreement_weights)
+        if agreement_actual_sha != str(agreement_expected_sha256).lower():
+            raise ValueError(
+                "agreement weight SHA256 mismatch: "
+                f"expected={str(agreement_expected_sha256).lower()} "
+                f"actual={agreement_actual_sha}"
+            )
     actual_sha = sha256_file(weights)
     if actual_sha != expected_sha256.lower():
         raise ValueError(
@@ -68,6 +99,13 @@ def build_delivery(
     shutil.copy2(config_source, output / "app" / "config.json")
     _copy_tree(REPO_ROOT / "src" / "rsdet", output / "app" / "rsdet")
     shutil.copy2(weights, output / "models" / "model.pt")
+    if agreement_enabled:
+        (output / "vendor").mkdir()
+        _copy_tree(agreement_root, output / "vendor" / "dfine")  # type: ignore[arg-type]
+        shutil.copy2(agreement_weights, output / "models" / "dfine.pth")
+        shutil.copy2(agreement_config, output / "models" / "dfine.yml")
+        with (output / "Dockerfile").open("a", encoding="utf-8") as handle:
+            handle.write("\nCOPY vendor /app/vendor\n")
 
     config_path = output / "app" / "config.json"
     materialized_config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -76,6 +114,22 @@ def build_delivery(
         raise ValueError(
             "submission/docker/config.json 的 model.expected_sha256 与所选权重不一致；"
             "先冻结配置再构建"
+        )
+    if agreement_enabled:
+        agreement_section = materialized_config.get("agreement_model")
+        if not isinstance(agreement_section, dict):
+            raise ValueError("dual delivery config lacks agreement_model")
+        agreement_section.update(
+            {
+                "root_path": "/app/vendor/dfine",
+                "config_path": "/app/models/dfine.yml",
+                "weight_path": "/app/models/dfine.pth",
+                "expected_sha256": agreement_actual_sha,
+            }
+        )
+        config_path.write_text(
+            json.dumps(materialized_config, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
         )
 
     included: list[dict[str, object]] = []
@@ -100,6 +154,15 @@ def build_delivery(
         "config_source": str(config_source),
         "files": included,
     }
+    if agreement_enabled:
+        manifest["agreement"] = {
+            "weight_source": str(agreement_weights),
+            "weight_destination": "models/dfine.pth",
+            "weight_sha256": agreement_actual_sha,
+            "source_root": str(agreement_root),
+            "config_source": str(agreement_config),
+            "config_destination": "models/dfine.yml",
+        }
     manifest_path = output / "BUILD_MANIFEST.json"
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
@@ -156,6 +219,10 @@ def parse_args() -> argparse.Namespace:
         default=REPO_ROOT / "dist" / "detector-docker-delivery",
     )
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--agreement-weights", type=Path)
+    parser.add_argument("--agreement-expected-sha256")
+    parser.add_argument("--agreement-root", type=Path)
+    parser.add_argument("--agreement-config", type=Path)
     return parser.parse_args()
 
 
@@ -168,6 +235,10 @@ def main() -> int:
         environment=args.environment,
         config=args.config,
         force=args.force,
+        agreement_weights=args.agreement_weights,
+        agreement_expected_sha256=args.agreement_expected_sha256,
+        agreement_root=args.agreement_root,
+        agreement_config=args.agreement_config,
     )
     print(
         json.dumps(

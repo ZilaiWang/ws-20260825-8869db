@@ -1,0 +1,49 @@
+{
+  "contract_version": "competition_docker_v1",
+  "deployment_role": "attack_y5_dfine_aircraft_vehicle_product_agreement",
+  "workpoint_id": "y5_dfine_aircraft005_vehicle0059_product_iou035_v1",
+  "device": "cuda:0",
+  "model": {
+    "family": "yolo",
+    "weight_path": "/app/models/model.pt",
+    "expected_sha256": "f7e30fac3391d7048314d1c41df0e878a4d5f0423e5c55b68ee7df5917418229",
+    "imgsz": 1024,
+    "confidence": 0.001,
+    "iou": 0.7,
+    "max_detections": 500,
+    "half": true,
+    "rot90_views": [0]
+  },
+  "agreement_model": {
+    "family": "dfine",
+    "root_path": "/app/vendor/dfine",
+    "config_path": "/app/models/dfine.yml",
+    "weight_path": "/app/models/dfine.pth",
+    "expected_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "imgsz": 1024,
+    "score_floor": 0.001,
+    "support_iou": 0.35,
+    "apply_labels": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+    "expected_checkpoint_epoch": 39
+  },
+  "pipeline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "batch_size": 4,
+    "fusion": "safe",
+    "score_threshold": 0.001,
+    "score_threshold_by_coarse": {
+      "ship": 0.15,
+      "aircraft": 0.05,
+      "vehicle": 0.059
+    },
+    "fine_nms_iou": 0.70,
+    "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0,
+    "merge_iou": 0.50,
+    "merge_ios": 0.75,
+    "border_margin": 8.0,
+    "nms_iou": 0.5,
+    "max_detections": 2000
+  }
+}

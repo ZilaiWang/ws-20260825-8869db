@@ -1,0 +1,9 @@
+__include__:
+  - /app/vendor/dfine/configs/dfine/custom/dfine_hgnetv2_m_custom.yml
+
+num_classes: 25
+remap_mscoco_category: false
+eval_spatial_size: [1024, 1024]
+
+HGNetv2:
+  pretrained: false

@@ -1,0 +1,17 @@
+{
+  "dataset_id": "DIOR-official-hbb",
+  "official_page": "https://gcheng-nwpu.github.io/",
+  "official_folder": "https://drive.google.com/drive/folders/1UdlgHk49iu6WpcJ5467iT-UqNPpx__CC",
+  "official_gdrive_folder_id": "1UdlgHk49iu6WpcJ5467iT-UqNPpx__CC",
+  "license_scope": "CC BY-NC 4.0; academic/non-commercial use only",
+  "scientific_scope": "coarse/objectness pretraining only; never map civilian classes to competition fine types",
+  "difficult_policy": "drop",
+  "coordinate_policy": "Pascal VOC one-based inclusive HBB to zero-based half-open HBB",
+  "coarse_mapping": {
+    "airplane": "aircraft",
+    "ship": "ship",
+    "vehicle": "vehicle",
+    "chimney/storagetank/windmill": "other_remote_object",
+    "large scene structures": "drop_annotation_keep_pixels_as_structured_background"
+  }
+}

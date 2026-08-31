@@ -1,0 +1,33 @@
+{
+  "dataset_id": "DOTA-v1.0-official-train-val",
+  "official_page": "https://captain-whu.github.io/DOTA/dataset.html",
+  "train_folder": "https://drive.google.com/drive/folders/1gmeE3D7R62UAtuIFOB9j2M5cUPTwtsxK?usp=sharing",
+  "val_folder": "https://drive.google.com/drive/folders/1n5w45suVOyaqY84hltJhIZdtVFD9B224?usp=sharing",
+  "official_assets": [
+    {"split": "train", "role": "images_part1", "gdrive_id": "1BlaGYNNEKGmT6OjZjsJ8HoUYrTTmFcO2", "relative_path": "raw/train/images/part1.zip"},
+    {"split": "train", "role": "images_part2", "gdrive_id": "1JBWCHdyZOd9ULX0ng5C9haAt3FMPXa3v", "relative_path": "raw/train/images/part2.zip"},
+    {"split": "train", "role": "images_part3", "gdrive_id": "1pEmwJtugIWhiwgBqOtplNUtTG2T454zn", "relative_path": "raw/train/images/part3.zip"},
+    {"split": "train", "role": "labeltxt_v1", "gdrive_id": "1I-faCP-DOxf6mxcjUTc8mYVPqUgSQxx6", "relative_path": "raw/train/labelTxt-v1.0/labelTxt.zip"},
+    {"split": "val", "role": "images_part1", "gdrive_id": "1uCCCFhFQOJLfjBpcL5MC0DHJ9lgOaXWP", "relative_path": "raw/val/images/part1.zip"},
+    {"split": "val", "role": "labeltxt_v1", "gdrive_id": "1uFwxA4B7H8zcI1oD11bj0U8z88qroMlG", "relative_path": "raw/val/labelTxt-v1.0/labelTxt.zip"}
+  ],
+  "license_scope": "academic purposes only; commercial use prohibited; Google Earth terms also apply",
+  "scientific_scope": "coarse/objectness pretraining only; never map to competition fine types",
+  "difficult_policy": "drop",
+  "obb_to_hbb_policy": "axis-aligned envelope, clipped to image",
+  "slicing": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "min_visibility": 0.7,
+    "empty_tiles_per_source_image": 2,
+    "resize": "none"
+  },
+  "coarse_mapping": {
+    "plane": "aircraft",
+    "ship": "ship",
+    "small-vehicle": "vehicle",
+    "large-vehicle": "vehicle",
+    "helicopter/storage-tank/container-crane": "other_remote_object",
+    "harbor/bridge/roundabout/fields/courts/pools": "drop_annotation_keep_pixels_as_structured_background"
+  }
+}
