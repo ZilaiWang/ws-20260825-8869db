@@ -185,7 +185,7 @@ terminal-FPN 结果无效。
 
 失败即停止该路线，不补 epoch、不扫融合权重。通过后才扩其余 folds。
 
-## 8. 4×3090 执行矩阵
+## 8. 3/4×3090 执行矩阵
 
 驱动：`scripts/server/run_hera_guard_final_4gpu_screen.sh`；完整操作见
 `docs/server/HERA_GUARD_FINAL_4GPU_EXECUTION.md`。
@@ -193,6 +193,11 @@ terminal-FPN 结果无效。
 Stage1 并行 DOTA EXT-G、DOTA EXT-V、HAD fold0、HAD fold2；Stage2 并行两种 external init
 到 reviewed fold0，以及 official-init patch/control。每个 run 已有 checkpoint 但缺少完成审计
 时固定退出并保留现场，绝不自动 resume。
+
+2026-08-31 实际开放主机为 3×RTX 3090。动态调度只改资源排队：GPU0/1 保持
+EXT-G/EXT-V，GPU2 串行 HAD fold0/fold2；Stage2 中 GPU2 串行 patch/control 对照。
+数据、seed、epoch、batch、模型和准入门均未改变。`run_hera_guard_final_had_early.sh`
+允许在 DOTA 资产准备期提前使用 GPU2，后续主驱动按 `training_result.json` 幂等跳过。
 
 第一轮结束只允许选择：
 
@@ -213,7 +218,7 @@ D-FINE 与外部 coarse head 不进入部署。
 
 剩余项只有：
 
-1. 获得 4×3090 后完成 DOTA full 资产和本报告第8节的四路配对训练；
+1. 在已开放的 3×3090 上完成 DOTA full 资产和本报告第8节的四路配对训练；
 2. 只扩通过门禁的候选，生成唯一 full 权重、3090 时延与 Docker。
 
 这意味着“能在单卡、有限本地磁盘上诚实完成的准备和验证”已经完成；下一步需要的是训练
