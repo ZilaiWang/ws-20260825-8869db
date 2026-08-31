@@ -1,4 +1,4 @@
-# HERA-Guard Final：4×3090 正式筛选执行合同
+# HERA-Guard Final：3/4×3090 正式筛选执行合同
 
 状态：`code_ready / one_gpu_smoke_pass / waiting_for_four_gpu_host`
 
@@ -13,12 +13,15 @@
 |2|HAD fold0 branch-only→terminal-FPN|官方初始化→reviewed patch fold0 对照|
 |3|HAD fold2 branch-only→terminal-FPN|官方初始化→omit patch fold0 对照|
 
+3 GPU 主机使用完全相同的实验矩阵和参数，只调整调度：GPU2 先串行 HAD fold0/fold2，
+再串行两个官方初始化对照。这种调度不改变数据、epoch、seed、batch 或评测合同。
+
 所有训练固定 Y5-S、1024、seed 20260831、最后 epoch checkpoint。禁止 resume、早停、验证集
 选 checkpoint、替换为 Y5-L 或临时改变 batch/增强。资源不足应停止并记录，不能静默改合同。
 
 ## 2. 环境与磁盘
 
-- 4 张可见 RTX 3090，每张至少 24GiB；
+- 3 或 4 张可见 RTX 3090，每张至少 24GiB；
 - 推荐可用磁盘不少于 100GiB，DOTA 全量准备门禁为 60GiB；
 - 训练、保存、继续微调必须使用同一 venv；
 - 运行前记录 `pip freeze`、驱动、CUDA、GPU UUID、Git commit 与 dirty 清单；
@@ -38,7 +41,7 @@ bash scripts/server/run_hera_guard_final_prepare_dota.sh
 边界截断和巨型场景框后写 `visual_decision.json`；再次运行同一命令会逐阶段 resume，最终状态
 必须为 `ready_for_external_pretraining`。
 
-## 3. 4 GPU 启动
+## 3. 3/4 GPU 启动
 
 以下变量必须使用真实绝对路径和对应 SHA，不得从目录中猜测：
 
