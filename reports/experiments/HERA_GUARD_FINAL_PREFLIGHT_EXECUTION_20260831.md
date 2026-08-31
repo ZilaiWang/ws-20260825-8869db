@@ -1,6 +1,6 @@
-# HERA-Guard Final 前置实现、真实 smoke 与 4 GPU 交付报告（2026-08-31）
+# HERA-Guard Final 前置实现、真实 smoke 与 3 GPU 执行报告（2026-08-31）
 
-状态：`preflight_complete / dfine_direct_deployment_rejected / waiting_for_4x3090`
+状态：`three_gpu_screen_running / dfine_direct_deployment_rejected`
 
 ## 1. 结论先行
 
@@ -12,8 +12,9 @@
 3. D-FINE→Y5 的 tile-space in-model agreement distillation（HAD）。
 
 当前单卡服务器已完成 D-FINE-M full 40 epoch；外部迁移与 HAD 均通过真实数据 CPU/GPU
-smoke，固定 Normal/Hard/Sentinel 候选替换评测已实现。尚未声称这些模块“提高成绩”：只有
-4×3090 配对筛选和冻结外层评测通过后，才能进入 HERA-Guard Final。
+smoke，固定 Normal/Hard/Sentinel 候选替换评测已实现。3×3090 主机已经完成 DOTA 全量准备、
+HAD 四组训练并启动外部预训练和 HAD 冻结评测。尚未声称这些模块“提高成绩”：只有配对筛选
+和冻结外层评测通过后，才能进入 HERA-Guard Final。
 
 ## 2. 完整 D-FINE 教师
 
@@ -104,6 +105,18 @@ sports-field 巨型前景框，无 tile 边界异常，准入流水线和短训�
 切片、YOLO 导出、role sampler 和视觉审核由
 `scripts/server/run_hera_guard_final_prepare_dota.sh` 串联。
 
+3×3090 主机实际复用了 AutoDL 只读官方缓存；五个压缩包逐一通过既有官方 SHA256。全量
+train+val 为 1,869 张源图、102,530 个可用粗类标注。16 worker 确定性切片得到 9,153 个
+1024 tile（6,461 positive + 2,692 deterministic empty），保留 102,518 个标注，仅 12 个因
+可见率门禁丢弃，195 个截断框按合同保留。类别为 aircraft 10,264、ship 36,344、vehicle
+49,319、other 6,591；EXT-G/EXT-V 分别为 13,276/13,831 个采样行。
+
+并行切片保持源图排序后的 ID 汇总，因此 worker 数不影响 COCO、tile 文件名或像素。串行/并行
+单测逐项比较 JSON 与像素，全量输出 SHA 写入 audit。代理已检查 96 张卡、8 张 contact sheet：
+类别颜色与语义一致，HBB 对齐，无系统性错类、坐标漂移、巨型场景框或明显空框；DOTA
+difficult 与主动未映射类别造成的可见未标目标符合冻结导入合同。视觉决定状态为 `pass`，
+准备状态为 `ready_for_external_pretraining`。
+
 ### 4.2 DIOR 与其余来源
 
 DIOR 的官方 Google Drive downloader、VOC→四粗类转换、坐标与 difficult 单元测试已完成。
@@ -163,6 +176,11 @@ EXT-G/EXT-V 同时训练会让 Ultralytics 尝试写同一 `labels/train.cache`�
 vehicle batch smoke 共 497 框、308 个 vehicle，308 个 vehicle 全部经过分支；所有非 vehicle
 分数精确不变、无 NaN/Inf，1 epoch 最大变化 0.000227，符合“训练不足但链路有效”的预期。
 
+正式 3×3090 执行已完成 fold0/fold2 × branch-only/terminal-FPN 四组 8 epoch 训练。四组均为
+`complete_diagnostic`，初始最大分数差均不超过 `9.313e-10`，满足零残差等价门；共输出 8 个
+带 SHA256 的 detector/adapter checkpoint。GPU2 随后只对 fold0 两个模式执行冻结
+Normal/Hard/Sentinel 候选替换评测；未扫描权重或阈值。
+
 terminal-FPN 训练同时输出 `adapted_detector.pt` 与 `adapter_last.pt`；正式评测必须成对使用。
 branch-only 使用原 base detector + adapter。任何只加载 adapter 而漏掉 adapted detector 的
 terminal-FPN 结果无效。
@@ -199,6 +217,11 @@ EXT-G/EXT-V，GPU2 串行 HAD fold0/fold2；Stage2 中 GPU2 串行 patch/control
 数据、seed、epoch、batch、模型和准入门均未改变。`run_hera_guard_final_had_early.sh`
 允许在 DOTA 资产准备期提前使用 GPU2，后续主驱动按 `training_result.json` 幂等跳过。
 
+实际启动时还发现两个 Ultralytics 进程会并发下载同一个 AMP 自检权重 `yolo26n.pt`，其中一份
+出现临时损坏。此时尚未进入 epoch；现场被停止，使用服务器已有且可成功加载的官方自检权重
+（SHA256 `9b09cc8b...4fef`）预置后从零重启。两路均显示 `AMP checks passed`，没有复用任何
+不完整 checkpoint。该修复只消除启动竞态，不改变训练合同。
+
 第一轮结束只允许选择：
 
 - EXT-G/EXT-V 中 0 或 1 个；
@@ -218,8 +241,9 @@ D-FINE 与外部 coarse head 不进入部署。
 
 剩余项只有：
 
-1. 在已开放的 3×3090 上完成 DOTA full 资产和本报告第8节的四路配对训练；
-2. 只扩通过门禁的候选，生成唯一 full 权重、3090 时延与 Docker。
+1. 完成正在运行的 EXT-G/EXT-V 80 epoch、两路 fine transfer 与 patch/control；
+2. 完成正在运行的 HAD fold0 冻结三条件评测；
+3. 只扩通过门禁的候选，生成唯一 full 权重、3090 时延与 Docker。
 
 这意味着“能在单卡、有限本地磁盘上诚实完成的准备和验证”已经完成；下一步需要的是训练
 证据，不再是继续增加离线模块。

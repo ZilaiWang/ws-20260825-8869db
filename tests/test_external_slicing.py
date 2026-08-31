@@ -53,3 +53,35 @@ def test_slice_empty_sampling_is_deterministic(tmp_path: Path) -> None:
     assert [row["file_name"] for row in first["images"]] == [
         row["file_name"] for row in second["images"]
     ]
+
+
+def test_parallel_slice_matches_serial_output_and_pixels(tmp_path: Path) -> None:
+    image_root = tmp_path / "source"
+    image_root.mkdir()
+    payload = {"images": [], "annotations": [], "categories": [{"id": 2, "name": "vehicle"}]}
+    for image_id, color in ((2, "red"), (1, "blue"), (3, "green")):
+        name = f"{image_id}.png"
+        Image.new("RGB", (180, 180), color=color).save(image_root / name)
+        payload["images"].append(
+            {"id": image_id, "file_name": name, "width": 180, "height": 180}
+        )
+        payload["annotations"].append(
+            {
+                "id": image_id,
+                "image_id": image_id,
+                "category_id": 2,
+                "bbox": [70, 70, 30, 30],
+            }
+        )
+    serial, serial_audit = slice_coco(
+        payload, image_root, tmp_path / "serial", tile_size=100, overlap=20, workers=1
+    )
+    parallel, parallel_audit = slice_coco(
+        payload, image_root, tmp_path / "parallel", tile_size=100, overlap=20, workers=3
+    )
+    assert serial == parallel
+    assert {**serial_audit, "workers": 3} == parallel_audit
+    for row in serial["images"]:
+        with Image.open(tmp_path / "serial" / row["file_name"]) as first:
+            with Image.open(tmp_path / "parallel" / row["file_name"]) as second:
+                assert first.tobytes() == second.tobytes()
