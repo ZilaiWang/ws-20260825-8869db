@@ -1,6 +1,6 @@
 # HERA-Guard Final 前置实现、真实 smoke 与 3 GPU 执行报告（2026-08-31）
 
-状态：`three_gpu_screen_running / dfine_direct_deployment_rejected`
+状态：`complete / all_extv_patch_2x2_cells_rejected / no_full_or_docker_admission`
 
 ## 1. 结论先行
 
@@ -13,8 +13,9 @@
 
 当前单卡服务器已完成 D-FINE-M full 40 epoch；外部迁移与 HAD 均通过真实数据 CPU/GPU
 smoke，固定 Normal/Hard/Sentinel 候选替换评测已实现。3×3090 主机已经完成 DOTA 全量准备、
-HAD 四组训练并启动外部预训练和 HAD 冻结评测。尚未声称这些模块“提高成绩”：只有配对筛选
-和冻结外层评测通过后，才能进入 HERA-Guard Final。
+HAD 四组训练、EXT-V 80 epoch 粗类预训练，以及 `external init × annotation patch` 的完整
+2×2 fold0 配对实验。HAD 与四个 2×2 单元均未通过冻结外层门禁，因此没有扩展 CV3、没有
+生成 full 权重，也没有进入 Docker。该结论是正式负向结果，不是尚未完成。
 
 ## 2. 完整 D-FINE 教师
 
@@ -205,10 +206,12 @@ terminal-FPN 结果无效。
 后续所有新方法只使用：
 
 1. Normal-CV3：候选地板、pooled、25类 macro、各粗类；
-2. Hard10K + source-disjoint Sentinel：FDR=0.15 外层工作点。
+2. Hard10K + source-disjoint Sentinel：Hard 内层按公开绝对评分函数做 3 折嵌套阈值选择，
+   再把每折阈值原样冻结到 source-disjoint Sentinel；Sentinel 不重调阈值。
 
 `scripts/replace_prediction_fold.py` 只替换已训练候选 fold，另外两折完全复用基线，避免每次
-重复三折推理。`scripts/decide_hera_guard_final_candidate.py` 固定门禁：
+重复三折推理。旧的固定 FDR=0.15 只保留为诊断视图；正式选择使用
+`absolute_score_crossfit`，并显式传入冻结时延 2.704833 秒。候选门禁为：
 
 - Normal Recall 与 macro 下降均 <=0.3pp；
 - 任一粗类 Recall 下降 <=0.5pp；
@@ -259,7 +262,46 @@ Ultralytics DDP 子进程导入，因此不冒险改训练框架，而是在 coa
 之后才组成唯一候选扩 CV3，最后训练一个 full 权重。最终 Docker 仍是单视图、单 Y5-S；
 D-FINE 与外部 coarse head 不进入部署。
 
-## 9. 验证与当前剩余项
+### 8.1 EXT-V × annotation patch 完整 2×2 结果
+
+3 卡 DDP 粗类预训练完成 80/80 epoch。四个 fine 单元均完成 8 epoch head warmup + 32 epoch
+full fine；所有 checkpoint 只用于候选评估，不因同源训练视图指标选择模型。四格分别是：
+
+- `official→omit`：官方初始化，不加入复核确认的漏标框；
+- `official→patch`：官方初始化，加入同一安全数据视图中的复核确认框；
+- `EXT-V→omit`：DOTA EXT-V 初始化，不加入确认框；
+- `EXT-V→patch`：DOTA EXT-V 初始化并加入确认框。
+
+下表为每个候选相对当前 Y5-S 基线，在各冻结外层条件下的 pooled Recall/FDR 变化与公开公式
+等时延分数变化。分数变化用于比较；由于两边时延被固定为同一个值，时延项严格抵消。
+
+|单元|Normal ΔR / ΔFDR / ΔScore|Hard ΔR / ΔFDR / ΔScore|Frozen Sentinel ΔR / ΔFDR / ΔScore|准入|
+|---|---:|---:|---:|---|
+|EXT-V→patch|-7.722pp / -5.548pp / +0.483|-6.395pp / -0.559pp / -1.455|-7.669pp / -0.461pp / -1.925|拒绝|
+|official→patch|-2.817pp / -2.583pp / -0.574|+1.066pp / +3.265pp / -2.476|-1.067pp / +1.746pp / -1.819|拒绝|
+|official→omit|-3.617pp / -1.827pp / -1.465|-2.410pp / +1.116pp / -1.686|-3.504pp / +1.143pp / -2.040|拒绝|
+|EXT-V→omit|-7.652pp / -5.136pp / +0.151|-5.375pp / -0.258pp / -1.405|-6.704pp / +0.089pp / -2.104|拒绝|
+
+2×2 内部因果差分进一步说明：
+
+- patch 在 official 初始化下，Normal Recall +0.800pp、FDR -0.757pp，但 Hard FDR
+  +2.149pp、分数 -0.791；到冻结 Sentinel 虽 Recall +2.438pp，FDR 也 +0.603pp，净分数仅
+  +0.221，且仍显著低于现有基线。它修复了一部分漏标监督，但没有形成稳健提交候选。
+- patch 在 EXT-V 初始化下几乎不改变 Normal Recall（-0.070pp），Hard/Sentinel Recall 分别
+  -1.020pp/-0.965pp；不存在能挽救 EXT-V 的正交交互。
+- EXT-V 在 omit 条件下相对 official 使 Normal/Hard/Sentinel Recall 分别
+  -4.035pp/-2.966pp/-3.200pp；在 patch 条件下损失扩大到
+  -4.904pp/-7.461pp/-6.602pp。DOTA 粗类迁移主要把模型推向更保守的分数分布，降低部分
+  FDR，却系统性损害目标域召回。
+- 四格中没有任何一格同时满足 Normal 地板、逐粗类地板、Hard 主增益、冻结 Sentinel 同向与
+  多种公开聚合解释不下降。正式动作统一为 `stop_without_parameter_scan`。
+
+因此 EXT-V、partial-label patch 及其组合全部停止：不补 epoch、不扩 fold1/2、不扫描阈值或
+融合权重、不物化 full 数据、不做新 Docker。服务器保留诊断 checkpoint；本地归档完整
+frontier、冻结阈值、decision、预测与 SHA 于
+`outputs/HERA-GUARD-FINAL-EXTV-20260831/`。
+
+## 9. 验证与收尾状态
 
 - 全仓测试：871 passed，5 skipped；
 - 新增外部/HAD/partial-label/候选替换测试全部通过；
@@ -267,15 +309,12 @@ D-FINE 与外部 coarse head 不进入部署。
 - 全仓 ruff 仍有 131 个早期遗留脚本问题，未把无关机械修复混进本实验；本次新增/修改文件
   需单独 ruff 全绿后提交。
 
-当前剩余项只有：
-
-1. 完成正在运行的 EXT-V 三卡 DDP 80 epoch；
-2. 完成 `EXT-V→patch / official→patch / official→omit` 三路并行配对 fine；
-3. 运行冻结 Normal/Hard/Sentinel 外层门，只有通过才生成唯一 full 权重、3090 时延与 Docker。
-
-EXT-G 的早期未完成 run 已归档且不形成结论；HAD branch-only 三折复验已经拒绝，不再占用
-GPU。当前可独立交给策略讨论的时点总览见
+EXT-V 80 epoch、四格 fine 与冻结 Normal/Hard/Sentinel 评估均已完成，三张 GPU 当前空闲，
+screen 队列正常退出。EXT-G 的早期未完成 run 已归档且不形成结论；HAD branch-only 三折复验
+已经拒绝。当前可独立交给策略讨论的时点总览见
 `reports/experiments/HERA_GUARD_FINAL_GPT_STRATEGY_BRIEF_20260831.md`。
 
-这意味着“能在单卡、有限本地磁盘上诚实完成的准备和验证”已经完成；下一步需要的是训练
-证据，不再是继续增加离线模块。
+这意味着《改进方案 11》对应的 D-FINE 直接融合、HAD、EXT-V 和人工复核 patch 均已闭环，
+但都没有替代当前 Y5-S 提交基线。下一步不应在这些负向路线附近继续扫参；若继续提高正式
+成绩，应以现有 Y5-S 作为冻结起点，重新提出能直接改善 vehicle 召回且保持 ship/aircraft
+地板的新假设。
