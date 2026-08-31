@@ -313,6 +313,38 @@ Y5 提供 ship/aircraft，D-FINE 只提供 vehicle。在 fold0 诊断中，分�
 由非目标折拟合，禁止使用目标折标签。诊断 JSON 位于
 `outputs/HERA-GUARD-V4-DETECTOR-SCREEN-20260830/dfine_vehicle_route_fold0.json`。
 
+### 6.7 D-FINE vehicle specialist 正式 CV3 结果
+
+fold1/2 已在两台 RTX 3090 上并行完成，均为固定 40 epoch，无选择 outer-fold
+best checkpoint：
+
+| fold | 固定最后轮 COCO AP | 低阈值预测 | 状态 |
+|---:|---:|---:|---|
+| 0 | 0.690069 | 450,900 | complete |
+| 1 | 0.723010 | 483,900 | complete |
+| 2 | 0.686963 | 408,300 | complete |
+
+使用 `scripts/analyze_cv3_detector_route.py` 执行严格交叉拟合：每个 outer fold 的
+vehicle 阈值只由其他两折选择；ship/aircraft 始终使用完全相同的 Y5
+输出。三折拼接结果：
+
+| 训练折目标 FDR | vehicle Recall Δ | vehicle FDR Δ | pooled Recall Δ | pooled FDR Δ |
+|---:|---:|---:|---:|---:|
+| 0.10 | +10.697pp | -2.120pp | +0.205pp | -0.017pp |
+| 0.12 | +11.443pp | +0.418pp | +0.220pp | +0.007pp |
+| 0.15 | +11.194pp | +0.600pp | +0.215pp | +0.008pp |
+| 0.17 | +13.184pp | +2.459pp | +0.253pp | +0.030pp |
+| 0.20 | +12.935pp | +0.589pp | +0.248pp | +0.013pp |
+
+预注册的 FDR15 门禁因 vehicle/pooled FDR 均轻微变差而失败。FDR10 的三折合计
+同时改善 Recall/FDR，但 held-out fold2 的 vehicle Recall 仍下降 `3.704pp`；
+fold1 则提高 `29.104pp`，存在明显域间异质性。因此最终状态为
+`stop_specialist_route`：不训练全量 D-FINE，不改写现有 Docker，不用它触发官方提交。
+科学结论是 D-FINE 显著提高了 vehicle 候选形成能力，但跨域分数校准和 FP 排序
+尚不稳定；后续只可把它用于 teacher/proposal mining 或有支持证据的严格候选补充，
+不得无条件替换 Y5 vehicle 分支。完整结果位于
+`outputs/HERA-GUARD-V4-DFINE-VEHICLE-CV3-20260831/crossfit_route.json`。
+
 ## 7. 下一步停止规则
 
 1. Q0 若不改变 TP–FP 排序，则 metadata-only 停止；
