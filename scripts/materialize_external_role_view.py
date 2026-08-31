@@ -2,8 +2,8 @@
 """Materialize a cache-isolated YOLO view for one external-data role.
 
 The image payload remains shared through a directory symlink.  Label text files are
-hard-linked (or copied when hard links are unavailable), so Ultralytics writes its
-``*.cache`` file inside the role view instead of racing with another GPU role.
+copied so every role owns independent label inodes and an independent Ultralytics
+``*.cache`` file.  This prevents a later edit in one role from mutating another role.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import shutil
 from pathlib import Path
 
@@ -65,7 +64,7 @@ def materialize_role_view(role_yaml: Path, output_dir: Path) -> dict:
     else:
         image_link.symlink_to(source_images, target_is_directory=True)
 
-    linked = copied = existing = 0
+    copied = existing = 0
     for source_label in sorted(source_labels.rglob("*.txt")):
         target = label_root / source_label.relative_to(source_labels)
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -74,12 +73,8 @@ def materialize_role_view(role_yaml: Path, output_dir: Path) -> dict:
                 raise ValueError(f"existing role label differs from source: {target}")
             existing += 1
             continue
-        try:
-            os.link(source_label, target)
-            linked += 1
-        except OSError:
-            shutil.copy2(source_label, target)
-            copied += 1
+        shutil.copy2(source_label, target)
+        copied += 1
 
     rewritten: list[str] = []
     missing = []
@@ -117,11 +112,14 @@ def materialize_role_view(role_yaml: Path, output_dir: Path) -> dict:
         "unique_image_count": len(set(rewritten)),
         "label_file_count": len(list(label_root.rglob("*.txt"))),
         "label_materialization": {
-            "hard_linked": linked,
+            "hard_linked": 0,
             "copied": copied,
             "already_verified": existing,
         },
-        "cache_contract": "each role owns labels/train.cache; image bytes are shared read-only",
+        "cache_contract": (
+            "each role owns independent label inodes and labels/train.cache; "
+            "image bytes are shared read-only"
+        ),
     }
     audit_path = output_dir / "role_view_audit.json"
     audit_path.write_text(

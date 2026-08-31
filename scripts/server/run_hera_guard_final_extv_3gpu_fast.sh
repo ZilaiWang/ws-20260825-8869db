@@ -25,9 +25,29 @@ printf '%s  %s\n' "${Y5_INITIAL_SHA256}" "${Y5_INITIAL}" | sha256sum -c -
 GPU_COUNT="$(nvidia-smi --query-gpu=index --format=csv,noheader | wc -l | tr -d ' ')"
 [[ "${GPU_COUNT}" -eq 3 ]] || { echo "requires exactly three visible GPUs" >&2; exit 2; }
 sha256sum \
+  scripts/audit_ultralytics_role_dataset.py \
   scripts/train_external_y5_coarse.py \
   scripts/train_external_initialized_y5_fine.py \
   src/rsdet/external/transfer.py >"${OUT}/CODE_SHA256.txt"
+"${PYTHON_BIN}" - <<'PY' >"${OUT}/ENVIRONMENT.txt"
+import platform
+import sys
+import numpy
+import PIL
+import torch
+import ultralytics
+import yaml
+print("python", sys.version.replace("\n", " "))
+print("platform", platform.platform())
+print("torch", torch.__version__)
+print("cuda", torch.version.cuda)
+print("ultralytics", ultralytics.__version__)
+print("numpy", numpy.__version__)
+print("Pillow", PIL.__version__)
+print("PyYAML", yaml.__version__)
+PY
+nvidia-smi --query-gpu=index,name,driver_version,memory.total --format=csv,noheader \
+  >"${OUT}/GPU_ENVIRONMENT.csv"
 
 guard_new_run() {
   local directory=$1 result=$2 checkpoint=$3
@@ -40,6 +60,11 @@ guard_new_run() {
 }
 
 COARSE="${OUT}/external/ext-v"
+if [[ ! -f "${OUT}/ext-v-ultralytics-role-audit.json" ]]; then
+  "${PYTHON_BIN}" scripts/audit_ultralytics_role_dataset.py \
+    --dataset "${EXT_V_DATASET}" --output "${OUT}/ext-v-ultralytics-role-audit.json" \
+    --imgsz 1024 --batch 30 --world-size 3
+fi
 printf '%s\n' extv_coarse_ddp_3gpu >"${STATUS}"
 if guard_new_run "${COARSE}" training_result.json runs/foundation/weights/last.pt; then
   # Total batch 30 gives 10 images/GPU. Ultralytics accumulates two steps,
@@ -53,7 +78,7 @@ fi
 
 EXT_WEIGHT="${COARSE}/runs/foundation/weights/last.pt"
 EXT_SHA="$(sha256sum "${EXT_WEIGHT}" | awk '{print $1}')"
-printf '%s\n' paired_fine_three_single_gpu >"${STATUS}"
+printf '%s\n' paired_fine_four_cell_single_gpu >"${STATUS}"
 run_fine() {
   local gpu=$1 dataset=$2 weights=$3 expected_sha=$4 run=$5 log=$6
   if guard_new_run "${run}" training_result.json runs/foundation/weights/last.pt; then
@@ -72,7 +97,27 @@ run_fine 1 "${PATCH_DATASET}" "${Y5_INITIAL}" "${Y5_INITIAL_SHA256}" \
 run_fine 2 "${CONTROL_DATASET}" "${Y5_INITIAL}" "${Y5_INITIAL_SHA256}" \
   "${OUT}/fine/control-omit-fold0" "${OUT}/fine-control-omit.log" & p2=$!
 failure=0
-for pid in "${p0}" "${p1}" "${p2}"; do wait "${pid}" || failure=1; done
+completed_pid=""
+if ! wait -n -p completed_pid "${p0}" "${p1}" "${p2}"; then
+  failure=1
+fi
+[[ "${failure}" = 0 ]] || {
+  for pid in "${p0}" "${p1}" "${p2}"; do
+    [[ "${pid}" = "${completed_pid}" ]] || wait "${pid}" || true
+  done
+  exit 4
+}
+case "${completed_pid}" in
+  "${p0}") freed_gpu=0 ;;
+  "${p1}") freed_gpu=1 ;;
+  "${p2}") freed_gpu=2 ;;
+  *) echo "could not map completed fine process ${completed_pid}" >&2; exit 4 ;;
+esac
+run_fine "${freed_gpu}" "${CONTROL_DATASET}" "${EXT_WEIGHT}" "${EXT_SHA}" \
+  "${OUT}/fine/ext-v-omit-fold0" "${OUT}/fine-ext-v-omit.log" & p3=$!
+for pid in "${p0}" "${p1}" "${p2}" "${p3}"; do
+  [[ "${pid}" = "${completed_pid}" ]] || wait "${pid}" || failure=1
+done
 [[ "${failure}" = 0 ]] || exit 4
 
 find "${OUT}" -type f \( -name training_result.json -o -name head_transfer_audit.json \) \

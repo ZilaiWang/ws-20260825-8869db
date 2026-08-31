@@ -130,11 +130,13 @@ def main() -> int:
 
     source = YOLO(str(args.external_weights.resolve()))
     source_state = source.model.state_dict()
+    source_model_yaml = dict(source.model.yaml)
     trainer = external_head_transfer_trainer(
         source_state,
         transfer_audit,
         expected_target_nc=len(FINE_NAMES),
         reset_seed=args.seed + 90000,
+        source_model_yaml=source_model_yaml,
     )
     model = YOLO(str(args.external_weights.resolve()))
     model.train(

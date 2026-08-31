@@ -64,3 +64,22 @@ def test_dota_scene_region_is_kept_as_background_not_giant_foreground(tmp_path: 
     assert len(payload["annotations"]) == 1
     assert payload["annotations"][0]["category_id"] == 1
     assert audit["dropped_scene_structure"] == 1
+
+
+def test_dota_corrected_policy_keeps_only_difficult_compact_primary(tmp_path: Path) -> None:
+    images = tmp_path / "images"
+    labels = tmp_path / "labels"
+    images.mkdir()
+    labels.mkdir()
+    Image.new("RGB", (100, 80)).save(images / "P0001.png")
+    (labels / "P0001.txt").write_text(
+        "0 0 10 0 10 10 0 10 plane 1\n"
+        "20 0 30 0 30 10 20 10 small-vehicle 1\n"
+        "40 0 50 0 50 10 40 10 storage-tank 1\n"
+        "0 20 90 20 90 70 0 70 harbor 1\n"
+    )
+    payload, audit = import_dota(images, labels, difficult_policy="keep_primary")
+    assert [row["category_id"] for row in payload["annotations"]] == [0, 2]
+    assert audit["retained_difficult"] == 2
+    assert audit["dropped_difficult"] == 1
+    assert audit["dropped_scene_structure"] == 1

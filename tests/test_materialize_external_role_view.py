@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import yaml
@@ -39,6 +40,8 @@ def test_materialize_external_role_view_isolates_label_cache(tmp_path: Path) -> 
     assert first["sampled_row_count"] == 3
     assert first["unique_image_count"] == 2
     assert second["label_materialization"]["already_verified"] == 2
+    assert first["label_materialization"]["hard_linked"] == 0
+    assert os.stat(labels / "a.txt").st_ino != os.stat(output / "labels/train/a.txt").st_ino
     assert (output / "images" / "train").is_symlink()
     assert not (output / "labels" / "train").is_symlink()
     lines = (output / "train-role.txt").read_text(encoding="utf-8").splitlines()

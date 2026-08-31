@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from rsdet.evaluation.absolute_score import competition_score
+from rsdet.evaluation.absolute_score import competition_score, score_coarse_interpretations
 
 
 def _sha256(path: Path) -> str:
@@ -49,6 +49,25 @@ def _compare_rows(base: dict, candidate: dict, base_path: Path, candidate_path: 
     candidate_score = competition_score(
         float(candidate["recall"]), float(candidate["fdr"]), 0.0
     )
+    base_interpretations = score_coarse_interpretations(base["per_coarse"], 0.0)
+    candidate_interpretations = score_coarse_interpretations(
+        candidate["per_coarse"], 0.0
+    )
+    interpretation_deltas = {
+        "macro_raw_then_score": (
+            candidate_interpretations["macro_raw_then_score"]["total_score"]
+            - base_interpretations["macro_raw_then_score"]["total_score"]
+        ),
+        "mean_per_coarse_score": (
+            candidate_interpretations["mean_per_coarse_score"]["total_score"]
+            - base_interpretations["mean_per_coarse_score"]["total_score"]
+        ),
+    }
+    if "pooled_counts" in base_interpretations and "pooled_counts" in candidate_interpretations:
+        interpretation_deltas["pooled_counts"] = (
+            candidate_interpretations["pooled_counts"]["total_score"]
+            - base_interpretations["pooled_counts"]["total_score"]
+        )
     return {
         "base_frontier": str(base_path.resolve()),
         "candidate_frontier": str(candidate_path.resolve()),
@@ -68,6 +87,13 @@ def _compare_rows(base: dict, candidate: dict, base_path: Path, candidate_path: 
             "candidate": candidate_score["total_score"],
             "delta": candidate_score["total_score"] - base_score["total_score"],
             "note": "pooled Recall/FDR interpretation; latency fixed and cancels",
+        },
+        "absolute_score_aggregation_interpretations": {
+            "base": base_interpretations,
+            "candidate": candidate_interpretations,
+            "deltas": interpretation_deltas,
+            "worst_case_delta": min(interpretation_deltas.values()),
+            "note": "latency is held equal, so its additive contribution cancels",
         },
         "per_coarse": per_coarse,
     }
@@ -144,8 +170,9 @@ def main() -> int:
         for coarse in ("ship", "vehicle")
     )
     absolute_score_guard = (
-        hard["absolute_score_equal_latency"]["delta"] >= 0.0
-        and sentinel["absolute_score_equal_latency"]["delta"] >= 0.0
+        hard["absolute_score_aggregation_interpretations"]["worst_case_delta"] >= 0.0
+        and sentinel["absolute_score_aggregation_interpretations"]["worst_case_delta"]
+        >= 0.0
     )
     admitted = (
         normal_floor
@@ -156,7 +183,7 @@ def main() -> int:
     )
     payload = {
         "status": "complete",
-        "protocol": "hera_guard_final_three_benchmark_frozen_candidate_gate_v2",
+        "protocol": "hera_guard_final_three_benchmark_frozen_candidate_gate_v3",
         "fdr_level": args.fdr_level,
         "sentinel_thresholds_frozen_from_hard": sentinel_thresholds_frozen_from_hard,
         "threshold_tuning_on_sentinel": not sentinel_thresholds_frozen_from_hard,
@@ -166,7 +193,9 @@ def main() -> int:
             "all_coarse_recall_floor_minus_0p5pp": all_coarse_guard,
             "fdr_worsening_at_most_1pp": risk_guard,
             "hard_primary_gain_0p5pp_and_sentinel_same_direction": primary_gain,
-            "hard_and_frozen_sentinel_absolute_score_non_decrease": absolute_score_guard,
+            "hard_and_frozen_sentinel_all_score_interpretations_non_decrease": (
+                absolute_score_guard
+            ),
         },
         "decision": {
             "formal_cv3_expansion_admission": admitted,

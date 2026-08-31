@@ -19,6 +19,7 @@ from typing import Any, TypeVar
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.oof_detection import build_threshold_curve
+from rsdet.evaluation.absolute_score import competition_score, score_coarse_interpretations
 from rsdet.evaluation.coco import load_coco_ground_truth, load_coco_predictions
 from rsdet.evaluation.official_metric import evaluate_predictions, evaluate_ranking_metrics
 from rsdet.evaluation.protocol import parse_evaluation_protocol
@@ -50,6 +51,44 @@ def _select_threshold(points: list[dict[str, Any]], target_fdr: float) -> dict[s
             float(point["threshold"]),
         ),
     )
+
+
+def _select_absolute_score_threshold(
+    points: list[dict[str, Any]],
+    *,
+    latency_seconds: float,
+    minimum_recall: float,
+    maximum_fdr: float,
+) -> dict[str, Any]:
+    feasible = [
+        point
+        for point in points
+        if float(point["overall_recall"]) >= minimum_recall
+        and float(point["overall_fdr"]) <= maximum_fdr
+    ]
+    pool = feasible or points
+    selected = max(
+        pool,
+        key=lambda point: (
+            competition_score(
+                float(point["overall_recall"]),
+                float(point["overall_fdr"]),
+                latency_seconds,
+            )["total_score"],
+            float(point["overall_recall"]),
+            -float(point["overall_fdr"]),
+            float(point["threshold"]),
+        ),
+    )
+    return {
+        **selected,
+        "constraint_feasible": bool(feasible),
+        "selection_score": competition_score(
+            float(selected["overall_recall"]),
+            float(selected["overall_fdr"]),
+            latency_seconds,
+        ),
+    }
 
 
 def _metric_payload(metrics: Any, ranking: Any) -> dict[str, Any]:
@@ -120,6 +159,9 @@ def main() -> int:
     parser.add_argument(
         "--fdr-levels", type=float, nargs="+", default=(0.10, 0.12, 0.15, 0.17, 0.20)
     )
+    parser.add_argument("--latency-seconds", type=float)
+    parser.add_argument("--score-minimum-recall", type=float, default=0.87)
+    parser.add_argument("--score-maximum-fdr", type=float, default=0.18)
     args = parser.parse_args()
 
     raw_gt = json.loads(args.gt.read_text(encoding="utf-8"))
@@ -229,6 +271,65 @@ def main() -> int:
         iou_thresholds=protocol.iou_thresholds,
         require_complete_taxonomy=True,
     )
+    absolute_score_crossfit = None
+    if args.latency_seconds is not None:
+        chosen: dict[int, float] = {}
+        training_selections: dict[str, Any] = {}
+        score_predictions: dict[int, list[dict[str, Any]]] = {}
+        for held_out in (0, 1, 2):
+            selected = _select_absolute_score_threshold(
+                training_points[held_out],
+                latency_seconds=args.latency_seconds,
+                minimum_recall=args.score_minimum_recall,
+                maximum_fdr=args.score_maximum_fdr,
+            )
+            chosen[held_out] = float(selected["threshold"])
+            training_selections[str(held_out)] = selected
+            for image_id in fold_images[held_out]:
+                score_predictions[image_id] = [
+                    item
+                    for item in pred.get(image_id, [])
+                    if float(item["score"]) >= float(selected["threshold"])
+                ]
+        score_metrics = evaluate_predictions(
+            gt,
+            score_predictions,
+            class_names=protocol.class_names,
+            category_mapping=protocol.category_mapping,
+            iou_thresholds=protocol.iou_thresholds,
+        )
+        score_ranking = evaluate_ranking_metrics(
+            gt,
+            score_predictions,
+            class_names=protocol.class_names,
+            category_mapping=protocol.category_mapping,
+            iou_thresholds=protocol.iou_thresholds,
+            require_complete_taxonomy=True,
+        )
+        score_payload = _metric_payload(score_metrics, score_ranking)
+        pooled_selected = _select_absolute_score_threshold(
+            pooled_points,
+            latency_seconds=args.latency_seconds,
+            minimum_recall=args.score_minimum_recall,
+            maximum_fdr=args.score_maximum_fdr,
+        )
+        absolute_score_crossfit = {
+            "selection_contract": {
+                "nested_two_folds_select_one_fold_apply": True,
+                "latency_seconds": args.latency_seconds,
+                "minimum_recall": args.score_minimum_recall,
+                "maximum_fdr": args.score_maximum_fdr,
+                "objective": "maximize published absolute score within constraints",
+            },
+            "crossfit_thresholds": {str(key): value for key, value in chosen.items()},
+            "training_selections": training_selections,
+            "crossfit": score_payload,
+            "crossfit_score_interpretations": score_coarse_interpretations(
+                score_payload["per_coarse"], args.latency_seconds
+            ),
+            "pooled_oracle": pooled_selected,
+            "pooled_oracle_is_not_admissible": True,
+        }
     payload = {
         "status": "complete",
         "protocol": "formal_cv3_two_folds_select_one_fold_evaluate_pseudo10k_v1",
@@ -246,6 +347,7 @@ def main() -> int:
         "candidate_floor": _metric_payload(floor_metrics, floor_ranking),
         "frontiers": results,
         "admission": _admission_payload(results, args.fdr_levels),
+        "absolute_score_crossfit": absolute_score_crossfit,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
