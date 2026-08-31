@@ -191,6 +191,11 @@ fold0 冻结结果：terminal-FPN 在 Normal ship Recall 下降 0.815pp、Hard s
 扩展门但效应很小，因此只补 fold1 branch-only，并运行三折完整 adapter 外层复验；不调训练
 或融合参数。三折若不能保持正向，HAD 路线整体停止。
 
+三折完整复验现已完成，branch-only 也正式拒绝：Normal 总 Recall -0.104pp，ship
+-0.543pp、vehicle -1.220pp；Hard vehicle 虽 +2.174pp，但不能补偿 Normal 粗类地板破坏；
+Sentinel vehicle +1.235pp、总体 +0.152pp。固定门禁
+`all_coarse_recall_floor_minus_0p5pp=false`，因此 HAD 全路线停止，不补 epoch、不扫描参数。
+
 terminal-FPN 训练同时输出 `adapted_detector.pt` 与 `adapter_last.pt`；正式评测必须成对使用。
 branch-only 使用原 base detector + adapter。任何只加载 adapter 而漏掉 adapted detector 的
 terminal-FPN 结果无效。
@@ -226,6 +231,19 @@ Stage1 并行 DOTA EXT-G、DOTA EXT-V、HAD fold0、HAD fold2；Stage2 并行两
 EXT-G/EXT-V，GPU2 串行 HAD fold0/fold2；Stage2 中 GPU2 串行 patch/control 对照。
 数据、seed、epoch、batch、模型和准入门均未改变。`run_hera_guard_final_had_early.sh`
 允许在 DOTA 资产准备期提前使用 GPU2，后续主驱动按 `training_result.json` 幂等跳过。
+
+在 HAD 拒绝后，外部路线收敛为与当前官方短板最一致的 `EXT-V`：DOTA 粗类预训练中提高
+vehicle/other 采样，部署仍是单视图 YOLO26s。两路早期 run 各仅完成 4 epoch 后停止并保留为
+未完成诊断，没有据此形成结论。3 卡 DDP 真实 smoke 已通过；fine 阶段的动态 Trainer 无法由
+Ultralytics DDP 子进程导入，因此不冒险改训练框架，而是在 coarse 完成后三卡并行执行三个
+严格配对分支：`EXT-V→patch`、`official→patch`、`official→omit`。三者分别回答外部预训练、
+人工复核标注修补、原始 omission 对照的独立贡献，不是三个部署模型。
+
+资源剖析显示总 batch=12 时每卡仅 4 图，三卡平均利用率约 50--60%，而 112 CPU 核、755 GiB
+内存和 `/dev/shm` 数据均无压力。正式 coarse 因而改用总 batch=30（每卡 10 图）：Ultralytics
+梯度累积从 5 步变 2 步，`12×5=30×2=60`，有效优化 batch、学习率、权重衰减、epoch、seed
+和样本轮数保持一致。旧 run 只完成 1 epoch 后归档，从初始 SHA 权重重新训练，未 resume。
+新 run 显存约 10--15 GiB/卡、利用率约 66--79%，首轮预计由 180 秒降至约 120 秒。
 
 实际启动时还发现两个 Ultralytics 进程会并发下载同一个 AMP 自检权重 `yolo26n.pt`，其中一份
 出现临时损坏。此时尚未进入 epoch；现场被停止，使用服务器已有且可成功加载的官方自检权重
