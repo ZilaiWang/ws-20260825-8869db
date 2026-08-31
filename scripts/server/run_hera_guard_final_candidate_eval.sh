@@ -72,6 +72,16 @@ for condition in normal hard sentinel; do
       --fdr-levels 0.10 0.12 0.15 0.20 >"${OUT}/${condition}-${route}-frontier.log" 2>&1
   done
 done
+for route in base candidate; do
+  PRED="${OUT}/sentinel/${route}/predictions.json"
+  [[ "${route}" = base && -n "${BASELINE_EVAL_ROOT:-}" ]] && \
+    PRED="${BASELINE_EVAL_ROOT}/sentinel/predictions.json"
+  "${PYTHON_BIN}" scripts/evaluate_pseudo_with_frozen_thresholds.py \
+    --gt "${SENTINEL_ROOT}/ground_truth.json" --pred "${PRED}" \
+    --source-frontier "${OUT}/hard/${route}_frontier.json" --fdr-level 0.15 \
+    --output "${OUT}/sentinel/${route}_frozen_from_hard.json" \
+    >"${OUT}/sentinel-${route}-frozen.log" 2>&1
+done
 printf '%s\n' decision >"${STATUS}"
 "${PYTHON_BIN}" scripts/decide_hera_guard_final_candidate.py \
   --normal-base "${OUT}/normal/base_frontier.json" \
@@ -80,6 +90,8 @@ printf '%s\n' decision >"${STATUS}"
   --hard-candidate "${OUT}/hard/candidate_frontier.json" \
   --sentinel-base "${OUT}/sentinel/base_frontier.json" \
   --sentinel-candidate "${OUT}/sentinel/candidate_frontier.json" \
+  --sentinel-base-frozen "${OUT}/sentinel/base_frozen_from_hard.json" \
+  --sentinel-candidate-frozen "${OUT}/sentinel/candidate_frozen_from_hard.json" \
   --output "${OUT}/decision.json" >"${OUT}/decision.log" 2>&1
 find "${OUT}" -type f \( -name '*frontier.json' -o -name 'decision.json' -o -name 'run_summary.json' \) -print0 | sort -z | xargs -0 sha256sum >"${OUT}/SHA256SUMS"
 printf '%s\n' complete >"${STATUS}"
