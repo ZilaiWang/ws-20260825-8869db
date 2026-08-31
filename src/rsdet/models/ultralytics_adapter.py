@@ -50,6 +50,7 @@ class UltralyticsDetector(BaseDetector):
         agnostic_nms: bool = False,
         label_map: Mapping[int, int] | None = None,
         refiner: Mapping[str, Any] | None = None,
+        agreement: Mapping[str, Any] | None = None,
     ) -> None:
         if imgsz <= 0:
             raise ValueError("imgsz 必须 > 0")
@@ -72,16 +73,36 @@ class UltralyticsDetector(BaseDetector):
             else None
         )
         self.refiner_config = dict(refiner or {})
+        self.agreement_config = dict(agreement or {})
         self._device = "cpu"
         self._model: Any | None = None
         self._refiner: Any | None = None
         self._refiner_metadata: dict[str, Any] = {}
+        self._agreement: Any | None = None
 
     def load(self, checkpoint_path: str) -> None:
         checkpoint = Path(checkpoint_path).expanduser()
         if not checkpoint.is_file():
             raise FileNotFoundError(f"模型权重不存在: {checkpoint}")
         self._model = create_ultralytics_model(self.family, checkpoint)
+        if self.agreement_config:
+            if self.family.strip().lower().replace("-", "") != "yolo":
+                raise ValueError("agreement runtime is supported only for YOLO")
+            from rsdet.innovation.agreement_runtime import TileAgreementRuntime
+
+            raw_adapter_path = str(self.agreement_config.get("checkpoint", "")).strip()
+            if not raw_adapter_path:
+                raise ValueError("model.agreement 已启用但 checkpoint 为空")
+            adapter_path = Path(raw_adapter_path).expanduser()
+            expected_sha256 = str(
+                self.agreement_config.get("expected_sha256", "")
+            ).strip() or None
+            self._agreement = TileAgreementRuntime(
+                self._model.model,
+                adapter_path,
+                expected_sha256=expected_sha256,
+                category_id=int(self.agreement_config.get("category_id", 24)),
+            )
         if self.refiner_config:
             from rsdet.models.prototype_refiner import load_refiner_checkpoint
 
@@ -98,6 +119,8 @@ class UltralyticsDetector(BaseDetector):
             self._model.to(self._device)
         if self._refiner is not None:
             self._refiner.to(self._device)
+        if self._agreement is not None:
+            self._agreement.to(self._device)
 
     def eval(self) -> None:
         if self._model is None:
@@ -133,6 +156,8 @@ class UltralyticsDetector(BaseDetector):
         if not batch:
             return []
 
+        if self._agreement is not None:
+            self._agreement.clear()
         results = self._model.predict(
             source=[self._prepare_source(sample.image) for sample in batch],
             imgsz=self.imgsz,
@@ -144,6 +169,7 @@ class UltralyticsDetector(BaseDetector):
             agnostic_nms=self.agnostic_nms,
             verbose=False,
             stream=False,
+            batch=len(batch),
         )
         results = list(results)
         if len(results) != len(batch):
@@ -195,6 +221,8 @@ class UltralyticsDetector(BaseDetector):
                     labels=[raw_labels[index] for index in valid],
                 )
             )
+        if self._agreement is not None:
+            predictions = self._agreement.rescore(batch, predictions)
         return self._refine_predictions(batch, predictions)
 
     def _refine_predictions(

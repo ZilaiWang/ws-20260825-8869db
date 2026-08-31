@@ -82,6 +82,29 @@ def test_load_submission_config_validates_coarse_thresholds(tmp_path: Path) -> N
         load_submission_config(path)
 
 
+def test_load_submission_config_validates_dfine_agreement_contract(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["agreement_model"] = {
+        "family": "dfine",
+        "root_path": "/app/vendor/dfine",
+        "config_path": "/app/models/dfine.yml",
+        "weight_path": "/app/models/dfine.pth",
+        "expected_sha256": "b" * 64,
+        "imgsz": 1024,
+        "score_floor": 0.001,
+        "support_iou": 0.35,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["agreement_model"]["support_iou"] == 0.35
+
+    payload["agreement_model"]["weight_path"] = "dfine.pth"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="weight_path.*绝对路径"):
+        load_submission_config(path)
+
+
 def test_trial_v2_calibrated_config_freezes_only_exposed_risks() -> None:
     path = (
         Path(__file__).resolve().parents[1]

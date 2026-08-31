@@ -82,7 +82,21 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--pseudo-root", type=Path, required=True)
     parser.add_argument("--family", choices=("yolo", "rtdetr"), required=True)
     parser.add_argument("--weights", type=Path, nargs=3, required=True)
+    parser.add_argument(
+        "--agreement-adapters",
+        type=Path,
+        nargs=3,
+        help="optional fold-aligned in-model agreement adapters",
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--folds",
+        type=int,
+        nargs="+",
+        choices=(0, 1, 2),
+        default=(0, 1, 2),
+        help="evaluate only selected folds; default is all three",
+    )
     parser.add_argument("--score-floor", type=float, default=0.03)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default="cuda:0")
@@ -109,7 +123,9 @@ def main() -> int:
 
     all_predictions: list[dict[str, object]] = []
     fold_summaries: list[dict[str, object]] = []
-    for fold, weight in enumerate(args.weights):
+    selected_folds = tuple(sorted(set(args.folds)))
+    for fold in selected_folds:
+        weight = args.weights[fold]
         if not weight.is_file():
             raise FileNotFoundError(weight)
         input_dir = args.pseudo_root / f"fold_{fold}" / "images"
@@ -122,6 +138,16 @@ def main() -> int:
         if {path.name for path in image_paths} != expected_names:
             raise RuntimeError(f"fold {fold} pseudo image inventory mismatch")
 
+        agreement = None
+        if args.agreement_adapters is not None and str(args.agreement_adapters[fold]) != "-":
+            adapter = args.agreement_adapters[fold]
+            if not adapter.is_file():
+                raise FileNotFoundError(adapter)
+            agreement = {
+                "checkpoint": str(adapter),
+                "expected_sha256": _sha256(adapter),
+                "category_id": 24,
+            }
         detector = UltralyticsDetector(
             family=args.family,
             imgsz=1024,
@@ -131,6 +157,7 @@ def main() -> int:
             half=True,
             agnostic_nms=False,
             label_map={0: 0, 1: 4, 2: 24} if args.coarse_label_space else None,
+            agreement=agreement,
         )
         detector.load(str(weight))
         detector.to(args.device)
@@ -188,6 +215,18 @@ def main() -> int:
                 "fold": fold,
                 "weight": str(weight),
                 "weight_sha256": _sha256(weight),
+                "agreement_adapter": (
+                    str(args.agreement_adapters[fold])
+                    if args.agreement_adapters is not None
+                    and str(args.agreement_adapters[fold]) != "-"
+                    else None
+                ),
+                "agreement_adapter_sha256": (
+                    _sha256(args.agreement_adapters[fold])
+                    if args.agreement_adapters is not None
+                    and str(args.agreement_adapters[fold]) != "-"
+                    else None
+                ),
                 "images": len(image_paths),
                 "predictions": len(fold_predictions),
                 "wall_seconds": time.perf_counter() - started,
@@ -213,6 +252,7 @@ def main() -> int:
         "score_floor": args.score_floor,
         "coarse_label_space": bool(args.coarse_label_space),
         "pipeline": vars(pipeline),
+        "selected_folds": selected_folds,
         "predictions": len(all_predictions),
         "predictions_sha256": _sha256(combined_path),
         "folds": fold_summaries,

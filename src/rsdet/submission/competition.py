@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import os
+import sys
 import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -25,6 +26,7 @@ from rsdet.data.xh_dataset import COARSE_NAMES, FINE_NAMES
 from rsdet.models.base import BaseDetector
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 from rsdet.postprocess.nms import nms
+from rsdet.submission.agreement import apply_label_agreement
 
 IMAGE_EXTS = frozenset({".jpg", ".jpeg", ".png", ".bmp"})
 DEFAULT_CONFIG_PATH = Path("/app/config.json")
@@ -86,6 +88,37 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
     tta_nms_iou = float(model.get("tta_nms_iou", 0.55))
     if not 0.0 <= tta_nms_iou <= 1.0:
         raise ValueError("model.tta_nms_iou 必须在 [0, 1]")
+    agreement_model = config.get("agreement_model")
+    if agreement_model is not None:
+        agreement_model = _as_mapping(agreement_model, "agreement_model")
+        if str(agreement_model.get("family", "")).lower() != "dfine":
+            raise ValueError("agreement_model.family 只允许 dfine")
+        for field in ("root_path", "config_path", "weight_path"):
+            if not Path(str(agreement_model.get(field, ""))).is_absolute():
+                raise ValueError(f"agreement_model.{field} 必须是容器内绝对路径")
+        agreement_sha = str(agreement_model.get("expected_sha256", "")).lower()
+        if len(agreement_sha) != 64 or any(
+            character not in "0123456789abcdef" for character in agreement_sha
+        ):
+            raise ValueError("agreement_model.expected_sha256 必须是 64 位十六进制 SHA256")
+        if int(agreement_model.get("imgsz", 0)) <= 0:
+            raise ValueError("agreement_model.imgsz 必须 > 0")
+        if not 0.0 <= float(agreement_model.get("score_floor", -1.0)) <= 1.0:
+            raise ValueError("agreement_model.score_floor 必须在 [0, 1]")
+        if not 0.0 <= float(agreement_model.get("support_iou", -1.0)) <= 1.0:
+            raise ValueError("agreement_model.support_iou 必须在 [0, 1]")
+        raw_labels = agreement_model.get("apply_labels", [24])
+        if not isinstance(raw_labels, list) or not raw_labels:
+            raise ValueError("agreement_model.apply_labels 必须是非空整数列表")
+        if any(
+            isinstance(label, bool)
+            or not isinstance(label, int)
+            or not 0 <= label < len(FINE_NAMES)
+            for label in raw_labels
+        ):
+            raise ValueError("agreement_model.apply_labels 包含非法类别")
+        if len(raw_labels) != len(set(raw_labels)):
+            raise ValueError("agreement_model.apply_labels 不允许重复")
 
     tile_size = int(pipeline.get("tile_size", 0))
     overlap = int(pipeline.get("overlap", -1))
@@ -283,6 +316,157 @@ class _SubmissionYoloDetector(BaseDetector):
         return outputs
 
 
+class _SubmissionDfineDetector(BaseDetector):
+    """Deployment-only D-FINE adapter with the frozen square-resize contract."""
+
+    def __init__(self, model_config: Mapping[str, Any], device: str) -> None:
+        self.config = dict(model_config)
+        self.device = device
+        self.model: Any | None = None
+
+    def load(self, checkpoint_path: str) -> None:
+        import torch
+        from torch import nn
+
+        root = str(self.config["root_path"])
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        try:
+            from src.core import YAMLConfig
+        except ImportError as error:
+            raise RuntimeError("镜像缺少冻结 D-FINE 源码") from error
+
+        cfg = YAMLConfig(str(self.config["config_path"]), resume=checkpoint_path)
+        if "HGNetv2" in cfg.yaml_cfg:
+            cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        expected_epoch = int(self.config.get("expected_checkpoint_epoch", 39))
+        if int(checkpoint.get("last_epoch", -1)) != expected_epoch:
+            raise RuntimeError(
+                "D-FINE checkpoint epoch 不匹配: "
+                f"expected={expected_epoch}, actual={checkpoint.get('last_epoch')!r}"
+            )
+        state = checkpoint["ema"]["module"] if "ema" in checkpoint else checkpoint["model"]
+        cfg.model.load_state_dict(state)
+
+        class DeployModel(nn.Module):
+            def __init__(self) -> None:
+                super().__init__()
+                self.inner = cfg.model.deploy()
+                self.postprocessor = cfg.postprocessor.deploy()
+
+            def forward(self, images: Any, sizes: Any) -> Any:
+                return self.postprocessor(self.inner(images), sizes)
+
+        self.model = DeployModel()
+
+    def to(self, device: str) -> None:
+        self.device = device
+        if self.model is not None:
+            self.model.to(device)
+
+    def eval(self) -> None:
+        if self.model is not None:
+            self.model.eval()
+
+    def predict(self, batch: Sequence[InferenceSample]) -> list[Prediction]:
+        if self.model is None:
+            raise RuntimeError("D-FINE 权重尚未加载")
+        if not batch:
+            return []
+        import torch
+        from torchvision.transforms import functional as tvf
+
+        tensors = []
+        sizes = []
+        image_size = int(self.config["imgsz"])
+        for sample in batch:
+            image = np.asarray(sample.image, dtype=np.uint8)
+            if image.ndim != 3 or image.shape[2] != 3:
+                raise ValueError(f"D-FINE 输入必须是 HWC RGB，实际 {image.shape}")
+            # Keep this byte-for-byte preprocessing contract aligned with
+            # scripts/infer_dfine_coco.py, which generated the evidence used
+            # to freeze the product threshold.  Tensor interpolation (even
+            # with bilinear mode) is not numerically identical to PIL resize.
+            resized = tvf.resize(Image.fromarray(image), [image_size, image_size])
+            tensors.append(tvf.to_tensor(resized))
+            sizes.append([sample.width, sample.height])
+        images = torch.stack(tensors).to(self.device, non_blocking=True)
+        original_sizes = torch.tensor(sizes, dtype=torch.float32, device=self.device)
+        with torch.inference_mode():
+            labels, boxes, scores = self.model(images, original_sizes)
+        floor = float(self.config["score_floor"])
+        outputs: list[Prediction] = []
+        for sample, item_labels, item_boxes, item_scores in zip(
+            batch, labels, boxes, scores, strict=True
+        ):
+            keep = item_scores >= floor
+            output_boxes = item_boxes[keep].detach().cpu().float().tolist()
+            output_scores = item_scores[keep].detach().cpu().float().tolist()
+            output_labels = item_labels[keep].detach().cpu().long().tolist()
+            clipped = [
+                [
+                    min(max(float(box[0]), 0.0), float(sample.width)),
+                    min(max(float(box[1]), 0.0), float(sample.height)),
+                    min(max(float(box[2]), 0.0), float(sample.width)),
+                    min(max(float(box[3]), 0.0), float(sample.height)),
+                ]
+                for box in output_boxes
+            ]
+            outputs.append(
+                Prediction(
+                    image_id=sample.image_id,
+                    boxes_xyxy=clipped,
+                    scores=output_scores,
+                    labels=output_labels,
+                )
+            )
+        return outputs
+
+
+class _SubmissionAgreementDetector(BaseDetector):
+    """Run both detectors but retain only Y5 geometry and fine labels."""
+
+    def __init__(
+        self,
+        primary: BaseDetector,
+        specialist: BaseDetector,
+        *,
+        support_iou: float,
+        apply_labels: Sequence[int],
+    ) -> None:
+        self.primary = primary
+        self.specialist = specialist
+        self.support_iou = support_iou
+        self.apply_labels = tuple(int(label) for label in apply_labels)
+
+    def load(self, checkpoint_path: str) -> None:
+        del checkpoint_path
+
+    def to(self, device: str) -> None:
+        self.primary.to(device)
+        self.specialist.to(device)
+
+    def eval(self) -> None:
+        self.primary.eval()
+        self.specialist.eval()
+
+    def predict(self, batch: Sequence[InferenceSample]) -> list[Prediction]:
+        primary = self.primary.predict(batch)
+        specialist = self.specialist.predict(batch)
+        if len(primary) != len(specialist):
+            raise RuntimeError("Y5 与 D-FINE batch 输出数量不一致")
+        return [
+            apply_label_agreement(
+                first,
+                second,
+                labels=self.apply_labels,
+                support_iou=self.support_iou,
+            )
+            for first, second in zip(primary, specialist, strict=True)
+        ]
+
+
 class CompetitionDetector:
     """一次加载权重、逐图返回官方 objects 列表。"""
 
@@ -300,8 +484,38 @@ class CompetitionDetector:
             raise RuntimeError(
                 f"模型权重 SHA256 不匹配: expected={expected_sha}, actual={actual_sha}"
             )
-        self.detector = _SubmissionYoloDetector(model_config, self.device)
-        self.detector.load(str(weight_path))
+        primary = _SubmissionYoloDetector(model_config, self.device)
+        primary.load(str(weight_path))
+        agreement_config_raw = self.config.get("agreement_model")
+        if agreement_config_raw is None:
+            self.detector = primary
+        else:
+            agreement_config = _as_mapping(agreement_config_raw, "agreement_model")
+            agreement_weight = Path(str(agreement_config["weight_path"]))
+            agreement_root = Path(str(agreement_config["root_path"]))
+            agreement_model_config = Path(str(agreement_config["config_path"]))
+            for path, name in (
+                (agreement_weight, "weight_path"),
+                (agreement_root, "root_path"),
+                (agreement_model_config, "config_path"),
+            ):
+                if not path.exists():
+                    raise FileNotFoundError(f"agreement_model.{name} 不存在: {path}")
+            agreement_actual_sha = _sha256(agreement_weight)
+            agreement_expected_sha = str(agreement_config["expected_sha256"]).lower()
+            if agreement_actual_sha != agreement_expected_sha:
+                raise RuntimeError(
+                    "D-FINE 权重 SHA256 不匹配: "
+                    f"expected={agreement_expected_sha}, actual={agreement_actual_sha}"
+                )
+            specialist = _SubmissionDfineDetector(agreement_config, self.device)
+            specialist.load(str(agreement_weight))
+            self.detector = _SubmissionAgreementDetector(
+                primary,
+                specialist,
+                support_iou=float(agreement_config["support_iou"]),
+                apply_labels=[int(label) for label in agreement_config.get("apply_labels", [24])],
+            )
         self.detector.to(self.device)
         self.detector.eval()
         pipeline = _as_mapping(self.config["pipeline"], "pipeline")
