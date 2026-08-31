@@ -1,0 +1,48 @@
+{
+  "schema_version": "formal_hidden_anchor_v1",
+  "source": "formal platform API response for submission 3358",
+  "captured_at": "2026-08-31T23:38:28+08:00",
+  "submission": {
+    "tag": "v1.0",
+    "model_family": "YOLO26-s",
+    "training_scope": "4481 official training images; no external training images",
+    "deployment": "identity single view; safe tile fusion; global score threshold 0.15"
+  },
+  "latency_seconds": 2.473167,
+  "reported_total_score": 72.1331,
+  "per_coarse": {
+    "ship": {
+      "recall": 0.874969,
+      "fdr": 0.320177,
+      "tp": 466,
+      "fp": 94,
+      "fn": 154
+    },
+    "aircraft": {
+      "recall": 0.967641,
+      "fdr": 0.064691,
+      "tp": 4800,
+      "fp": 290,
+      "fn": 142
+    },
+    "vehicle": {
+      "recall": 0.852632,
+      "fdr": 0.325,
+      "tp": 81,
+      "fp": 39,
+      "fn": 14
+    }
+  },
+  "platform_gate_flags": {
+    "recall_pass": true,
+    "fdr_pass": false,
+    "latency_pass": true
+  },
+  "interpretation": {
+    "displayed_ship_and_aircraft_rates": "fine-class macro within coarse class",
+    "displayed_vehicle_rates": "single fine class, therefore equal to pooled rates",
+    "hard_gate_rates": "arithmetic mean of the three displayed coarse-class rates",
+    "score": "mean of six coarse Recall/FDR sub-scores and one latency sub-score",
+    "raw_counts": "pooled diagnostics only; not used for score or hard-gate flags"
+  }
+}

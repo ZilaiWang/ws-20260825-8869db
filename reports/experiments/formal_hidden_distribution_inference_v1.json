@@ -1,0 +1,194 @@
+{
+  "status": "complete",
+  "schema_version": "formal_hidden_distribution_inference_v1",
+  "anchor_schema_version": "formal_hidden_anchor_v1",
+  "formal_total_gt_exact": 5657,
+  "formal_total_predictions_exact": 5770,
+  "coarse_comparison": {
+    "ship": {
+      "train_gt": 2682,
+      "formal_gt_exact": 620,
+      "train_share": 0.1281230592843835,
+      "formal_share": 0.10959872724058688,
+      "formal_to_train_share_ratio": 0.8554176574672652,
+      "formal_to_train_count_ratio": 0.23117076808351977,
+      "displayed_macro_recall": 0.874969,
+      "pooled_recall_from_counts": 0.7516129032258064,
+      "macro_minus_pooled_recall": 0.12335609677419357,
+      "displayed_macro_fdr": 0.320177,
+      "pooled_fdr_from_counts": 0.16785714285714284,
+      "macro_minus_pooled_fdr": 0.15231985714285715
+    },
+    "aircraft": {
+      "train_gt": 17849,
+      "formal_gt_exact": 4942,
+      "train_share": 0.8526728132613577,
+      "formal_share": 0.8736079193919039,
+      "formal_to_train_share_ratio": 1.0245523321547831,
+      "formal_to_train_count_ratio": 0.2768782564849571,
+      "displayed_macro_recall": 0.967641,
+      "pooled_recall_from_counts": 0.971266693646297,
+      "macro_minus_pooled_recall": -0.003625693646297057,
+      "displayed_macro_fdr": 0.064691,
+      "pooled_fdr_from_counts": 0.05697445972495088,
+      "macro_minus_pooled_fdr": 0.007716540275049116
+    },
+    "vehicle": {
+      "train_gt": 402,
+      "formal_gt_exact": 95,
+      "train_share": 0.019204127454258826,
+      "formal_share": 0.01679335336750928,
+      "formal_to_train_share_ratio": 0.8744658359255516,
+      "formal_to_train_count_ratio": 0.236318407960199,
+      "displayed_macro_recall": 0.852632,
+      "pooled_recall_from_counts": 0.8526315789473684,
+      "macro_minus_pooled_recall": 4.210526315384655e-07,
+      "displayed_macro_fdr": 0.325,
+      "pooled_fdr_from_counts": 0.325,
+      "macro_minus_pooled_fdr": 0.0
+    }
+  },
+  "fine_prior_scenarios": {
+    "ship": {
+      "status": "prior_not_hidden_truth",
+      "method": "largest_remainder_train_proportional",
+      "formal_gt_total": 620,
+      "allocation": {
+        "HM": 4,
+        "LQS": 7,
+        "QHS": 148,
+        "MS": 461
+      }
+    },
+    "aircraft": {
+      "status": "prior_not_hidden_truth",
+      "method": "largest_remainder_train_proportional",
+      "formal_gt_total": 4942,
+      "allocation": {
+        "A1_SU-35": 365,
+        "A2_C-130": 359,
+        "A3_C-17": 276,
+        "A4_C-5": 138,
+        "A5_F-16": 282,
+        "A6_TU-160": 100,
+        "A7_E-3": 151,
+        "A8_B-52": 208,
+        "A9_P-3C": 248,
+        "A10_B-1B": 211,
+        "A11_E-8": 120,
+        "A12_TU-22": 161,
+        "A13_F-15": 350,
+        "A14_KC-135": 394,
+        "A15_F-22": 137,
+        "A16_FA-18": 595,
+        "A17_TU-95": 308,
+        "A18_KC-10": 73,
+        "A19_SU-34": 258,
+        "A20_SU-24": 208
+      }
+    },
+    "vehicle": {
+      "status": "prior_not_hidden_truth",
+      "method": "largest_remainder_train_proportional",
+      "formal_gt_total": 95,
+      "allocation": {
+        "FSC": 95
+      }
+    }
+  },
+  "platform_score_reproduction": {
+    "protocol": "platform_confirmed_absolute_score_v2026_08_31",
+    "per_coarse": {
+      "ship": {
+        "recall": 0.874969,
+        "fdr": 0.320177,
+        "recall_points": 66.6584,
+        "fdr_points": 50.986725
+      },
+      "aircraft": {
+        "recall": 0.967641,
+        "fdr": 0.064691,
+        "recall_points": 91.37093333333334,
+        "fdr_points": 87.0618
+      },
+      "vehicle": {
+        "recall": 0.852632,
+        "fdr": 0.325,
+        "recall_points": 60.70186666666666,
+        "fdr_points": 50.625
+      }
+    },
+    "latency_seconds": 2.473167,
+    "latency_points": 97.526833,
+    "seven_subscores": [
+      66.6584,
+      50.986725,
+      91.37093333333334,
+      87.0618,
+      60.70186666666666,
+      50.625,
+      97.526833
+    ],
+    "total_score": 72.13307971428571,
+    "hard_gates": {
+      "macro_coarse_recall": 0.8984139999999999,
+      "macro_coarse_fdr": 0.23662266666666665,
+      "latency_seconds": 2.473167,
+      "recall_threshold": 0.85,
+      "fdr_threshold": 0.2,
+      "latency_threshold_seconds": 20.0,
+      "recall_pass": true,
+      "fdr_pass": false,
+      "latency_pass": true
+    },
+    "pooled_counts_are_diagnostic_only": true,
+    "pooled_counts": {
+      "tp": 5347,
+      "fp": 423,
+      "fn": 310,
+      "recall": 0.9452006363797065,
+      "fdr": 0.0733102253032929
+    }
+  },
+  "identifiability": {
+    "exactly_identified": [
+      "coarse GT totals and proportions",
+      "coarse pooled TP/FP/FN",
+      "displayed coarse fine-macro Recall/FDR",
+      "three-coarse hard-gate aggregation",
+      "seven-subscore total-score aggregation"
+    ],
+    "not_uniquely_identified": [
+      "25 fine-class GT counts",
+      "per-fine TP/FP/FN for ship and aircraft",
+      "number of test images and objects per image",
+      "source/domain/airport/scene distribution",
+      "object-size, resolution, and background-negative distributions"
+    ],
+    "reason": "For ship and aircraft, pooled totals plus two macro rates leave many more unknown per-fine counts than equations. The train-proportional allocation is therefore a benchmark prior, not a reconstruction."
+  },
+  "recommended_proxy_contract": {
+    "primary": "official_anchor_calibrated_group_bootstrap_v1",
+    "regression_guard": "source_disjoint_sentinel_frozen_v1",
+    "exact_coarse_gt_budget": {
+      "ship": 620,
+      "aircraft": 4942,
+      "vehicle": 95
+    },
+    "aggregation": "platform_confirmed_absolute_score_v2026_08_31",
+    "fine_mix_scenarios": [
+      "train_proportional",
+      "fine_balanced",
+      "rare_class_upweighted"
+    ],
+    "sampling_unit": "source/group then image; never independent boxes",
+    "calibration_policy": "Use the incumbent formal result once to freeze proxy difficulty; choose future thresholds on nested development folds and evaluate on untouched confirmation groups.",
+    "uncertainty": "report median, 10th percentile, and gate-pass rate over >=200 group bootstraps",
+    "admission_margin": {
+      "macro_coarse_recall_min": 0.87,
+      "macro_coarse_fdr_max": 0.18,
+      "latency_seconds_max": 15.0,
+      "minimum_bootstrap_gate_pass_rate": 0.9
+    }
+  }
+}
