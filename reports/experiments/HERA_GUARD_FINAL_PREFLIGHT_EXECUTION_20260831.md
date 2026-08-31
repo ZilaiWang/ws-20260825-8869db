@@ -181,6 +181,16 @@ vehicle batch smoke 共 497 框、308 个 vehicle，308 个 vehicle 全部经过
 带 SHA256 的 detector/adapter checkpoint。GPU2 随后只对 fold0 两个模式执行冻结
 Normal/Hard/Sentinel 候选替换评测；未扫描权重或阈值。
 
+首次 AMP 候选推理暴露了 ROIAlign 的 dtype 约束：hook 捕获 FP16 FPN，而 proposal/adapter
+为 FP32。修复为逐层把 ROI 坐标转为 feature dtype、池化后恢复 projection dtype，并增加
+float64 feature + float32 geometry 的回归测试；已生成的冻结 baseline 被完整复用。
+
+fold0 冻结结果：terminal-FPN 在 Normal ship Recall 下降 0.815pp、Hard ship 下降 0.629pp，
+正式拒绝并停止。branch-only 的 Normal Recall/macro 完全不变；Hard vehicle Recall +1.087pp，
+但 vehicle FDR +2.171pp；总体 Hard Recall +0.093pp、FDR +0.073pp；Sentinel 持平。它通过最低
+扩展门但效应很小，因此只补 fold1 branch-only，并运行三折完整 adapter 外层复验；不调训练
+或融合参数。三折若不能保持正向，HAD 路线整体停止。
+
 terminal-FPN 训练同时输出 `adapted_detector.pt` 与 `adapter_last.pt`；正式评测必须成对使用。
 branch-only 使用原 base detector + adapter。任何只加载 adapter 而漏掉 adapted detector 的
 terminal-FPN 结果无效。
@@ -242,7 +252,7 @@ D-FINE 与外部 coarse head 不进入部署。
 剩余项只有：
 
 1. 完成正在运行的 EXT-G/EXT-V 80 epoch、两路 fine transfer 与 patch/control；
-2. 完成正在运行的 HAD fold0 冻结三条件评测；
+2. 完成正在运行的 HAD branch-only 三折完整复验；
 3. 只扩通过门禁的候选，生成唯一 full 权重、3090 时延与 Docker。
 
 这意味着“能在单卡、有限本地磁盘上诚实完成的准备和验证”已经完成；下一步需要的是训练
