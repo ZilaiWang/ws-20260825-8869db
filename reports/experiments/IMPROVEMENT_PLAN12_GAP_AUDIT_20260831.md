@@ -1,15 +1,15 @@
 # 《改进方案12》全量问题核验与后续执行清单
 
 日期：2026-08-31  
-状态：`safe_attempt_1_submitted / ext_v_v1_training / protocol_repairs_complete_locally`
+状态：`attempt_1_fdr_gate_failed / ext_v_2x2_rejected / protocol_repairs_complete`
 
 ## 1. 审计边界与当前结论
 
 本文逐项核验《改进方案12》中的评分口径、P0-1至 P0-5、外部训练实现、数据安全、
 DataLoader 采样、路线取舍、五次提交策略与最终交付。核验结论如下：
 
-1. 已提交的 Attempt 1 是官方数据训练的 Y5-S Safe v2 同构镜像，不含外部数据、
-   D-FINE、HAD 或新 patch，这一次的选择正确。
+1. Attempt 1 是官方数据训练的 Y5-S Safe v2 同构镜像，不含外部数据、D-FINE、HAD 或新
+   patch。正式得分 72.1331；Recall/时延通过，三粗类平均 FDR 0.236623，FDR 硬门失败。
 2. 新绝对评分器、Hard 阈值冻结到 Sentinel、三种粗类聚合解释和 nested 综合分阈值选择
    已在本地代码完成。
 3. EXT-V 重复采样已通过真实 Ultralytics Dataset 加载审计，没有被去重；
@@ -36,7 +36,7 @@ DataLoader 采样、路线取舍、五次提交策略与最终交付。核验结
 - `scripts/decide_hera_guard_final_candidate.py`：不再只用单一 pooled 解释；Hard 和
   Frozen-Sentinel 的三种可用聚合解释的最坏分差均不能为负。
 
-### 2.2 仍不能从旧页面推断的事情
+### 2.2 正式回传已确认的聚合规则
 
 使用 v2 页面展示的三类 Recall/FDR 和 2.704833 s 计算：
 
@@ -46,8 +46,10 @@ DataLoader 采样、路线取舍、五次提交策略与最终交付。核验结
 
 v3 两种 macro 解释都约为 84.2087，当时页面展示 85.0018。因此旧页面显示分不是
 当前新公式对六个展示小数的简单 macro；可能是旧规则、隐藏 pooled 计数或更高精度数据。
-正式 Attempt 1 的回传将是第一个新规则校准点。在聚合口径确定前，后续门禁使用三解释
-最坏不下降，不静默假定其中一种是官方口径。
+正式 Attempt 1 的接口回传已确认：平台分别计算船、飞机、车辆的 Recall/FDR 子分，加上一个
+时延子分，七项直接平均；硬门 Recall/FDR 标志使用三个展示粗类指标的算术平均。Attempt 1
+三类平均 Recall 0.898414、FDR 0.236623，故只有 FDR 门失败。V1.6 所述 pooled 合并计数不再
+是当前平台硬门的实际实现。
 
 ## 3. P0 逐项核验
 
@@ -162,11 +164,11 @@ role view 标签改为 `shutil.copy2`，不再共享 inode；图像仍是只读�
 
 ## 9. 仍待完成的交付门禁
 
-- [ ] Attempt 1 官方分项与总分回传，更新聚合口径推断。
-- [ ] EXT-V-v1 80 epoch 完成、checkpoint/result/environment/code SHA 验收。
-- [ ] 四格 40 epoch 完成；确认每格同 fold、同数据排除、同 seed、同训练预算。
+- [x] Attempt 1 官方分项与总分回传，更新聚合口径推断。
+- [x] EXT-V-v1 80 epoch 完成、checkpoint/result/environment/code SHA 验收。
+- [x] 四格 40 epoch 完成；确认每格同 fold、同数据排除、同 seed、同训练预算。
 - [ ] 若 patch 正向，代理对 18 个实际加入框做图像紧密度复核。
-- [ ] 候选评估用新冻结代码快照，Sentinel 必须显示 `frozen_from_hard=true`。
+- [x] 候选评估用新冻结代码快照，Sentinel 显示 `frozen_from_hard=true`；四格全部拒绝。
 - [ ] 若入选，扩三折并用新 scorer 选择配方，不用 pooled oracle。
 - [ ] 若 v1 强正向，才审核 corrected-difficult 资产和重训成本。
 - [ ] 最终 full 160 epoch、单一 last checkpoint、不用 validation 选 epoch。
