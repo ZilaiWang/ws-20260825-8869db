@@ -26,7 +26,12 @@ from rsdet.data.xh_dataset import COARSE_NAMES, FINE_NAMES
 from rsdet.models.base import BaseDetector
 from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 from rsdet.postprocess.nms import nms
+from rsdet.postprocess.thresholds import normalize_fine_thresholds
 from rsdet.submission.agreement import apply_label_agreement
+from rsdet.submission.vehicle_rescue import (
+    SelectiveVehicleRescueDetector,
+    VehicleRescueConfig,
+)
 
 IMAGE_EXTS = frozenset({".jpg", ".jpeg", ".png", ".bmp"})
 DEFAULT_CONFIG_PATH = Path("/app/config.json")
@@ -53,6 +58,10 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
         raise FileNotFoundError(f"部署配置不存在: {config_path}")
     payload = json.loads(config_path.read_text(encoding="utf-8"))
     config = _as_mapping(payload, "config")
+    if str(config.get("metric_protocol", "platform_observed_20260831")) != (
+        "platform_observed_20260831"
+    ):
+        raise ValueError("Docker 只接受 metric_protocol=platform_observed_20260831")
     model = _as_mapping(config.get("model"), "model")
     pipeline = _as_mapping(config.get("pipeline"), "pipeline")
 
@@ -119,6 +128,22 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
             raise ValueError("agreement_model.apply_labels 包含非法类别")
         if len(raw_labels) != len(set(raw_labels)):
             raise ValueError("agreement_model.apply_labels 不允许重复")
+        agreement_mode = str(agreement_model.get("mode", "multiplicative"))
+        if agreement_mode not in {"multiplicative", "vehicle_reject_rescue"}:
+            raise ValueError(
+                "agreement_model.mode 只允许 multiplicative 或 vehicle_reject_rescue"
+            )
+        if agreement_mode == "vehicle_reject_rescue":
+            VehicleRescueConfig(
+                vehicle_label=int(agreement_model.get("vehicle_label", 24)),
+                core_threshold=float(agreement_model["core_threshold"]),
+                candidate_floor=float(agreement_model["candidate_floor"]),
+                support_iou=float(agreement_model["support_iou"]),
+                rescue_product_threshold=float(
+                    agreement_model["rescue_product_threshold"]
+                ),
+                promoted_score=float(agreement_model["promoted_score"]),
+            )
 
     tile_size = int(pipeline.get("tile_size", 0))
     overlap = int(pipeline.get("overlap", -1))
@@ -144,8 +169,12 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
                 raise ValueError(
                     f"pipeline.score_threshold_by_coarse.{name} 必须在 [0, 1]"
                 )
-        if str(pipeline.get("fusion", "")) != "safe":
-            raise ValueError("pipeline.score_threshold_by_coarse 当前只允许 fusion=safe")
+    fine_thresholds = pipeline.get("score_threshold_by_fine")
+    if fine_thresholds is not None:
+        normalize_fine_thresholds(
+            _as_mapping(fine_thresholds, "pipeline.score_threshold_by_fine"),
+            require_complete=True,
+        )
     return config
 
 
@@ -510,12 +539,31 @@ class CompetitionDetector:
                 )
             specialist = _SubmissionDfineDetector(agreement_config, self.device)
             specialist.load(str(agreement_weight))
-            self.detector = _SubmissionAgreementDetector(
-                primary,
-                specialist,
-                support_iou=float(agreement_config["support_iou"]),
-                apply_labels=[int(label) for label in agreement_config.get("apply_labels", [24])],
-            )
+            if str(agreement_config.get("mode", "multiplicative")) == "vehicle_reject_rescue":
+                self.detector = SelectiveVehicleRescueDetector(
+                    primary,
+                    specialist,
+                    config=VehicleRescueConfig(
+                        vehicle_label=int(agreement_config.get("vehicle_label", 24)),
+                        core_threshold=float(agreement_config["core_threshold"]),
+                        candidate_floor=float(agreement_config["candidate_floor"]),
+                        support_iou=float(agreement_config["support_iou"]),
+                        rescue_product_threshold=float(
+                            agreement_config["rescue_product_threshold"]
+                        ),
+                        promoted_score=float(agreement_config["promoted_score"]),
+                    ),
+                )
+            else:
+                self.detector = _SubmissionAgreementDetector(
+                    primary,
+                    specialist,
+                    support_iou=float(agreement_config["support_iou"]),
+                    apply_labels=[
+                        int(label)
+                        for label in agreement_config.get("apply_labels", [24])
+                    ],
+                )
         self.detector.to(self.device)
         self.detector.eval()
         pipeline = _as_mapping(self.config["pipeline"], "pipeline")
@@ -534,6 +582,15 @@ class CompetitionDetector:
                         "pipeline.score_threshold_by_coarse",
                     ).items()
                 }
+            ),
+            score_threshold_by_fine=normalize_fine_thresholds(
+                None
+                if pipeline.get("score_threshold_by_fine") is None
+                else _as_mapping(
+                    pipeline["score_threshold_by_fine"],
+                    "pipeline.score_threshold_by_fine",
+                ),
+                require_complete=pipeline.get("score_threshold_by_fine") is not None,
             ),
             fine_nms_iou=float(pipeline.get("fine_nms_iou", 0.55)),
             coarse_nms_iou=(

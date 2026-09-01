@@ -580,6 +580,7 @@ def build_threshold_curve(
     *,
     thresholds: Sequence[float],
     protocol: EvaluationProtocol,
+    latency_seconds: float | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Build an exact score-prefix curve from one official matching trace.
 
@@ -602,13 +603,14 @@ def build_threshold_curve(
         iou_thresholds=protocol.iou_thresholds,
     )
     tp_keys = {(match.image_id, match.prediction_index) for match in trace.matches}
-    events: list[tuple[float, str, bool]] = []
+    events: list[tuple[float, int, str, bool]] = []
     for image_id, records in floor_predictions.items():
         for prediction_index, record in enumerate(records):
             category_id = int(record["category_id"])
             events.append(
                 (
                     float(record["score"]),
+                    category_id,
                     protocol.category_mapping[category_id],
                     (image_id, prediction_index) in tp_keys,
                 )
@@ -624,15 +626,32 @@ def build_threshold_curve(
         )
         for class_name in protocol.class_names
     }
+    fine_ids_by_coarse = {
+        class_name: sorted(
+            category_id
+            for category_id, mapped in protocol.category_mapping.items()
+            if mapped == class_name
+        )
+        for class_name in protocol.class_names
+    }
+    fine_total_gt = Counter(
+        int(item["category_id"])
+        for records in gt_boxes.values()
+        for item in records
+    )
     tp_counts = Counter({name: 0 for name in protocol.class_names})
     pred_counts = Counter({name: 0 for name in protocol.class_names})
+    fine_tp_counts: Counter[int] = Counter()
+    fine_pred_counts: Counter[int] = Counter()
     cursor = 0
     rows_desc: list[dict[str, Any]] = []
     for threshold in sorted(ordered_thresholds, reverse=True):
         while cursor < len(events) and events[cursor][0] >= threshold:
-            _, class_name, is_tp = events[cursor]
+            _, category_id, class_name, is_tp = events[cursor]
             pred_counts[class_name] += 1
             tp_counts[class_name] += int(is_tp)
+            fine_pred_counts[category_id] += 1
+            fine_tp_counts[category_id] += int(is_tp)
             cursor += 1
         total_tp = sum(tp_counts.values())
         total_pred = sum(pred_counts.values())
@@ -646,10 +665,64 @@ def build_threshold_curve(
             "fp": total_pred - total_tp,
             "fn": total_ground_truth - total_tp,
         }
-        row["official_gate_passed"] = (
-            float(row["overall_recall"]) >= protocol.recall_min
-            and float(row["overall_fdr"]) <= protocol.fdr_max
+        row["pooled_recall"] = row["overall_recall"]
+        row["pooled_fdr"] = row["overall_fdr"]
+        coarse_macro_recall: dict[str, float] = {}
+        coarse_macro_fdr: dict[str, float] = {}
+        for class_name, fine_ids in fine_ids_by_coarse.items():
+            if not fine_ids:
+                continue
+            recalls = []
+            fdrs = []
+            for category_id in fine_ids:
+                gt_count = fine_total_gt[category_id]
+                tp_count = fine_tp_counts[category_id]
+                pred_count = fine_pred_counts[category_id]
+                recall = tp_count / gt_count if gt_count else 1.0
+                fdr = (pred_count - tp_count) / pred_count if pred_count else 0.0
+                recalls.append(recall)
+                fdrs.append(fdr)
+                row[f"fine_{category_id}_tp"] = tp_count
+                row[f"fine_{category_id}_fp"] = pred_count - tp_count
+                row[f"fine_{category_id}_fn"] = gt_count - tp_count
+                row[f"fine_{category_id}_recall"] = recall
+                row[f"fine_{category_id}_fdr"] = fdr
+            coarse_macro_recall[class_name] = sum(recalls) / len(recalls)
+            coarse_macro_fdr[class_name] = sum(fdrs) / len(fdrs)
+            row[f"{class_name}_macro_recall"] = coarse_macro_recall[class_name]
+            row[f"{class_name}_macro_fdr"] = coarse_macro_fdr[class_name]
+
+        full_platform = set(("ship", "aircraft", "vehicle")) <= set(
+            coarse_macro_recall
         )
+        if full_platform:
+            from rsdet.evaluation.absolute_score import platform_confirmed_score
+
+            platform_rows = {
+                name: {
+                    "recall": coarse_macro_recall[name],
+                    "fdr": coarse_macro_fdr[name],
+                }
+                for name in ("ship", "aircraft", "vehicle")
+            }
+            gate_recall = sum(item["recall"] for item in platform_rows.values()) / 3.0
+            gate_fdr = sum(item["fdr"] for item in platform_rows.values()) / 3.0
+            row["platform_gate_recall"] = gate_recall
+            row["platform_gate_fdr"] = gate_fdr
+            row["platform_recall_pass"] = gate_recall >= protocol.recall_min
+            row["platform_fdr_pass"] = gate_fdr <= protocol.fdr_max
+            row["official_gate_passed"] = bool(
+                row["platform_recall_pass"] and row["platform_fdr_pass"]
+            )
+            score_latency = 0.0 if latency_seconds is None else float(latency_seconds)
+            score = platform_confirmed_score(platform_rows, score_latency)
+            row["platform_quality_score"] = sum(score["seven_subscores"][:6]) / 6.0
+            row["absolute_score"] = (
+                None if latency_seconds is None else float(score["total_score"])
+            )
+        else:
+            # Sub-curves remain valid fitting primitives but are never formal gates.
+            row["official_gate_passed"] = None
         for class_name in protocol.class_names:
             class_tp = tp_counts[class_name]
             class_pred = pred_counts[class_name]
@@ -728,13 +801,20 @@ def select_exploratory_workpoint(
 ) -> dict[str, Any]:
     """Select the same-OOF descriptive workpoint without deployment admission."""
 
-    feasible = [row for row in curve if float(row["overall_fdr"]) <= fdr_max]
+    if not curve:
+        raise ValueError("curve cannot be empty")
+    is_full_platform = all(
+        "platform_gate_recall" in row and "platform_gate_fdr" in row for row in curve
+    )
+    recall_key = "platform_gate_recall" if is_full_platform else "overall_recall"
+    fdr_key = "platform_gate_fdr" if is_full_platform else "overall_fdr"
+    feasible = [row for row in curve if float(row[fdr_key]) <= fdr_max]
     if feasible:
         selected = max(
             feasible,
             key=lambda row: (
-                float(row["overall_recall"]),
-                -float(row["overall_fdr"]),
+                float(row[recall_key]),
+                -float(row[fdr_key]),
                 float(row["threshold"]),
             ),
         )
@@ -743,8 +823,8 @@ def select_exploratory_workpoint(
         selected = max(
             curve,
             key=lambda row: (
-                -float(row["overall_fdr"]),
-                float(row["overall_recall"]),
+                -float(row[fdr_key]),
+                float(row[recall_key]),
                 float(row["threshold"]),
             ),
         )
@@ -755,9 +835,13 @@ def select_exploratory_workpoint(
         "same_oof_selection": True,
         "exploratory_only": True,
         "deployment_admission": False,
-        "official_gate_passed": (
-            float(selected["overall_recall"]) >= recall_min
-            and float(selected["overall_fdr"]) <= fdr_max
+        "metric_scope": (
+            "platform_observed_20260831" if is_full_platform else "diagnostic_subprotocol"
+        ),
+        "official_gate_passed": bool(
+            is_full_platform
+            and float(selected[recall_key]) >= recall_min
+            and float(selected[fdr_key]) <= fdr_max
         ),
         "metrics": dict(selected),
     }

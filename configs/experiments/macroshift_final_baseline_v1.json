@@ -1,0 +1,12 @@
+{
+  "version": "macroshift_final_baseline_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "model_family": "yolo",
+  "base_model": "Y5 full-s",
+  "fusion": "safe",
+  "tile_size": 1024,
+  "overlap": 128,
+  "global_score_threshold": 0.15,
+  "status": "frozen_baseline_waiting_for_independent_modules",
+  "full_training_admission": false
+}

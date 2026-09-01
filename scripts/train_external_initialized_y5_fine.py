@@ -36,6 +36,18 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260831)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--classification-loss",
+        choices=(
+            "bce",
+            "varifocal",
+            "hard_negative_focal",
+            "ship_vehicle_hard_negative_focal",
+        ),
+        default="bce",
+    )
+    parser.add_argument("--varifocal-alpha", type=float, default=0.75)
+    parser.add_argument("--varifocal-gamma", type=float, default=2.0)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.epochs <= 0:
@@ -106,6 +118,11 @@ def main() -> int:
         "dataset_names": normalized_names,
         "semantic_fine_order": list(FINE_NAMES),
         "head_policy": "reset entire Detect module with deterministic seed",
+        "classification_loss": {
+            "name": args.classification_loss,
+            "varifocal_alpha": args.varifocal_alpha,
+            "varifocal_gamma": args.varifocal_gamma,
+        },
         "staged_transfer": {
             "head_warmup_epochs": args.head_warmup_epochs,
             "freeze_layers": args.freeze_layers,
@@ -131,16 +148,45 @@ def main() -> int:
     source = YOLO(str(args.external_weights.resolve()))
     source_state = source.model.state_dict()
     source_model_yaml = dict(source.model.yaml)
-    trainer = external_head_transfer_trainer(
+    warmup_trainer = external_head_transfer_trainer(
         source_state,
         transfer_audit,
         expected_target_nc=len(FINE_NAMES),
         reset_seed=args.seed + 90000,
         source_model_yaml=source_model_yaml,
     )
+    foundation_trainer = None
+    if args.classification_loss in {
+        "varifocal",
+        "hard_negative_focal",
+        "ship_vehicle_hard_negative_focal",
+    }:
+        from rsdet.innovation.quality_aware_loss import quality_aware_trainer
+
+        positive_weighting = (
+            "quality" if args.classification_loss == "varifocal" else "unit"
+        )
+        focus_class_indices = (
+            (0, 1, 2, 3, 24)
+            if args.classification_loss == "ship_vehicle_hard_negative_focal"
+            else None
+        )
+        warmup_trainer = quality_aware_trainer(
+            alpha=args.varifocal_alpha,
+            gamma=args.varifocal_gamma,
+            base_trainer=warmup_trainer,
+            positive_weighting=positive_weighting,
+            focus_class_indices=focus_class_indices,
+        )
+        foundation_trainer = quality_aware_trainer(
+            alpha=args.varifocal_alpha,
+            gamma=args.varifocal_gamma,
+            positive_weighting=positive_weighting,
+            focus_class_indices=focus_class_indices,
+        )
     model = YOLO(str(args.external_weights.resolve()))
     model.train(
-        trainer=trainer,
+        trainer=warmup_trainer,
         augmentations=rotate90_augmentations(p=1.0),
         **head_warmup_args,
     )
@@ -148,10 +194,13 @@ def main() -> int:
         raise RuntimeError("head warmup completed without checkpoint or transfer audit")
     if full_finetune_epochs > 0:
         model = YOLO(str(warmup_checkpoint.resolve()))
-        model.train(
-            augmentations=rotate90_augmentations(p=1.0),
+        foundation_call = {
+            "augmentations": rotate90_augmentations(p=1.0),
             **full_finetune_args,
-        )
+        }
+        if foundation_trainer is not None:
+            foundation_call["trainer"] = foundation_trainer
+        model.train(**foundation_call)
     else:
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(warmup_checkpoint, checkpoint)

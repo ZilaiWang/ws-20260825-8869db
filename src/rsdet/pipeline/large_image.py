@@ -20,6 +20,7 @@ from rsdet.postprocess.global_aggregation import (
     global_object_manifest,
 )
 from rsdet.postprocess.safe_tile_fusion import fuse_safe_tile_predictions
+from rsdet.postprocess.thresholds import filter_prediction_by_thresholds
 from rsdet.postprocess.tile_fusion import fuse_tile_predictions
 from rsdet.tiling.slicer import generate_tiles
 
@@ -33,6 +34,7 @@ class PipelineConfig:
     batch_size: int = 16
     score_threshold: float = 0.0  # tile 路径：融合前过滤；global 路径：聚合后过滤
     score_threshold_by_coarse: Mapping[str, float] | None = None
+    score_threshold_by_fine: Mapping[int, float] | None = None
     fine_nms_iou: float = 0.55  # tile_fusion 细类内 NMS 阈值
     coarse_nms_iou: float | None = 0.85  # tile_fusion 官方粗类 NMS 阈值（None 关闭）
     max_detections: int | None = None  # 最终保留检测数上限
@@ -235,6 +237,8 @@ def run_pipeline(
             merge_iou=config.merge_iou,
             nms_iou=config.nms_iou,
             score_threshold=config.score_threshold,
+            score_threshold_by_coarse=config.score_threshold_by_coarse,
+            score_threshold_by_fine=config.score_threshold_by_fine,
             max_detections=config.max_detections,
         )
     elif config.fusion == "safe":
@@ -246,6 +250,7 @@ def run_pipeline(
             parent_image_id=parent_image_id,
             score_threshold=config.score_threshold,
             score_threshold_by_coarse=config.score_threshold_by_coarse,
+            score_threshold_by_fine=config.score_threshold_by_fine,
             merge_iou=config.merge_iou,
             merge_ios=config.merge_ios,
             fine_nms_iou=config.fine_nms_iou,
@@ -253,9 +258,19 @@ def run_pipeline(
             max_detections=config.max_detections,
         )
     else:
-        if config.score_threshold > 0.0:
+        if (
+            config.score_threshold > 0.0
+            or config.score_threshold_by_coarse is not None
+            or config.score_threshold_by_fine is not None
+        ):
             tile_predictions = [
-                _filter_low_score(p, config.score_threshold) for p in tile_predictions
+                filter_prediction_by_thresholds(
+                    prediction,
+                    global_threshold=config.score_threshold,
+                    coarse_thresholds=config.score_threshold_by_coarse,
+                    fine_thresholds=config.score_threshold_by_fine,
+                )
+                for prediction in tile_predictions
             ]
         fused = fuse_tile_predictions(
             tile_predictions,
@@ -285,6 +300,8 @@ def run_pipeline(
             merge_iou=config.merge_iou,
             nms_iou=config.nms_iou,
             score_threshold=config.score_threshold,
+            score_threshold_by_coarse=config.score_threshold_by_coarse,
+            score_threshold_by_fine=config.score_threshold_by_fine,
             max_detections=config.max_detections,
         )
         return fused, timing, objects

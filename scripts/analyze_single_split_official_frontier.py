@@ -12,9 +12,11 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from rsdet.analysis.oof_detection import build_threshold_curve
 from rsdet.evaluation.coco import load_coco_ground_truth, load_coco_predictions
 from rsdet.evaluation.official_metric import evaluate_predictions, evaluate_ranking_metrics
 from rsdet.evaluation.protocol import parse_evaluation_protocol
+from rsdet.postprocess.calibration import build_threshold_grid
 from rsdet.utils.config import load_config
 
 
@@ -65,9 +67,15 @@ def main() -> int:
     protocol = parse_evaluation_protocol(load_config(args.project_config))
     gt = load_coco_ground_truth(args.gt)
     pred = load_coco_predictions(args.pred)
-    points: list[tuple[float, dict[str, Any]]] = []
-    threshold = 0.001
-    while threshold <= 1.0 + 1e-12:
+    thresholds = build_threshold_grid(0.001, 1.0, args.step)
+    curve, trace_audit = build_threshold_curve(
+        gt,
+        pred,
+        thresholds=thresholds,
+        protocol=protocol,
+    )
+
+    def evaluate_threshold(threshold: float) -> dict[str, Any]:
         filtered = {
             image_id: [
                 row
@@ -91,26 +99,36 @@ def main() -> int:
             iou_thresholds=protocol.iou_thresholds,
             require_complete_taxonomy=True,
         )
-        points.append((threshold, _payload(metrics, ranking)))
-        threshold += args.step
+        return _payload(metrics, ranking)
+
     frontiers: dict[str, Any] = {}
     for fdr in args.fdr_levels:
-        feasible = [point for point in points if point[1]["fdr"] <= fdr]
+        feasible = [point for point in curve if float(point["overall_fdr"]) <= fdr]
+        pool = feasible or curve
         selected = max(
-            feasible,
+            pool,
             key=lambda point: (
-                point[1]["recall"],
-                -point[1]["fdr"],
-                point[0],
+                float(point["overall_recall"]),
+                -float(point["overall_fdr"]),
+                float(point["threshold"]),
             ),
         )
-        frontiers[f"{fdr:.3f}"] = {"threshold": selected[0], **selected[1]}
+        threshold = float(selected["threshold"])
+        frontiers[f"{fdr:.3f}"] = {
+            "threshold": threshold,
+            **evaluate_threshold(threshold),
+        }
+    floor_threshold = float(curve[0]["threshold"])
     result = {
         "status": "complete_diagnostic_only",
         "protocol": "single_heldout_split_oracle_frontier_not_for_threshold_selection_v1",
         "warning": "The held-out labels are used for this diagnostic frontier.",
         "threshold_grid": {"start": 0.001, "step": args.step},
-        "score_floor_metrics": {"threshold": points[0][0], **points[0][1]},
+        "score_prefix_trace_audit": trace_audit,
+        "score_floor_metrics": {
+            "threshold": floor_threshold,
+            **evaluate_threshold(floor_threshold),
+        },
         "frontiers": frontiers,
         "input_sha256": {"gt": _sha256(args.gt), "pred": _sha256(args.pred)},
     }

@@ -5,11 +5,12 @@
 必须相同；每个 GT 只匹配一次；重复框计为 FP。三大类映射只用于选择 IoU
 阈值和汇总指标，不能在匹配前消除细类。
 
-评分方案 V1.6 进一步明确了官方排名口径：三大类各自的 Recall 与 FDR =
+评分方案 V1.6 进一步明确了排名口径：三大类各自的 Recall 与 FDR =
 **大类内细类指标的简单平均**（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即
-FSC 本身），用于 7 排名二次排序；刚性门槛（Recall≥0.85 / FDR≤0.20）仍按
-三类合并 pooled 计算。因此本模块同时提供 pooled（``evaluate_predictions``）
-与官方排名（``evaluate_ranking_metrics``）两种聚合，二者共用同一匹配轨迹。
+FSC 本身）。2026-08-31 正式平台进一步确认硬门也使用三个粗类页面指标的
+算术平均，而非 pooled。本文仍同时提供 pooled（``evaluate_predictions``）与
+fine-macro（``evaluate_ranking_metrics``），平台硬门由
+``evaluation.platform_protocol`` 统一构建，二者共用同一匹配轨迹。
 """
 
 import math
