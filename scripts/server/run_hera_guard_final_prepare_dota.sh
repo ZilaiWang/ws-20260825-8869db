@@ -89,7 +89,8 @@ if [[ ! -f "${DERIVED}/train-val-sliced.json" ]]; then
     --input-coco "${DERIVED}/train-val-coarse.json" --image-root "${PREPARED}" \
     --output-coco "${DERIVED}/train-val-sliced.json" \
     --output-image-root "${DATASET}/images/train" --audit "${AUDIT}/slicing.json" \
-    --tile-size 1024 --overlap 256 --min-visibility 0.7 --empty-tiles-per-image 2
+    --tile-size 1024 --overlap 256 --min-visibility 0.7 --empty-tiles-per-image 2 \
+    --workers 16
 fi
 if [[ ! -f "${DATASET}/dataset.yaml" ]]; then
   printf '%s\n' exporting_yolo >"${STATUS}"

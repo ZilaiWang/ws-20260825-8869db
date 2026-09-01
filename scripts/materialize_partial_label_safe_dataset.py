@@ -15,6 +15,45 @@ from PIL import Image
 
 from rsdet.data.xh_dataset import FINE_NAMES
 
+VEHICLE_CLASS_ID = 24
+
+
+def _iou_xyxy(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> float:
+    x1 = max(left[0], right[0])
+    y1 = max(left[1], right[1])
+    x2 = min(left[2], right[2])
+    y2 = min(left[3], right[3])
+    intersection = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    left_area = max(0.0, left[2] - left[0]) * max(0.0, left[3] - left[1])
+    right_area = max(0.0, right[2] - right[0]) * max(0.0, right[3] - right[1])
+    union = left_area + right_area - intersection
+    return intersection / union if union > 0.0 else 0.0
+
+
+def _vehicle_boxes_from_yolo(
+    lines: list[str], width: int, height: int
+) -> list[tuple[float, float, float, float]]:
+    boxes: list[tuple[float, float, float, float]] = []
+    for line in lines:
+        fields = line.split()
+        if not fields:
+            continue
+        if len(fields) != 5:
+            raise ValueError(f"invalid YOLO label row: {line!r}")
+        class_id = int(fields[0])
+        if class_id != VEHICLE_CLASS_ID:
+            continue
+        cx, cy, box_width, box_height = (float(value) for value in fields[1:])
+        boxes.append(
+            (
+                (cx - box_width / 2.0) * width,
+                (cy - box_height / 2.0) * height,
+                (cx + box_width / 2.0) * width,
+                (cy + box_height / 2.0) * height,
+            )
+        )
+    return boxes
+
 
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -41,9 +80,17 @@ def materialize(
     held_out_fold: int | None,
     add_confirmed: bool,
     ambiguous_policy: str,
+    dedup_iou_threshold: float = 0.5,
 ) -> dict:
     if ambiguous_policy not in {"exclude_image", "keep_original"}:
         raise ValueError(f"unsupported ambiguous policy: {ambiguous_policy}")
+    if FINE_NAMES[VEHICLE_CLASS_ID] != "FSC":
+        raise ValueError(
+            "review patch contract requires class 24 to be FSC; "
+            f"actual={FINE_NAMES[VEHICLE_CLASS_ID]!r}"
+        )
+    if not 0.0 < dedup_iou_threshold <= 1.0:
+        raise ValueError("dedup_iou_threshold must be in (0, 1]")
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     samples = payload.get("samples")
     if not isinstance(samples, list) or not samples:
@@ -63,6 +110,8 @@ def materialize(
     added_by_fold: Counter[int] = Counter()
     excluded_files: list[str] = []
     skipped_confirmed = 0
+    duplicate_with_original = 0
+    duplicate_with_confirmed = 0
     selected_files: set[str] = set()
 
     for sample in sorted(samples, key=lambda row: int(row["image_id"])):
@@ -89,6 +138,8 @@ def materialize(
         if add_confirmed:
             with Image.open(source_image) as image:
                 width, height = image.size
+            original_vehicle_boxes = _vehicle_boxes_from_yolo(lines, width, height)
+            accepted_confirmed_boxes: list[tuple[float, float, float, float]] = []
             for row in confirmed_by_file.get(relative, []):
                 x1, y1, x2, y2 = (float(value) for value in row["bbox_xyxy"])
                 x1 = max(0.0, min(float(width), x1))
@@ -97,13 +148,27 @@ def materialize(
                 y2 = max(0.0, min(float(height), y2))
                 if x2 <= x1 or y2 <= y1:
                     raise ValueError(f"invalid reviewed bbox: {row['candidate_id']}")
+                reviewed_box = (x1, y1, x2, y2)
+                if any(
+                    _iou_xyxy(reviewed_box, existing) >= dedup_iou_threshold
+                    for existing in original_vehicle_boxes
+                ):
+                    duplicate_with_original += 1
+                    continue
+                if any(
+                    _iou_xyxy(reviewed_box, existing) >= dedup_iou_threshold
+                    for existing in accepted_confirmed_boxes
+                ):
+                    duplicate_with_confirmed += 1
+                    continue
                 lines.append(
-                    "24 "
+                    f"{VEHICLE_CLASS_ID} "
                     f"{(x1 + x2) / 2.0 / width:.8f} "
                     f"{(y1 + y2) / 2.0 / height:.8f} "
                     f"{(x2 - x1) / width:.8f} "
                     f"{(y2 - y1) / height:.8f}"
                 )
+                accepted_confirmed_boxes.append(reviewed_box)
                 added_by_fold[fold] += 1
         (label_dir / f"{stem}.txt").write_text(
             "\n".join(lines) + ("\n" if lines else ""), encoding="utf-8"
@@ -142,6 +207,13 @@ def materialize(
         "confirmed_box_count_in_source": len(confirmed),
         "confirmed_boxes_added": sum(added_by_fold.values()),
         "confirmed_boxes_skipped_with_excluded_images": skipped_confirmed,
+        "confirmed_boxes_deduplicated_against_original": duplicate_with_original,
+        "confirmed_boxes_deduplicated_against_confirmed": duplicate_with_confirmed,
+        "dedup_iou_threshold": dedup_iou_threshold,
+        "confirmed_class_contract": {
+            "class_id": VEHICLE_CLASS_ID,
+            "class_name": FINE_NAMES[VEHICLE_CLASS_ID],
+        },
         "confirmed_boxes_added_by_fold": dict(sorted(added_by_fold.items())),
         "manifest_sha256": _sha256(manifest),
         "confirmed_sha256": _sha256(confirmed_path),
@@ -167,6 +239,7 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--held-out-fold", type=int, choices=(0, 1, 2))
     parser.add_argument("--confirmed-policy", choices=("add", "omit"), default="add")
+    parser.add_argument("--dedup-iou-threshold", type=float, default=0.5)
     parser.add_argument(
         "--ambiguous-policy",
         choices=("exclude_image", "keep_original"),
@@ -182,6 +255,7 @@ def main() -> int:
         held_out_fold=args.held_out_fold,
         add_confirmed=args.confirmed_policy == "add",
         ambiguous_policy=args.ambiguous_policy,
+        dedup_iou_threshold=args.dedup_iou_threshold,
     )
     print(json.dumps(audit, ensure_ascii=False, indent=2))
     return 0

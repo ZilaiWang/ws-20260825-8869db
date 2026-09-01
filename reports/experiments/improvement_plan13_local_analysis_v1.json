@@ -1,0 +1,169 @@
+{
+  "status": "complete_local_audit",
+  "date": "2026-09-01",
+  "official_anchor": {
+    "submission_id": 3358,
+    "score": 72.1331,
+    "latency_seconds": 2.473167,
+    "per_coarse": {
+      "ship": {
+        "macro_recall": 0.874969,
+        "macro_fdr": 0.320177,
+        "pooled_tp": 466,
+        "pooled_fp": 94,
+        "pooled_fn": 154
+      },
+      "aircraft": {
+        "macro_recall": 0.967641,
+        "macro_fdr": 0.064691,
+        "pooled_tp": 4800,
+        "pooled_fp": 290,
+        "pooled_fn": 142
+      },
+      "vehicle": {
+        "macro_recall": 0.852632,
+        "macro_fdr": 0.325,
+        "pooled_tp": 81,
+        "pooled_fp": 39,
+        "pooled_fn": 14
+      }
+    },
+    "hard_gates": {
+      "macro_coarse_recall": 0.898414,
+      "macro_coarse_fdr": 0.23662266666666665,
+      "recall_pass": true,
+      "fdr_pass": false,
+      "latency_pass": true
+    },
+    "pooled_diagnostic": {
+      "recall": 0.9452006363797066,
+      "fdr": 0.0733102253032929
+    }
+  },
+  "local_oof_input": {
+    "source": "outputs/HERA-GUARD-V4-DFINE-VEHICLE-CV3-20260831/fold_{0,1,2}",
+    "images": 4481,
+    "ground_truth_objects": 20933,
+    "low_floor_predictions": 65301,
+    "images_without_annotations": 0,
+    "threshold": 0.15,
+    "latency_seconds_for_score_comparison": 2.473167
+  },
+  "local_oof_baseline": {
+    "platform_proxy_score": 62.67967210770779,
+    "fine25_macro_recall": 0.8639624687649997,
+    "fine25_macro_fdr": 0.16064145812822375,
+    "hard_gates": {
+      "macro_coarse_recall": 0.7249836637140871,
+      "macro_coarse_fdr": 0.26198495389688453,
+      "recall_pass": false,
+      "fdr_pass": false
+    },
+    "per_coarse": {
+      "ship": {
+        "macro_recall": 0.7159177794924647,
+        "macro_fdr": 0.318093216192097,
+        "pooled_recall": 0.8452647278150633,
+        "pooled_fdr": 0.2754873761585171,
+        "tp": 2267,
+        "fp": 862,
+        "fn": 415
+      },
+      "aircraft": {
+        "macro_recall": 0.909281967868702,
+        "macro_fdr": 0.11977904962834995,
+        "pooled_recall": 0.9309765252955348,
+        "pooled_fdr": 0.10598805616828967,
+        "tp": 16617,
+        "fp": 1970,
+        "fn": 1232
+      },
+      "vehicle": {
+        "macro_recall": 0.5497512437810945,
+        "macro_fdr": 0.3480825958702065,
+        "pooled_recall": 0.5497512437810945,
+        "pooled_fdr": 0.3480825958702065,
+        "tp": 221,
+        "fp": 118,
+        "fn": 181
+      }
+    }
+  },
+  "error_decomposition_at_0p15": {
+    "ship": {
+      "FP_DUP": 166,
+      "FP_CLS": 83,
+      "FP_LOC": 37,
+      "FP_BG": 576,
+      "FN_CLS": 83,
+      "FN_LOC": 37,
+      "FN_MISS": 295
+    },
+    "aircraft": {
+      "FP_DUP": 147,
+      "FP_CLS": 868,
+      "FP_LOC": 4,
+      "FP_BG": 951,
+      "FN_CLS": 868,
+      "FN_LOC": 4,
+      "FN_MISS": 360
+    },
+    "vehicle": {
+      "FP_DUP": 7,
+      "FP_CLS": 0,
+      "FP_LOC": 9,
+      "FP_BG": 102,
+      "FN_CLS": 0,
+      "FN_LOC": 9,
+      "FN_MISS": 172
+    }
+  },
+  "fine_threshold_crossfit": {
+    "score_first": {
+      "score": 65.96204391407507,
+      "macro_coarse_recall": 0.5934368000232811,
+      "macro_coarse_fdr": 0.12215688859305047,
+      "recall_pass": false,
+      "fdr_pass": true,
+      "decision": "reject_recall_collapse"
+    },
+    "train_recall_floor_minus_0p5pp": {
+      "score": 62.170651910522096,
+      "macro_coarse_recall": 0.6978930551796522,
+      "macro_coarse_fdr": 0.2640481307200498,
+      "recall_pass": false,
+      "fdr_pass": false,
+      "decision": "reject_no_crossfold_gain"
+    },
+    "overall_decision": "macro_risk_requires_hierarchical_shrinkage_group_bootstrap_and_deployment_parity_before_submission"
+  },
+  "score_scenarios": {
+    "official": 72.13307971428571,
+    "fdr_gate_edge": 73.31354757142857,
+    "ship_0p92_0p18_vehicle_0p90_0p18": 79.4227951904762,
+    "ship_vehicle_0p96_0p15": 84.94660471428571
+  },
+  "dfine_evidence_correction": {
+    "invalid_old_claim": "+22TP/+6FP due overwritten baseline",
+    "strict_crossfit_risk_0p15": "+7TP/+1FP",
+    "strict_crossfit_risk_0p20": "+11TP/+2FP",
+    "credible_vehicle_recall_gain_range_pp": [
+      1.7,
+      2.7
+    ],
+    "full_agreement_hard_vehicle_recall_delta_pp": -9.239,
+    "full_agreement_sentinel_vehicle_recall_delta_pp": -8.025,
+    "decision": "test_asymmetric_reject_rescue_only"
+  },
+  "next_action": [
+    "migrate_all_formal_consumers_to_platform_observed_20260831",
+    "implement_score_threshold_by_fine_with_docker_parity",
+    "implement_shrunk_group_robust_macro_risk_v2",
+    "run_vehicle_reject_rescue_offline_replay_then_selective_tile_latency",
+    "review_stratified_ship_fp_bg_fn_miss_and_cls_cases",
+    "freeze_background_100mp_and_sentinel_b",
+    "train_only_the_ship_module_selected_by_error_review",
+    "combine_only_independently_admitted_modules"
+  ],
+  "official_submission_authorized": false
+}

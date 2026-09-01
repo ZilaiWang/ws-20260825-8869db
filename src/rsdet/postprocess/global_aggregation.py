@@ -34,7 +34,7 @@ import logging
 import math
 import time
 from collections import defaultdict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from numbers import Integral
 from typing import Any, Dict, List, Tuple
@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 
 from rsdet.contracts import InferenceSample, Prediction, TileRecord
+from rsdet.postprocess.thresholds import effective_threshold, normalize_fine_thresholds
 from rsdet.tiling.coordinates import clip_bbox, tile_to_full, xywh_to_xyxy
 
 logger = logging.getLogger(__name__)
@@ -394,6 +395,8 @@ def _aggregate_objects(
     merge_iou: float,
     nms_iou: float,
     score_threshold: float,
+    score_threshold_by_coarse: Mapping[str, float] | None,
+    score_threshold_by_fine: Mapping[int | str, float] | None,
     max_detections: int | None,
 ) -> List[Dict[str, Any]]:
     """聚合 + 按分值过滤 + 排序 + 截断，返回对象 dict 列表。"""
@@ -403,8 +406,18 @@ def _aggregate_objects(
         merge_iou=merge_iou,
         nms_iou=nms_iou,
     )
-    if score_threshold > 0.0:
-        objects = [o for o in objects if o["score"] >= score_threshold]
+    fine_thresholds = normalize_fine_thresholds(score_threshold_by_fine)
+    objects = [
+        o
+        for o in objects
+        if o["score"]
+        >= effective_threshold(
+            int(o["category_id"]),
+            global_threshold=score_threshold,
+            coarse_thresholds=score_threshold_by_coarse,
+            fine_thresholds=fine_thresholds,
+        )
+    ]
     objects.sort(key=lambda o: (-o["score"], o["category_id"], o["x"], o["y"]))
     if max_detections is not None:
         objects = objects[: int(max_detections)]
@@ -422,6 +435,8 @@ def fuse_global_predictions(
     merge_iou: float = 0.3,
     nms_iou: float = 0.5,
     score_threshold: float = 0.0,
+    score_threshold_by_coarse: Mapping[str, float] | None = None,
+    score_threshold_by_fine: Mapping[int | str, float] | None = None,
     max_detections: int | None = None,
 ) -> Prediction:
     """全局对象重构融合：把各 tile 预测在整图坐标下聚合为对象。
@@ -467,6 +482,8 @@ def fuse_global_predictions(
         merge_iou=merge_iou,
         nms_iou=nms_iou,
         score_threshold=score_threshold,
+        score_threshold_by_coarse=score_threshold_by_coarse,
+        score_threshold_by_fine=score_threshold_by_fine,
         max_detections=max_detections,
     )
 
@@ -520,6 +537,8 @@ def global_object_manifest(
     merge_iou: float = 0.3,
     nms_iou: float = 0.5,
     score_threshold: float = 0.0,
+    score_threshold_by_coarse: Mapping[str, float] | None = None,
+    score_threshold_by_fine: Mapping[int | str, float] | None = None,
     max_detections: int | None = None,
 ) -> List[GlobalObject]:
     """主线 2 输出契约：聚合后每对象一个 ``GlobalObject``，可溯源、带证据。
@@ -547,6 +566,8 @@ def global_object_manifest(
         merge_iou=merge_iou,
         nms_iou=nms_iou,
         score_threshold=score_threshold,
+        score_threshold_by_coarse=score_threshold_by_coarse,
+        score_threshold_by_fine=score_threshold_by_fine,
         max_detections=max_detections,
     )
     return [

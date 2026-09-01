@@ -101,6 +101,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument(
+        "--score-transform",
+        choices=("coarse_purity_sqrt",),
+        help=(
+            "experimental fixed raw-logit transform; it is implemented for "
+            "reproducibility but has not passed the formal admission gate"
+        ),
+    )
+    parser.add_argument(
         "--coarse-label-space",
         action="store_true",
         help="map detector labels ship/aircraft/vehicle from 0/1/2 to 0/4/24 placeholders",
@@ -158,6 +166,7 @@ def main() -> int:
             agnostic_nms=False,
             label_map={0: 0, 1: 4, 2: 24} if args.coarse_label_space else None,
             agreement=agreement,
+            score_transform=args.score_transform,
         )
         detector.load(str(weight))
         detector.to(args.device)
@@ -251,6 +260,7 @@ def main() -> int:
         "family": args.family,
         "score_floor": args.score_floor,
         "coarse_label_space": bool(args.coarse_label_space),
+        "score_transform": args.score_transform,
         "pipeline": vars(pipeline),
         "selected_folds": selected_folds,
         "predictions": len(all_predictions),

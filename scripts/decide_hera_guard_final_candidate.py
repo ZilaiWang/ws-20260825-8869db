@@ -6,7 +6,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from rsdet.evaluation.absolute_score import competition_score, score_coarse_interpretations
 
 
 def _sha256(path: Path) -> str:
@@ -20,18 +25,19 @@ def _load(path: Path) -> dict:
     return payload
 
 
-def _row(payload: dict, level: str) -> dict:
+def _row(payload: dict, level: str, selection_mode: str) -> dict:
+    if selection_mode == "absolute_score":
+        try:
+            return payload["absolute_score_crossfit"]["crossfit"]
+        except (KeyError, TypeError) as error:
+            raise ValueError("frontier lacks absolute-score crossfit result") from error
     try:
         return payload["frontiers"][level]["crossfit"]
     except KeyError as error:
         raise ValueError(f"frontier lacks FDR level {level}") from error
 
 
-def _compare(base_path: Path, candidate_path: Path, level: str) -> dict:
-    base_payload = _load(base_path)
-    candidate_payload = _load(candidate_path)
-    base = _row(base_payload, level)
-    candidate = _row(candidate_payload, level)
+def _compare_rows(base: dict, candidate: dict, base_path: Path, candidate_path: Path) -> dict:
     per_coarse = {}
     for coarse in ("ship", "aircraft", "vehicle"):
         before = base["per_coarse"][coarse]
@@ -44,6 +50,29 @@ def _compare(base_path: Path, candidate_path: Path, level: str) -> dict:
             "candidate_fdr": float(after["fdr"]),
             "delta_fdr": float(after["fdr"] - before["fdr"]),
         }
+    base_score = competition_score(float(base["recall"]), float(base["fdr"]), 0.0)
+    candidate_score = competition_score(
+        float(candidate["recall"]), float(candidate["fdr"]), 0.0
+    )
+    base_interpretations = score_coarse_interpretations(base["per_coarse"], 0.0)
+    candidate_interpretations = score_coarse_interpretations(
+        candidate["per_coarse"], 0.0
+    )
+    interpretation_deltas = {
+        "macro_raw_then_score": (
+            candidate_interpretations["macro_raw_then_score"]["total_score"]
+            - base_interpretations["macro_raw_then_score"]["total_score"]
+        ),
+        "mean_per_coarse_score": (
+            candidate_interpretations["mean_per_coarse_score"]["total_score"]
+            - base_interpretations["mean_per_coarse_score"]["total_score"]
+        ),
+    }
+    if "pooled_counts" in base_interpretations and "pooled_counts" in candidate_interpretations:
+        interpretation_deltas["pooled_counts"] = (
+            candidate_interpretations["pooled_counts"]["total_score"]
+            - base_interpretations["pooled_counts"]["total_score"]
+        )
     return {
         "base_frontier": str(base_path.resolve()),
         "candidate_frontier": str(candidate_path.resolve()),
@@ -58,8 +87,53 @@ def _compare(base_path: Path, candidate_path: Path, level: str) -> dict:
         "base_macro_recall": float(base["macro_recall"]),
         "candidate_macro_recall": float(candidate["macro_recall"]),
         "delta_macro_recall": float(candidate["macro_recall"] - base["macro_recall"]),
+        "absolute_score_equal_latency": {
+            "base": base_score["total_score"],
+            "candidate": candidate_score["total_score"],
+            "delta": candidate_score["total_score"] - base_score["total_score"],
+            "note": "pooled Recall/FDR interpretation; latency fixed and cancels",
+        },
+        "absolute_score_aggregation_interpretations": {
+            "base": base_interpretations,
+            "candidate": candidate_interpretations,
+            "deltas": interpretation_deltas,
+            "worst_case_delta": min(interpretation_deltas.values()),
+            "note": "latency is held equal, so its additive contribution cancels",
+        },
         "per_coarse": per_coarse,
     }
+
+
+def _compare(
+    base_path: Path, candidate_path: Path, level: str, selection_mode: str
+) -> dict:
+    base_payload = _load(base_path)
+    candidate_payload = _load(candidate_path)
+    return _compare_rows(
+        _row(base_payload, level, selection_mode),
+        _row(candidate_payload, level, selection_mode),
+        base_path,
+        candidate_path,
+    )
+
+
+def _load_frozen(path: Path) -> dict:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("status") != "complete" or "metrics" not in payload:
+        raise ValueError(f"frozen-threshold evaluation is not complete: {path}")
+    metrics = payload["metrics"]
+    return {
+        "recall": float(metrics["recall"]),
+        "fdr": float(metrics["fdr"]),
+        "macro_recall": float(metrics["macro_recall"]),
+        "per_coarse": metrics["per_coarse"],
+    }
+
+
+def _compare_frozen(base_path: Path, candidate_path: Path) -> dict:
+    return _compare_rows(
+        _load_frozen(base_path), _load_frozen(candidate_path), base_path, candidate_path
+    )
 
 
 def main() -> int:
@@ -67,17 +141,30 @@ def main() -> int:
     for condition in ("normal", "hard", "sentinel"):
         parser.add_argument(f"--{condition}-base", type=Path, required=True)
         parser.add_argument(f"--{condition}-candidate", type=Path, required=True)
+    parser.add_argument("--sentinel-base-frozen", type=Path)
+    parser.add_argument("--sentinel-candidate-frozen", type=Path)
     parser.add_argument("--fdr-level", default="0.150")
+    parser.add_argument(
+        "--selection-mode", choices=("fdr_level", "absolute_score"), default="fdr_level"
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if (args.sentinel_base_frozen is None) != (args.sentinel_candidate_frozen is None):
+        parser.error("provide both frozen Sentinel evaluations, or neither")
     comparisons = {
         condition: _compare(
             getattr(args, f"{condition}_base"),
             getattr(args, f"{condition}_candidate"),
             args.fdr_level,
+            args.selection_mode,
         )
         for condition in ("normal", "hard", "sentinel")
     }
+    sentinel_thresholds_frozen_from_hard = args.sentinel_base_frozen is not None
+    if sentinel_thresholds_frozen_from_hard:
+        comparisons["sentinel"] = _compare_frozen(
+            args.sentinel_base_frozen, args.sentinel_candidate_frozen
+        )
     normal = comparisons["normal"]
     hard = comparisons["hard"]
     sentinel = comparisons["sentinel"]
@@ -96,18 +183,34 @@ def main() -> int:
         and sentinel["per_coarse"][coarse]["delta_recall"] >= 0.0
         for coarse in ("ship", "vehicle")
     )
-    admitted = normal_floor and all_coarse_guard and risk_guard and primary_gain
+    absolute_score_guard = (
+        hard["absolute_score_aggregation_interpretations"]["worst_case_delta"] >= 0.0
+        and sentinel["absolute_score_aggregation_interpretations"]["worst_case_delta"]
+        >= 0.0
+    )
+    admitted = (
+        normal_floor
+        and all_coarse_guard
+        and risk_guard
+        and primary_gain
+        and absolute_score_guard
+    )
     payload = {
         "status": "complete",
-        "protocol": "hera_guard_final_three_benchmark_frozen_candidate_gate_v1",
+        "protocol": "hera_guard_final_three_benchmark_frozen_candidate_gate_v4",
         "fdr_level": args.fdr_level,
-        "threshold_tuning_on_hard_or_sentinel": False,
+        "selection_mode": args.selection_mode,
+        "sentinel_thresholds_frozen_from_hard": sentinel_thresholds_frozen_from_hard,
+        "threshold_tuning_on_sentinel": not sentinel_thresholds_frozen_from_hard,
         "comparisons": comparisons,
         "gates": {
             "normal_recall_and_macro_floor_minus_0p3pp": normal_floor,
             "all_coarse_recall_floor_minus_0p5pp": all_coarse_guard,
             "fdr_worsening_at_most_1pp": risk_guard,
             "hard_primary_gain_0p5pp_and_sentinel_same_direction": primary_gain,
+            "hard_and_frozen_sentinel_all_score_interpretations_non_decrease": (
+                absolute_score_guard
+            ),
         },
         "decision": {
             "formal_cv3_expansion_admission": admitted,

@@ -30,6 +30,7 @@ def main() -> int:
     parser.add_argument("--overlap", type=int, default=256)
     parser.add_argument("--min-visibility", type=float, default=0.7)
     parser.add_argument("--empty-tiles-per-image", type=int, default=2)
+    parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
     payload = json.loads(args.input_coco.read_text(encoding="utf-8"))
     output, audit = slice_coco(
@@ -40,6 +41,7 @@ def main() -> int:
         overlap=args.overlap,
         min_visibility=args.min_visibility,
         empty_tiles_per_image=args.empty_tiles_per_image,
+        workers=args.workers,
     )
     args.output_coco.parent.mkdir(parents=True, exist_ok=True)
     args.output_coco.write_text(

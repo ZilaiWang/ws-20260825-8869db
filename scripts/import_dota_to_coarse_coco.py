@@ -27,6 +27,15 @@ def main() -> int:
     parser.add_argument("--audit", type=Path, required=True)
     parser.add_argument("--keep-difficult", action="store_true")
     parser.add_argument(
+        "--difficult-policy",
+        choices=("drop", "keep_primary", "keep_all_mapped"),
+        default="drop",
+        help=(
+            "drop all difficult objects, keep only difficult compact primary objects, "
+            "or keep every difficult object that maps to a foreground coarse class"
+        ),
+    )
+    parser.add_argument(
         "--allow-label-superset",
         action="store_true",
         help="Allow a full label directory with only a downloaded image subset.",
@@ -36,6 +45,7 @@ def main() -> int:
         args.image_root,
         args.label_root,
         keep_difficult=args.keep_difficult,
+        difficult_policy=args.difficult_policy,
         require_exact_stem_set=not args.allow_label_superset,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)

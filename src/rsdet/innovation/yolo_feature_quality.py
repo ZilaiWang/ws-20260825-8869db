@@ -177,9 +177,18 @@ class MultiScaleROIFeatureEncoder(nn.Module):
         for feature, stride, projection in zip(
             feature_maps, self.strides, self.projections, strict=True
         ):
+            # Ultralytics inference hooks expose AMP feature maps (usually FP16),
+            # while proposal geometry and the trained adapter remain FP32.
+            # torchvision ROIAlign requires its feature map and ROI tensor to use
+            # the same dtype.  Pool in the feature dtype, then restore the
+            # projection dtype so inference matches the FP32 adapter contract.
+            level_boxes = boxes_with_batch.to(device=feature.device, dtype=feature.dtype)
+            level_context_boxes = context_boxes.to(
+                device=feature.device, dtype=feature.dtype
+            )
             core = roi_align(
                 feature,
-                boxes_with_batch,
+                level_boxes,
                 output_size=self.output_size,
                 spatial_scale=1.0 / stride,
                 sampling_ratio=2,
@@ -187,7 +196,7 @@ class MultiScaleROIFeatureEncoder(nn.Module):
             ).mean(dim=(2, 3))
             context = roi_align(
                 feature,
-                context_boxes,
+                level_context_boxes,
                 output_size=self.output_size,
                 spatial_scale=1.0 / stride,
                 sampling_ratio=2,
@@ -195,7 +204,9 @@ class MultiScaleROIFeatureEncoder(nn.Module):
             ).mean(dim=(2, 3))
             # Context-minus-core is a detector-feature analogue of a ring crop,
             # without running another image backbone per proposal.
-            outputs.append(projection(torch.cat((core, context - core), dim=1)))
+            projection_dtype = projection[0].weight.dtype
+            evidence = torch.cat((core, context - core), dim=1).to(projection_dtype)
+            outputs.append(projection(evidence))
         return torch.cat(outputs, dim=1)
 
 

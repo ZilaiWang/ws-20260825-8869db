@@ -31,3 +31,19 @@ def test_admission_payload_supports_custom_fdr_grid() -> None:
 def test_admission_payload_rejects_empty_grid() -> None:
     with pytest.raises(ValueError, match="at least one"):
         MODULE._admission_payload({}, [])
+
+
+def test_absolute_score_selector_uses_constraints_and_published_objective() -> None:
+    points = [
+        {"threshold": 0.1, "overall_recall": 0.95, "overall_fdr": 0.25},
+        {"threshold": 0.2, "overall_recall": 0.90, "overall_fdr": 0.17},
+        {"threshold": 0.3, "overall_recall": 0.88, "overall_fdr": 0.10},
+    ]
+    selected = MODULE._select_absolute_score_threshold(
+        points,
+        latency_seconds=3.0,
+        minimum_recall=0.87,
+        maximum_fdr=0.18,
+    )
+    assert selected["constraint_feasible"] is True
+    assert selected["threshold"] == pytest.approx(0.3)

@@ -1,0 +1,12 @@
+{
+  "version": "macroshift_vehicle_rescue_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "candidate_floor": 0.001,
+  "core_threshold_grid": [0.15, 0.18, 0.2, 0.22, 0.25],
+  "support_iou": 0.35,
+  "rescue_product_threshold_grid": [0.03, 0.04, 0.05, 0.059, 0.07],
+  "selection": "outer_cv3_train_folds_only",
+  "deployment": "selective_tiles_only",
+  "geometry_source": "primary_only",
+  "fine_label_source": "primary_only"
+}

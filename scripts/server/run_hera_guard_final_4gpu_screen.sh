@@ -31,10 +31,12 @@ export PYTHONPATH="${REPO}/src${PYTHONPATH:+:${PYTHONPATH}}"
 printf '%s  %s\n' "${Y5_INITIAL_SHA256}" "${Y5_INITIAL}" | sha256sum -c -
 printf '%s  %s\n' "${BASE_SHA_0}" "${BASE_WEIGHT_0}" | sha256sum -c -
 printf '%s  %s\n' "${BASE_SHA_2}" "${BASE_WEIGHT_2}" | sha256sum -c -
-[[ "$(nvidia-smi --query-gpu=index --format=csv,noheader | wc -l | tr -d ' ')" -ge 4 ]] || {
-  printf '%s\n' blocked_requires_four_gpus >"${STATUS}"
+GPU_COUNT="$(nvidia-smi --query-gpu=index --format=csv,noheader | wc -l | tr -d ' ')"
+[[ "${GPU_COUNT}" -ge 3 ]] || {
+  printf '%s\n' blocked_requires_three_gpus >"${STATUS}"
   exit 2
 }
+printf '%s\n' "${GPU_COUNT}" >"${OUT}/visible_gpu_count.txt"
 
 sha256sum \
   scripts/train_external_y5_coarse.py \
@@ -107,36 +109,35 @@ printf '%s\n' stage1_external_pretrain_and_had >"${STATUS}"
       --epochs 80 --imgsz 1024 --batch 12 --workers 8 --seed 20260831 --device 0
   fi
 ) >"${OUT}/stage1-ext-v.log" 2>&1 & p1=$!
-(
-  for mode in branch_only terminal_fpn; do
-    run="${OUT}/had/fold0-${mode}"
-    if guard_new_run "${run}" training_result.json adapter_last.pt; then
-      CUDA_VISIBLE_DEVICES=2 "${PYTHON_BIN}" scripts/train_in_model_dfine_agreement.py \
-        --teacher-cache "${TEACHER_CACHE}" --split-manifest "${CV3_MANIFEST}" \
-        --data-root "${DATA_ROOT}" --base-checkpoint "${BASE_WEIGHT_0}" \
-        --expected-base-sha256 "${BASE_SHA_0}" --output-dir "${run}" \
-        --held-out-fold 0 --mode "${mode}" --epochs 8 --imgsz 1024 \
-        --max-proposals-per-image 64 --projection-dim 64 --hidden-dim 128 \
-        --seed 20260831 --device cuda:0
-    fi
-  done
-) >"${OUT}/stage1-had-fold0.log" 2>&1 & p2=$!
-(
-  for mode in branch_only terminal_fpn; do
-    run="${OUT}/had/fold2-${mode}"
-    if guard_new_run "${run}" training_result.json adapter_last.pt; then
-      CUDA_VISIBLE_DEVICES=3 "${PYTHON_BIN}" scripts/train_in_model_dfine_agreement.py \
-        --teacher-cache "${TEACHER_CACHE}" --split-manifest "${CV3_MANIFEST}" \
-        --data-root "${DATA_ROOT}" --base-checkpoint "${BASE_WEIGHT_2}" \
-        --expected-base-sha256 "${BASE_SHA_2}" --output-dir "${run}" \
-        --held-out-fold 2 --mode "${mode}" --epochs 8 --imgsz 1024 \
-        --max-proposals-per-image 64 --projection-dim 64 --hidden-dim 128 \
-        --seed 20260831 --device cuda:0
-    fi
-  done
-) >"${OUT}/stage1-had-fold2.log" 2>&1 & p3=$!
+run_had_fold() {
+  local fold=$1 gpu=$2 base_weight=$3 base_sha=$4 log=$5
+  (
+    for mode in branch_only terminal_fpn; do
+      run="${OUT}/had/fold${fold}-${mode}"
+      if guard_new_run "${run}" training_result.json adapter_last.pt; then
+        CUDA_VISIBLE_DEVICES="${gpu}" "${PYTHON_BIN}" scripts/train_in_model_dfine_agreement.py \
+          --teacher-cache "${TEACHER_CACHE}" --split-manifest "${CV3_MANIFEST}" \
+          --data-root "${DATA_ROOT}" --base-checkpoint "${base_weight}" \
+          --expected-base-sha256 "${base_sha}" --output-dir "${run}" \
+          --held-out-fold "${fold}" --mode "${mode}" --epochs 8 --imgsz 1024 \
+          --max-proposals-per-image 64 --projection-dim 64 --hidden-dim 128 \
+          --seed 20260831 --device cuda:0
+      fi
+    done
+  ) >"${log}" 2>&1
+}
+if [[ "${GPU_COUNT}" -ge 4 ]]; then
+  run_had_fold 0 2 "${BASE_WEIGHT_0}" "${BASE_SHA_0}" "${OUT}/stage1-had-fold0.log" & p2=$!
+  run_had_fold 2 3 "${BASE_WEIGHT_2}" "${BASE_SHA_2}" "${OUT}/stage1-had-fold2.log" & p3=$!
+else
+  (
+    run_had_fold 0 2 "${BASE_WEIGHT_0}" "${BASE_SHA_0}" "${OUT}/stage1-had-fold0.log"
+    run_had_fold 2 2 "${BASE_WEIGHT_2}" "${BASE_SHA_2}" "${OUT}/stage1-had-fold2.log"
+  ) & p2=$!
+  p3=""
+fi
 failure=0
-for pid in "$p0" "$p1" "$p2" "$p3"; do wait "$pid" || failure=1; done
+for pid in "$p0" "$p1" "$p2" ${p3:+"$p3"}; do wait "$pid" || failure=1; done
 [[ "$failure" = 0 ]] || exit 4
 
 printf '%s\n' stage2_paired_fine_transfer >"${STATUS}"
@@ -164,28 +165,40 @@ EXT_V_SHA=$(sha256sum "${EXT_V_WEIGHT}" | awk '{print $1}')
       --imgsz 1024 --batch 12 --workers 8 --seed 20260831 --device 0
   fi
 ) >"${OUT}/stage2-ext-v.log" 2>&1 & p1=$!
-(
+run_control_patch() {
+  local gpu=$1
   run="${OUT}/fine/control-patch-fold0"
   if guard_new_run "${run}" training_result.json runs/foundation/weights/last.pt; then
-    CUDA_VISIBLE_DEVICES=2 "${PYTHON_BIN}" scripts/train_external_initialized_y5_fine.py \
+    CUDA_VISIBLE_DEVICES="${gpu}" "${PYTHON_BIN}" scripts/train_external_initialized_y5_fine.py \
       --dataset "${OUT}/datasets/fold0-patch/dataset.yaml" \
       --external-weights "${Y5_INITIAL}" --expected-weight-sha256 "${Y5_INITIAL_SHA256}" \
       --output-dir "${run}" --epochs 40 --head-warmup-epochs 8 --freeze-layers 10 \
       --imgsz 1024 --batch 12 --workers 8 --seed 20260831 --device 0
   fi
-) >"${OUT}/stage2-control-patch.log" 2>&1 & p2=$!
-(
+}
+run_control_omit() {
+  local gpu=$1
   run="${OUT}/fine/control-omit-fold0"
   if guard_new_run "${run}" training_result.json runs/foundation/weights/last.pt; then
-    CUDA_VISIBLE_DEVICES=3 "${PYTHON_BIN}" scripts/train_external_initialized_y5_fine.py \
+    CUDA_VISIBLE_DEVICES="${gpu}" "${PYTHON_BIN}" scripts/train_external_initialized_y5_fine.py \
       --dataset "${OUT}/datasets/fold0-control/dataset.yaml" \
       --external-weights "${Y5_INITIAL}" --expected-weight-sha256 "${Y5_INITIAL_SHA256}" \
       --output-dir "${run}" --epochs 40 --head-warmup-epochs 8 --freeze-layers 10 \
       --imgsz 1024 --batch 12 --workers 8 --seed 20260831 --device 0
   fi
-) >"${OUT}/stage2-control-omit.log" 2>&1 & p3=$!
+}
+if [[ "${GPU_COUNT}" -ge 4 ]]; then
+  run_control_patch 2 >"${OUT}/stage2-control-patch.log" 2>&1 & p2=$!
+  run_control_omit 3 >"${OUT}/stage2-control-omit.log" 2>&1 & p3=$!
+else
+  (
+    run_control_patch 2 >"${OUT}/stage2-control-patch.log" 2>&1
+    run_control_omit 2 >"${OUT}/stage2-control-omit.log" 2>&1
+  ) & p2=$!
+  p3=""
+fi
 failure=0
-for pid in "$p0" "$p1" "$p2" "$p3"; do wait "$pid" || failure=1; done
+for pid in "$p0" "$p1" "$p2" ${p3:+"$p3"}; do wait "$pid" || failure=1; done
 [[ "$failure" = 0 ]] || exit 5
 
 find "${OUT}" -type f \( -name training_result.json -o -name dataset_audit.json \) -print0 | sort -z | xargs -0 sha256sum >"${OUT}/RESULT_SHA256.txt"

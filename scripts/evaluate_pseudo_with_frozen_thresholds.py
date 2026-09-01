@@ -37,12 +37,26 @@ def thresholds_from_frontier(frontier: dict[str, Any], fdr_level: float) -> dict
     return thresholds
 
 
+def absolute_score_thresholds_from_frontier(frontier: dict[str, Any]) -> dict[int, float]:
+    try:
+        raw = frontier["absolute_score_crossfit"]["crossfit_thresholds"]
+    except (KeyError, TypeError) as error:
+        raise ValueError("source frontier lacks absolute-score crossfit thresholds") from error
+    thresholds = {int(fold): float(value) for fold, value in raw.items()}
+    if set(thresholds) != {0, 1, 2}:
+        raise ValueError("source frontier must provide folds 0,1,2")
+    return thresholds
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gt", type=Path, required=True)
     parser.add_argument("--pred", type=Path, required=True)
     parser.add_argument("--source-frontier", type=Path, required=True)
-    parser.add_argument("--fdr-level", type=float, required=True)
+    parser.add_argument("--fdr-level", type=float)
+    parser.add_argument(
+        "--selection-mode", choices=("fdr_level", "absolute_score"), default="fdr_level"
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     args = parser.parse_args()
@@ -52,7 +66,12 @@ def main() -> int:
     if set(fold_by_image.values()) != {0, 1, 2}:
         raise ValueError("target ground truth must contain folds 0,1,2")
     source = json.loads(args.source_frontier.read_text(encoding="utf-8"))
-    thresholds = thresholds_from_frontier(source, args.fdr_level)
+    if args.selection_mode == "fdr_level":
+        if args.fdr_level is None:
+            parser.error("--fdr-level is required with --selection-mode=fdr_level")
+        thresholds = thresholds_from_frontier(source, args.fdr_level)
+    else:
+        thresholds = absolute_score_thresholds_from_frontier(source)
     protocol = parse_evaluation_protocol(load_config(args.project_config))
     gt = load_coco_ground_truth(args.gt)
     pred = load_coco_predictions(args.pred)
@@ -81,7 +100,8 @@ def main() -> int:
     )
     payload = {
         "status": "complete",
-        "protocol": "source_frontier_thresholds_frozen_target_pseudo10k_v1",
+        "protocol": "source_frontier_thresholds_frozen_target_pseudo10k_v2",
+        "selection_mode": args.selection_mode,
         "source_fdr_level": args.fdr_level,
         "thresholds": {str(key): value for key, value in thresholds.items()},
         "metrics": {

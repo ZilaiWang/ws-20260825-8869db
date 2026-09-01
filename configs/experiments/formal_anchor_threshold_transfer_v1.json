@@ -1,0 +1,19 @@
+{
+  "schema_version": "formal_anchor_threshold_transfer_v1",
+  "rationale": "Finite risk-control policies fixed after Attempt 1; this is not a threshold grid.",
+  "policies": [
+    {"name": "identity_015", "ship": 0.15, "aircraft": 0.15, "vehicle": 0.15},
+    {"name": "vehicle_018", "ship": 0.15, "aircraft": 0.15, "vehicle": 0.18},
+    {"name": "vehicle_020", "ship": 0.15, "aircraft": 0.15, "vehicle": 0.20},
+    {"name": "vehicle_022", "ship": 0.15, "aircraft": 0.15, "vehicle": 0.22},
+    {"name": "ship018_vehicle020", "ship": 0.18, "aircraft": 0.15, "vehicle": 0.20},
+    {"name": "ship018_vehicle022", "ship": 0.18, "aircraft": 0.15, "vehicle": 0.22},
+    {"name": "ship020_vehicle022", "ship": 0.20, "aircraft": 0.15, "vehicle": 0.22}
+  ],
+  "admission": {
+    "minimum_worst_fold_projected_score_gain": 0.0,
+    "minimum_median_projected_score_gain": 0.7,
+    "maximum_any_coarse_recall_drop": 0.005,
+    "require_projected_gate_fdr_pass": true
+  }
+}

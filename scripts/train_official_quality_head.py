@@ -59,6 +59,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--rank-max-pairs", type=int, default=4096)
     parser.add_argument("--seed", type=int, default=20260830)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--coarse-filter",
+        choices=("all", "ship", "aircraft", "vehicle"),
+        default="all",
+        help=(
+            "Fit and export only one coarse route.  This is the registered ship "
+            "objectness-quality direction; non-selected proposals remain unchanged "
+            "when the sparse held-out score export is joined at deployment."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -123,8 +133,12 @@ def main() -> int:
 
     with np.load(args.data, allow_pickle=False) as payload:
         arrays = _required_arrays(payload)
-    train_mask = arrays["fold"].astype(np.int64) != args.held_out_fold
-    validation_mask = ~train_mask
+    coarse_lookup = {"ship": 0, "aircraft": 1, "vehicle": 2}
+    route_mask = np.ones(len(arrays["fold"]), dtype=bool)
+    if args.coarse_filter != "all":
+        route_mask = arrays["coarse_id"].astype(np.int64) == coarse_lookup[args.coarse_filter]
+    train_mask = (arrays["fold"].astype(np.int64) != args.held_out_fold) & route_mask
+    validation_mask = (arrays["fold"].astype(np.int64) == args.held_out_fold) & route_mask
     if not train_mask.any() or not validation_mask.any():
         raise ValueError("both training and held-out rows are required")
 
@@ -305,6 +319,7 @@ def main() -> int:
             "sampling": args.sampling,
             "robustness": args.robustness,
             "rank_enabled": args.rank_enabled,
+            "coarse_filter": args.coarse_filter,
             "group_dro_state": dro.state_dict() if dro is not None else None,
         },
         checkpoint,
@@ -332,6 +347,7 @@ def main() -> int:
         "sampling": args.sampling,
         "robustness": args.robustness,
         "rank_enabled": args.rank_enabled,
+        "coarse_filter": args.coarse_filter,
         "rank_relax_group_if_empty": args.rank_relax_group_if_empty,
         "checkpoint": str(checkpoint),
         "torchscript": str(runtime_path),

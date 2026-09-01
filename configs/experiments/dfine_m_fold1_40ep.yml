@@ -1,0 +1,50 @@
+__include__:
+  - /workspace/third_party/D-FINE-codex-20260830/configs/dfine/custom/dfine_hgnetv2_m_custom.yml
+
+output_dir: /workspace/results/DFINE-M-CV3-VEHICLE-V1/fold_1/training
+num_classes: 25
+remap_mscoco_category: false
+epochs: 40
+checkpoint_freq: 10
+print_freq: 50
+sync_bn: false
+use_amp: true
+eval_spatial_size: [1024, 1024]
+
+train_dataloader:
+  dataset:
+    img_folder: /root/autodl-tmp/data
+    ann_file: /workspace/results/DFINE-M-CV3-VEHICLE-V1/fold_1/coco/instances_train.json
+    transforms:
+      ops:
+        - {type: RandomPhotometricDistort, p: 0.5}
+        - {type: RandomZoomOut, fill: 0}
+        - {type: RandomIoUCrop, p: 0.8}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: RandomHorizontalFlip}
+        - {type: Resize, size: [1024, 1024]}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: ConvertPILImage, dtype: float32, scale: true}
+        - {type: ConvertBoxes, fmt: cxcywh, normalize: true}
+      policy:
+        name: stop_epoch
+        epoch: 36
+        ops: [RandomPhotometricDistort, RandomZoomOut, RandomIoUCrop]
+  total_batch_size: 8
+  num_workers: 2
+  collate_fn:
+    base_size: 1024
+    base_size_repeat: 1
+    stop_epoch: 40
+    ema_restart_decay: 0.9999
+
+val_dataloader:
+  dataset:
+    img_folder: /root/autodl-tmp/data
+    ann_file: /workspace/results/DFINE-M-CV3-VEHICLE-V1/fold_1/coco/instances_val.json
+    transforms:
+      ops:
+        - {type: Resize, size: [1024, 1024]}
+        - {type: ConvertPILImage, dtype: float32, scale: true}
+  total_batch_size: 16
+  num_workers: 2

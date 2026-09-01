@@ -1,0 +1,28 @@
+{
+  "experiment_id": "MACROSHIFT-SHIP-OBJECTNESS-QUALITY-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "training_direction": "objectness_quality",
+  "excluded_direction": "fine_tail",
+  "route": "ship_only",
+  "trainer": "scripts/train_official_quality_head.py",
+  "trainer_arguments": {
+    "coarse_filter": "ship",
+    "sampling": "group_balanced",
+    "robustness": "group_dro",
+    "rank_enabled": true,
+    "epochs": 20,
+    "batch_size": 512,
+    "hidden_dim": 192,
+    "residual_limit": 1.75
+  },
+  "outer_evaluation": {
+    "folds": [0, 1, 2],
+    "threshold_selection": "other_two_folds_only",
+    "non_ship_score_policy": "identity",
+    "minimum_recall_gain_pp": 0.5,
+    "maximum_fdr_regression_pp": 0.0,
+    "maximum_any_coarse_recall_drop_pp": 0.5
+  },
+  "admission": false,
+  "status": "ready_for_server_cv3"
+}

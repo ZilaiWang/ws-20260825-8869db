@@ -38,6 +38,11 @@ DOTA_TO_COARSE: dict[str, int | None] = {
     "container-crane": 3,
 }
 
+PRIMARY_COMPACT_CATEGORIES = frozenset(
+    {"plane", "ship", "small-vehicle", "large-vehicle"}
+)
+DIFFICULT_POLICIES = frozenset({"drop", "keep_primary", "keep_all_mapped"})
+
 
 @dataclass(frozen=True)
 class DotaObject:
@@ -86,9 +91,16 @@ def import_dota(
     label_root: Path,
     *,
     keep_difficult: bool = False,
+    difficult_policy: str = "drop",
     require_exact_stem_set: bool = True,
 ) -> tuple[dict, dict]:
     """Convert DOTA labelTxt OBBs into clipped four-class COCO HBB annotations."""
+    if difficult_policy not in DIFFICULT_POLICIES:
+        raise ValueError(f"unsupported difficult policy: {difficult_policy}")
+    if keep_difficult:
+        if difficult_policy != "drop":
+            raise ValueError("keep_difficult cannot be combined with difficult_policy")
+        difficult_policy = "keep_all_mapped"
     image_root = image_root.resolve()
     label_paths = sorted(label_root.rglob("*.txt"))
     if not label_paths:
@@ -111,6 +123,8 @@ def import_dota(
     retained_counts: Counter[str] = Counter()
     invalid_lines = 0
     dropped_difficult = 0
+    retained_difficult = 0
+    retained_difficult_counts: Counter[str] = Counter()
     dropped_invalid_box = 0
     dropped_scene_structure = 0
     annotation_id = 1
@@ -133,13 +147,20 @@ def import_dota(
         invalid_lines += invalid
         for obj in objects:
             original_counts[obj.category] += 1
-            if obj.difficulty > 0 and not keep_difficult:
-                dropped_difficult += 1
-                continue
             coarse_id = DOTA_TO_COARSE[obj.category]
             if coarse_id is None:
                 dropped_scene_structure += 1
                 continue
+            if obj.difficulty > 0:
+                retain = difficult_policy == "keep_all_mapped" or (
+                    difficult_policy == "keep_primary"
+                    and obj.category in PRIMARY_COMPACT_CATEGORIES
+                )
+                if not retain:
+                    dropped_difficult += 1
+                    continue
+                retained_difficult += 1
+                retained_difficult_counts[obj.category] += 1
             xs = obj.polygon[0::2]
             ys = obj.polygon[1::2]
             x1 = max(0.0, min(float(width), min(xs)))
@@ -172,16 +193,22 @@ def import_dota(
         "categories": COARSE_CATEGORIES,
     }
     audit = {
-        "protocol": "dota_obb_to_clipped_hbb_coarse_v1",
+        "protocol": "dota_obb_to_clipped_hbb_coarse_v2",
         "image_root": str(image_root),
         "label_root": str(label_root.resolve()),
         "image_count": len(images),
         "annotation_count": len(annotations),
-        "keep_difficult": keep_difficult,
+        "keep_difficult": difficult_policy == "keep_all_mapped",
+        "difficult_policy": difficult_policy,
+        "primary_compact_categories": sorted(PRIMARY_COMPACT_CATEGORIES),
         "require_exact_stem_set": require_exact_stem_set,
         "labels_without_images_count": len(labels_without_images),
         "labels_without_images_first": labels_without_images[:20],
         "dropped_difficult": dropped_difficult,
+        "retained_difficult": retained_difficult,
+        "retained_difficult_category_counts": dict(
+            sorted(retained_difficult_counts.items())
+        ),
         "dropped_invalid_box": dropped_invalid_box,
         "dropped_scene_structure": dropped_scene_structure,
         "invalid_label_lines": invalid_lines,

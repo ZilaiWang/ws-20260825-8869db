@@ -81,3 +81,43 @@ def test_materialize_control_omits_patch_with_same_exclusion(tmp_path: Path) -> 
     )
     assert audit["image_count"] == 1
     assert audit["confirmed_boxes_added"] == 0
+
+
+def test_materialize_deduplicates_original_and_repeated_review_boxes(tmp_path: Path) -> None:
+    root, manifest, confirmed, ignored = _fixture(tmp_path)
+    (root / "labels/train/a.txt").write_text("24 0.5 0.5 0.1 0.1\n")
+    confirmed.write_text(
+        json.dumps(
+            [
+                {
+                    "candidate_id": "same-as-original",
+                    "file_name": "images/train/a.jpg",
+                    "bbox_xyxy": [45, 36, 55, 44],
+                },
+                {
+                    "candidate_id": "new",
+                    "file_name": "images/train/a.jpg",
+                    "bbox_xyxy": [10, 20, 30, 40],
+                },
+                {
+                    "candidate_id": "duplicate-new",
+                    "file_name": "images/train/a.jpg",
+                    "bbox_xyxy": [10, 20, 30, 40],
+                },
+            ]
+        )
+    )
+    audit = materialize(
+        manifest,
+        root,
+        confirmed,
+        ignored,
+        tmp_path / "out",
+        held_out_fold=None,
+        add_confirmed=True,
+        ambiguous_policy="exclude_image",
+    )
+    assert audit["confirmed_boxes_added"] == 1
+    assert audit["confirmed_boxes_deduplicated_against_original"] == 1
+    assert audit["confirmed_boxes_deduplicated_against_confirmed"] == 1
+    assert audit["confirmed_class_contract"] == {"class_id": 24, "class_name": "FSC"}

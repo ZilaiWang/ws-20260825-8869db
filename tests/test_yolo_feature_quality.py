@@ -23,3 +23,15 @@ def test_multiscale_roi_encoder_shape() -> None:
     output = encoder(features, boxes, image_height=64, image_width=64)
     assert output.shape == (1, 24)
     assert torch.isfinite(output).all()
+
+
+def test_multiscale_roi_encoder_accepts_feature_geometry_dtype_mismatch() -> None:
+    encoder = MultiScaleROIFeatureEncoder([8], [4], projection_dim=6)
+    # Float64 exercises the same ROIAlign dtype constraint as CUDA AMP FP16 on CPU,
+    # while the adapter intentionally remains in its frozen FP32 contract.
+    features = [torch.randn(1, 8, 16, 16, dtype=torch.float64)]
+    boxes = torch.tensor([[0.0, 8.0, 8.0, 40.0, 40.0]], dtype=torch.float32)
+    output = encoder(features, boxes, image_height=64, image_width=64)
+    assert output.shape == (1, 6)
+    assert output.dtype == torch.float32
+    assert torch.isfinite(output).all()
