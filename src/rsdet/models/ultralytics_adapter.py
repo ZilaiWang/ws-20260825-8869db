@@ -19,6 +19,43 @@ from rsdet.models.base import BaseDetector
 from rsdet.models.registry import register_model
 
 
+def coarse_purity_sqrt_scores(
+    scores: Sequence[float], labels: Sequence[int], class_probabilities: np.ndarray
+) -> list[float]:
+    """Combine fine confidence with same-coarse probability purity.
+
+    Aircraft is an explicit identity bypass because its formal metrics are
+    already strong. Ship and vehicle receive the fixed geometric mean of the
+    deployed fine score and the probability mass assigned to their coarse
+    family relative to all 25 classes.
+    """
+    probabilities = np.asarray(class_probabilities, dtype=np.float64)
+    if probabilities.shape != (len(scores), 25):
+        raise ValueError("class_probabilities must have shape (detections, 25)")
+    if len(labels) != len(scores):
+        raise ValueError("scores and labels must have equal length")
+    if any(label < 0 or label >= 25 for label in labels):
+        raise ValueError("labels must be fine category ids in [0, 24]")
+    mass = np.stack(
+        [
+            probabilities[:, 0:4].sum(axis=1),
+            probabilities[:, 4:24].sum(axis=1),
+            probabilities[:, 24],
+        ],
+        axis=1,
+    )
+    total = mass.sum(axis=1).clip(min=1e-12)
+    transformed: list[float] = []
+    for index, (score, label) in enumerate(zip(scores, labels, strict=True)):
+        coarse_index = 0 if 0 <= label <= 3 else 1 if 4 <= label <= 23 else 2
+        if coarse_index == 1:
+            transformed.append(float(score))
+            continue
+        purity = float(np.clip(mass[index, coarse_index] / total[index], 0.0, 1.0))
+        transformed.append(math.sqrt(max(float(score), 0.0) * purity))
+    return transformed
+
+
 def create_ultralytics_model(family: str, weights: str | Path):
     """按模型族创建 Ultralytics 模型，集中处理可选依赖错误。"""
     try:
@@ -51,6 +88,7 @@ class UltralyticsDetector(BaseDetector):
         label_map: Mapping[int, int] | None = None,
         refiner: Mapping[str, Any] | None = None,
         agreement: Mapping[str, Any] | None = None,
+        score_transform: str | None = None,
     ) -> None:
         if imgsz <= 0:
             raise ValueError("imgsz 必须 > 0")
@@ -74,6 +112,11 @@ class UltralyticsDetector(BaseDetector):
         )
         self.refiner_config = dict(refiner or {})
         self.agreement_config = dict(agreement or {})
+        if score_transform not in {None, "coarse_purity_sqrt"}:
+            raise ValueError("unsupported score_transform")
+        if score_transform is not None and family.strip().lower().replace("-", "") != "yolo":
+            raise ValueError("score_transform is supported only for YOLO")
+        self.score_transform = score_transform
         self._device = "cpu"
         self._model: Any | None = None
         self._refiner: Any | None = None
@@ -158,25 +201,70 @@ class UltralyticsDetector(BaseDetector):
 
         if self._agreement is not None:
             self._agreement.clear()
-        results = self._model.predict(
-            source=[self._prepare_source(sample.image) for sample in batch],
-            imgsz=self.imgsz,
-            conf=self.confidence,
-            iou=self.iou,
-            max_det=self.max_detections,
-            device=self._device,
-            quantize=16 if self.half and self._device != "cpu" else None,
-            agnostic_nms=self.agnostic_nms,
-            verbose=False,
-            stream=False,
-            batch=len(batch),
-        )
+        captured: list[Any] = []
+        hook = None
+        if self.score_transform is not None:
+            hook = self._model.model.register_forward_hook(
+                lambda _module, _inputs, output: captured.append(output)
+            )
+        try:
+            results = self._model.predict(
+                source=[self._prepare_source(sample.image) for sample in batch],
+                imgsz=self.imgsz,
+                conf=self.confidence,
+                iou=self.iou,
+                max_det=self.max_detections,
+                device=self._device,
+                quantize=16 if self.half and self._device != "cpu" else None,
+                agnostic_nms=self.agnostic_nms,
+                verbose=False,
+                stream=False,
+                batch=len(batch),
+            )
+        finally:
+            if hook is not None:
+                hook.remove()
         results = list(results)
         if len(results) != len(batch):
             raise ValueError(f"Ultralytics 返回 {len(results)} 个结果，输入 batch 为 {len(batch)}")
 
+        probability_rows: list[np.ndarray] | None = None
+        if self.score_transform == "coarse_purity_sqrt":
+            if not captured:
+                raise RuntimeError("score transform did not capture YOLO raw output")
+            output = captured[-1]
+            if not isinstance(output, tuple) or not isinstance(output[1], dict):
+                raise TypeError("unexpected YOLO raw output for score transform")
+            import torch
+
+            processed = output[0]
+            raw_scores = output[1]["one2one"]["scores"].sigmoid().permute(0, 2, 1)
+            batch_size, anchors, classes = raw_scores.shape
+            if batch_size != len(batch) or classes != 25:
+                raise ValueError("unexpected YOLO score tensor shape")
+            k = min(processed.shape[1], anchors)
+            anchor_indices = raw_scores.max(dim=-1).values.topk(k, dim=1).indices
+            selected = raw_scores.gather(
+                1, anchor_indices[:, :, None].expand(-1, -1, classes)
+            )
+            flat_indices = selected.flatten(1).topk(k, dim=1).indices
+            selected_rows = selected.gather(
+                1, (flat_indices // classes)[:, :, None].expand(-1, -1, classes)
+            )
+            selected_scores = selected.flatten(1).gather(1, flat_indices)
+            if not torch.allclose(
+                selected_scores, processed[:, :k, 4], atol=2e-3, rtol=0
+            ):
+                raise RuntimeError("raw score reconstruction does not match YOLO output")
+            probability_rows = []
+            for batch_index in range(batch_size):
+                mask = processed[batch_index, :k, 4] >= self.confidence
+                probability_rows.append(
+                    selected_rows[batch_index, mask].float().cpu().numpy()
+                )
+
         predictions: list[Prediction] = []
-        for sample, result in zip(batch, results):
+        for batch_index, (sample, result) in enumerate(zip(batch, results)):
             boxes = getattr(result, "boxes", None)
             if boxes is None or len(boxes) == 0:
                 predictions.append(Prediction(sample.image_id, [], [], []))
@@ -200,6 +288,12 @@ class UltralyticsDetector(BaseDetector):
             ]
             raw_scores = [float(score) for score in self._as_list(boxes.conf)]
             raw_labels = [int(label) for label in self._as_list(boxes.cls)]
+            if probability_rows is not None:
+                if len(probability_rows[batch_index]) != len(raw_scores):
+                    raise RuntimeError("raw probability rows do not align with detections")
+                raw_scores = coarse_purity_sqrt_scores(
+                    raw_scores, raw_labels, probability_rows[batch_index]
+                )
             if self.label_map is not None:
                 unknown = sorted(set(raw_labels) - set(self.label_map))
                 if unknown:
@@ -347,4 +441,8 @@ class UltralyticsDetector(BaseDetector):
         return refined
 
 
-__all__ = ["UltralyticsDetector", "create_ultralytics_model"]
+__all__ = [
+    "UltralyticsDetector",
+    "coarse_purity_sqrt_scores",
+    "create_ultralytics_model",
+]

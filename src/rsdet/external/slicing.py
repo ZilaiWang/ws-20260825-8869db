@@ -37,7 +37,14 @@ def _slice_source_image(
     min_visibility: float,
     empty_tiles_per_image: int,
 ) -> tuple[list[dict], int]:
-    """Write one source image's tiles and return ID-free deterministic records."""
+    """Write one source image's tiles and return ID-free deterministic records.
+
+    Every tile that contains at least ``min_visibility`` of an object receives a
+    clipped copy of that annotation.  This is intentional: with overlapping
+    tiles, assigning an object to only one owner tile leaves fully visible
+    copies of the same object unlabeled in neighbouring tiles and turns real
+    targets into false-negative training examples.
+    """
     source_path = image_root / image_row["file_name"]
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
@@ -61,22 +68,17 @@ def _slice_source_image(
         if area <= 0:
             dropped_visibility += 1
             continue
-        center_x = bbox[0] + bbox[2] / 2.0
-        center_y = bbox[1] + bbox[3] / 2.0
         candidates: list[tuple[float, int, list[float]]] = []
         for tile_index, tile in enumerate(tiles):
-            if tile[0] <= center_x <= tile[2] and tile[1] <= center_y <= tile[3]:
-                clipped = _intersection(bbox, tile)
-                visibility = clipped[2] * clipped[3] / area
+            clipped = _intersection(bbox, tile)
+            visibility = clipped[2] * clipped[3] / area
+            if visibility >= min_visibility:
                 candidates.append((visibility, tile_index, clipped))
         if not candidates:
             dropped_visibility += 1
             continue
-        visibility, tile_index, clipped = max(candidates, key=lambda row: (row[0], -row[1]))
-        if visibility < min_visibility:
-            dropped_visibility += 1
-            continue
-        assigned[tile_index].append((annotation, clipped, visibility))
+        for visibility, tile_index, clipped in candidates:
+            assigned[tile_index].append((annotation, clipped, visibility))
 
     positive_indices = sorted(assigned)
     negative_indices = [index for index in range(len(tiles)) if index not in assigned]
@@ -118,7 +120,7 @@ def slice_coco(
     empty_tiles_per_image: int = 2,
     workers: int = 1,
 ) -> tuple[dict, dict]:
-    """Slice COCO images without resizing and assign each annotation to one tile."""
+    """Slice COCO images without resizing and label every sufficiently visible copy."""
     if not 0.0 < min_visibility <= 1.0:
         raise ValueError("min_visibility must be in (0, 1]")
     if empty_tiles_per_image < 0:
@@ -139,6 +141,7 @@ def slice_coco(
     empty_tiles = 0
     coarse_counts: Counter[int] = Counter()
     output_annotation_id = 1
+    source_instance_counts: Counter[int] = Counter()
 
     image_rows = sorted(payload["images"], key=lambda row: int(row["id"]))
 
@@ -193,6 +196,7 @@ def slice_coco(
                         }
                     )
                     coarse_counts[int(annotation["category_id"])] += 1
+                    source_instance_counts[int(annotation["id"])] += 1
                     output_annotation_id += 1
     finally:
         if workers != 1:
@@ -205,7 +209,7 @@ def slice_coco(
     }
     category_names = {int(row["id"]): row["name"] for row in payload["categories"]}
     audit = {
-        "protocol": "scale_preserving_center_owned_external_slicing_v1",
+        "protocol": "scale_preserving_all_visible_external_slicing_v2",
         "tile_size": tile_size,
         "overlap": overlap,
         "min_visibility": min_visibility,
@@ -218,11 +222,21 @@ def slice_coco(
         "empty_tile_count": empty_tiles,
         "output_annotation_count": len(output_annotations),
         "dropped_visibility_count": dropped_visibility,
+        "covered_source_annotation_count": len(source_instance_counts),
+        "duplicated_source_annotation_count": sum(
+            count > 1 for count in source_instance_counts.values()
+        ),
+        "maximum_tile_instances_per_source_annotation": max(
+            source_instance_counts.values(), default=0
+        ),
         "truncated_retained_count": truncated_retained,
         "coarse_category_counts": {
             category_names[key]: value for key, value in sorted(coarse_counts.items())
         },
         "resize_policy": "none",
-        "duplicate_policy": "one annotation assigned to maximum-visibility center-containing tile",
+        "duplicate_policy": (
+            "annotation copied to every overlapping tile whose retained area fraction "
+            "meets min_visibility"
+        ),
     }
     return output, audit

@@ -7,6 +7,7 @@
 import math
 from dataclasses import dataclass
 from decimal import ROUND_FLOOR, Decimal
+from statistics import fmean
 from typing import Any
 
 from rsdet.evaluation.official_metric import (
@@ -15,6 +16,15 @@ from rsdet.evaluation.official_metric import (
     evaluate_predictions,
     evaluate_ranking_metrics,
 )
+from rsdet.evaluation.platform_protocol import (
+    COARSE_ORDER,
+    PLATFORM_OBSERVED_PROTOCOL,
+)
+
+# This module is an active formal threshold-selection entrypoint.  Keeping the
+# binding explicit makes protocol audits fail closed when the platform contract
+# changes.
+FORMAL_METRIC_PROTOCOL = PLATFORM_OBSERVED_PROTOCOL
 
 
 @dataclass(frozen=True)
@@ -149,12 +159,29 @@ def select_operating_points(
         if not math.isfinite(value) or not 0.0 <= value <= 1.0:
             raise ValueError(f"{name} 必须是 [0, 1] 内的有限数")
 
-    def best_under_fdr(fdr_max: float, *, use_macro: bool) -> ThresholdSweepPoint:
+    def platform_values(point: ThresholdSweepPoint) -> tuple[float, float]:
+        missing = set(COARSE_ORDER) - set(point.ranking_metrics.per_coarse)
+        if missing:
+            # Partial-taxonomy/unit diagnostics cannot define the platform
+            # macro-over-three gate.  Preserve their historical diagnostic
+            # behavior; formal callers are separately required to supply the
+            # complete 25-class taxonomy before admission.
+            return (
+                float(point.ranking_metrics.overall_recall),
+                float(point.ranking_metrics.overall_fdr),
+            )
+        coarse = point.ranking_metrics.per_coarse
+        return (
+            fmean(coarse[name].macro_recall for name in COARSE_ORDER),
+            fmean(coarse[name].macro_fdr for name in COARSE_ORDER),
+        )
+
+    def best_under_fdr(fdr_max: float) -> ThresholdSweepPoint:
         def recall(point: ThresholdSweepPoint) -> float:
-            return point.ranking_metrics.overall_recall if use_macro else point.metrics.recall
+            return platform_values(point)[0]
 
         def fdr(point: ThresholdSweepPoint) -> float:
-            return point.ranking_metrics.overall_fdr if use_macro else point.metrics.fdr
+            return platform_values(point)[1]
 
         feasible = [point for point in points if fdr(point) <= fdr_max]
         candidates = feasible or points
@@ -176,13 +203,13 @@ def select_operating_points(
             ),
         )
 
-    official = best_under_fdr(official_fdr_max, use_macro=False)
-    internal = best_under_fdr(internal_fdr_max, use_macro=True)
+    official = best_under_fdr(official_fdr_max)
+    internal = best_under_fdr(internal_fdr_max)
     recall_ceiling = max(
         points,
         key=lambda point: (
-            point.metrics.recall,
-            -point.metrics.fdr,
+            platform_values(point)[0],
+            -platform_values(point)[1],
             point.threshold,
         ),
     )
@@ -191,16 +218,16 @@ def select_operating_points(
             point=official,
             policy="FDR 不超过官方上限时 Recall 最高；再按 FDR 低、阈值高选择",
             passed=(
-                official.metrics.recall >= official_recall_min
-                and official.metrics.fdr <= official_fdr_max
+                platform_values(official)[0] >= official_recall_min
+                and platform_values(official)[1] <= official_fdr_max
             ),
         ),
         "internal_best": OperatingPointSelection(
             point=internal,
             policy="FDR 不超过内部上限时 Recall 最高；再按 FDR 低、阈值高选择",
             passed=(
-                internal.ranking_metrics.overall_recall >= internal_recall_min
-                and internal.ranking_metrics.overall_fdr <= internal_fdr_max
+                platform_values(internal)[0] >= internal_recall_min
+                and platform_values(internal)[1] <= internal_fdr_max
             ),
         ),
         "recall_ceiling": OperatingPointSelection(

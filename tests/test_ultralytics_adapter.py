@@ -5,7 +5,38 @@ from pathlib import Path
 import numpy as np
 
 from rsdet.contracts import InferenceSample
-from rsdet.models.ultralytics_adapter import UltralyticsDetector
+from rsdet.models.ultralytics_adapter import (
+    UltralyticsDetector,
+    coarse_purity_sqrt_scores,
+)
+
+
+def test_coarse_purity_sqrt_scores_preserves_aircraft_and_rescores_other_groups() -> None:
+    probabilities = np.zeros((3, 25), dtype=np.float64)
+    probabilities[0, 0:4] = [0.20, 0.10, 0.05, 0.05]
+    probabilities[0, 4] = 0.40
+    probabilities[0, 24] = 0.20
+    probabilities[1, 4] = 0.10
+    probabilities[1, 5] = 0.30
+    probabilities[1, 0] = 0.50
+    probabilities[1, 24] = 0.10
+    probabilities[2, 24] = 0.25
+    probabilities[2, 0] = 0.75
+
+    scores = coarse_purity_sqrt_scores(
+        [0.81, 0.64, 0.49], [0, 5, 24], probabilities
+    )
+
+    np.testing.assert_allclose(scores[0], np.sqrt(0.81 * 0.4))
+    assert scores[1] == 0.64  # aircraft identity bypass
+    assert scores[2] == 0.35  # sqrt(0.49 * 0.25 / 1.0)
+
+
+def test_coarse_purity_sqrt_scores_rejects_misaligned_probability_rows() -> None:
+    with np.testing.assert_raises(ValueError):
+        coarse_purity_sqrt_scores([0.5], [0], np.zeros((2, 25)))
+    with np.testing.assert_raises(ValueError):
+        coarse_purity_sqrt_scores([0.5], [25], np.zeros((1, 25)))
 
 
 class _Array:

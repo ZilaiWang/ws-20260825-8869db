@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from numbers import Integral
 
 from rsdet.contracts import Prediction, TileRecord
-from rsdet.data.xh_dataset import coarse_name
 from rsdet.postprocess.nms import nms
+from rsdet.postprocess.thresholds import effective_threshold, normalize_fine_thresholds
 from rsdet.tiling.coordinates import clip_bbox, tile_to_full
 
 
@@ -90,6 +90,7 @@ def _restore_candidates(
     score_threshold: float,
     score_threshold_by_coarse: Mapping[str, float] | None,
     border_margin: float,
+    score_threshold_by_fine: Mapping[int, float] | None = None,
 ) -> list[_Candidate]:
     if len(tile_predictions) != len(tiles):
         raise ValueError("tile_predictions and tiles must have the same length")
@@ -120,13 +121,13 @@ def _restore_candidates(
             if isinstance(label, bool) or not isinstance(label, Integral):
                 raise ValueError("fine category id must be an integer")
             numeric_label = int(label)
-            coarse = coarse_name(numeric_label)
-            effective_threshold = (
-                float(score_threshold_by_coarse[coarse])
-                if score_threshold_by_coarse is not None
-                else score_threshold
+            threshold = effective_threshold(
+                numeric_label,
+                global_threshold=score_threshold,
+                coarse_thresholds=score_threshold_by_coarse,
+                fine_thresholds=score_threshold_by_fine,
             )
-            if numeric_score < effective_threshold:
+            if numeric_score < threshold:
                 continue
             if len(box) != 4 or not all(math.isfinite(float(value)) for value in box):
                 raise ValueError("box must contain four finite values")
@@ -281,6 +282,7 @@ def fuse_safe_tile_predictions(
     image_height: int,
     score_threshold: float = 0.0,
     score_threshold_by_coarse: Mapping[str, float] | None = None,
+    score_threshold_by_fine: Mapping[int, float] | None = None,
     merge_iou: float = 0.50,
     merge_ios: float = 0.75,
     fine_nms_iou: float = 0.70,
@@ -299,6 +301,7 @@ def fuse_safe_tile_predictions(
             name: _validate_threshold(value, f"score_threshold_by_coarse.{name}")
             for name, value in score_threshold_by_coarse.items()
         }
+    score_threshold_by_fine = normalize_fine_thresholds(score_threshold_by_fine)
     merge_iou = _validate_threshold(merge_iou, "merge_iou")
     merge_ios = _validate_threshold(merge_ios, "merge_ios")
     if merge_iou <= 0.0 or merge_ios <= 0.0:
@@ -318,6 +321,7 @@ def fuse_safe_tile_predictions(
         image_height=image_height,
         score_threshold=score_threshold,
         score_threshold_by_coarse=score_threshold_by_coarse,
+        score_threshold_by_fine=score_threshold_by_fine,
         border_margin=border_margin,
     )
     canonical = _anchor_greedy_canonical(candidates, merge_iou, merge_ios)

@@ -1,7 +1,7 @@
 """Leakage-safe hierarchical fine-class score calibration.
 
-The official ranking averages metrics over the 25 fine classes, while the
-hard admission gate is pooled over all classes.  This module fits one global
+The active platform protocol averages fine-class metrics inside each coarse
+class and then gives ship/aircraft/vehicle equal hard-gate weight. This module fits one global
 anchor, three coarse anchors and 25 fine-class thresholds on training folds
 only.  Fine thresholds are shrunk toward their coarse anchor according to the
 amount of ground-truth evidence, preventing tiny tail classes from receiving
@@ -114,6 +114,7 @@ def _subprotocol(
         recall_min=protocol.recall_min,
         fdr_max=protocol.fdr_max,
         latency_max_seconds=protocol.latency_max_seconds,
+        metric_protocol=protocol.metric_protocol,
     )
 
 

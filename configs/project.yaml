@@ -8,6 +8,9 @@ protocol_versions:
   eval_version: "official_eval_v1"
   # V1.6 只改变排名聚合与二次排序，不改变细类匹配轨迹。
   ranking_version: "official_ranking_v1_6"
+  # 2026-08-31 正式平台已观测确认：三粗类各自 fine-macro 后等权硬门，
+  # 六个质量子分与一个时延子分等权。历史 pooled/v1.6 只作诊断。
+  metric_protocol: "platform_observed_20260831"
 
 task:
   class_names:
@@ -60,11 +63,9 @@ official_evaluation:
     one_prediction_per_ground_truth: true
     duplicate_predictions_count_as_fp: true
 
-  # 官方评分方案 V1.6 排名口径：三大类各自的 Recall/FDR = 大类内细类指标的
-  # 简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即 FSC 本身），
-  # 用于 7 排名二次排序。刚性门槛（recall_min/fdr_max）仍按三类合并 pooled。
-  # 团队内部 Overall 目标（如官方口径 FDR≤0.17）一律以该口径为准；
-  # 评估入口见 evaluate_ranking_metrics（scripts/evaluate.py 默认同时输出）。
+  # 粗类页面指标 = 大类内细类简单平均；正式硬门 = ship/aircraft/vehicle
+  # 三个页面指标的算术平均。RankingMetrics.overall_*（25 细类等权）和 pooled
+  # TP/FP/FN 都仅作诊断，禁止用于正式选择。
   ranking:
     fine_macro_average: true
     fine_average_policy: configured_taxonomy

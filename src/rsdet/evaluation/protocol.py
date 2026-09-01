@@ -18,6 +18,7 @@ class EvaluationProtocol:
     recall_min: float
     fdr_max: float
     latency_max_seconds: float | None = None
+    metric_protocol: str = "platform_observed_20260831"
 
 
 def parse_evaluation_protocol(
@@ -30,12 +31,22 @@ def parse_evaluation_protocol(
     contract_version = protocol_versions["contract_version"]
     eval_version = protocol_versions["eval_version"]
     ranking_version = protocol_versions.get("ranking_version", "official_ranking_v1_6")
+    metric_protocol = protocol_versions.get(
+        "metric_protocol", "platform_observed_20260831"
+    )
     if not isinstance(contract_version, str) or not contract_version.strip():
         raise ValueError("contract_version 必须是非空字符串")
     if not isinstance(eval_version, str) or not eval_version.strip():
         raise ValueError("eval_version 必须是非空字符串")
     if not isinstance(ranking_version, str) or not ranking_version.strip():
         raise ValueError("ranking_version 必须是非空字符串")
+    from rsdet.evaluation.platform_protocol import SUPPORTED_METRIC_PROTOCOLS
+
+    if metric_protocol not in SUPPORTED_METRIC_PROTOCOLS:
+        raise ValueError(
+            "metric_protocol 必须是明确的冻结协议，当前支持: "
+            f"{sorted(SUPPORTED_METRIC_PROTOCOLS)}"
+        )
 
     task_config = project_config["task"]
     official_config = project_config["official_evaluation"]
@@ -69,4 +80,5 @@ def parse_evaluation_protocol(
         recall_min=recall_min,
         fdr_max=fdr_max,
         latency_max_seconds=latency_max_seconds,
+        metric_protocol=metric_protocol,
     )

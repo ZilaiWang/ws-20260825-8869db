@@ -1,0 +1,27 @@
+{
+  "formal_metric_protocol": "platform_observed_20260831",
+  "active_formal_entrypoints": [
+    "scripts/analyze_macro_risk_v2.py",
+    "scripts/analyze_formal_anchor_threshold_transfer.py",
+    "scripts/analyze_quality_route_cv3.py",
+    "scripts/evaluate_quality_route_frozen_benchmark.py",
+    "scripts/calibrate_quality_score_quantiles.py",
+    "scripts/analyze_ship_quality_cv3.py",
+    "scripts/analyze_vehicle_reject_rescue.py",
+    "scripts/evaluate_background_100mp.py",
+    "scripts/compose_macroshift_final_recipe.py",
+    "scripts/decompose_coco_oof_errors.py",
+    "scripts/decide_ship_training_direction.py",
+    "scripts/freeze_background_100mp.py",
+    "scripts/freeze_sentinel_b.py",
+    "scripts/train_macroshift_full.py",
+    "src/rsdet/analysis/oof_detection.py",
+    "src/rsdet/postprocess/calibration.py",
+    "src/rsdet/submission/competition.py"
+  ],
+  "historical_entrypoints_are_not_formal_admission": true,
+  "legacy_protocols_allowed_for_archived_reproduction_only": [
+    "legacy_pooled",
+    "v1_6_documented"
+  ]
+}
