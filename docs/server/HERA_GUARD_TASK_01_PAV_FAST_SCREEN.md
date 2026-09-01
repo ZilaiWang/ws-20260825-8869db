@@ -88,4 +88,3 @@ python scripts/evaluate_hera_pav_fast_screen.py \
 ## 回传
 
 回传（可不含 checkpoint）：训练 result、history、OOF logits、fast_screen_result、完整日志、环境版本、GPU/峰值显存、全部 SHA。只有 `next_action=expand_pav_to_three_outer_folds` 才进入 TASK-02。
-
