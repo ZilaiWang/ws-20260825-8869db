@@ -1,6 +1,6 @@
 # 《改进方案12》全量问题核验与后续执行清单
 
-日期：2026-08-31  
+日期：2026-08-31
 状态：`attempt_1_fdr_gate_failed / ext_v_2x2_rejected / protocol_repairs_complete`
 
 ## 1. 审计边界与当前结论

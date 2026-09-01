@@ -1,6 +1,6 @@
 # 正式隐藏集分布反推与本地代理评测 V1
 
-日期：2026-09-01  
+日期：2026-09-01
 状态：`coarse_distribution_identified / fine_distribution_under-determined / proxy_v1_specified`
 
 ## 1. 结论先行
