@@ -20,7 +20,7 @@ Sentinel-B，也没有被伪装成独立验证集。
 
 | 步骤 | 本地状态 | 结论 |
 |---|---|---|
-| 1. 协议迁移 | 完成 | 13 个当前正式入口均绑定 `platform_observed_20260831`，审计通过；历史脚本只允许复现，不得准入 |
+| 1. 协议迁移 | 完成 | 初始 13 个、截至 2026-09-02 共 24 个当前正式入口均绑定 `platform_observed_20260831`，审计通过；历史脚本只允许复现，不得准入 |
 | 2. 细类阈值部署 | 完成 | 25 类完整性、优先级和 direct/safe/global/Docker 逐框一致性均有测试 |
 | 3. MacroRisk V2 | 完成并拒绝 | 相对 0.15 基线宏召回下降 8.596pp；1000 次组 bootstrap 联合通过概率 0，禁止部署 |
 | 4. Vehicle reject/rescue | 完成并拒绝 | Vehicle Recall +1.244pp，但 Vehicle FDR +1.169pp；不满足无 FDR 回退门禁 |
@@ -51,7 +51,9 @@ Sentinel-B，也没有被伪装成独立验证集。
 本地证据：
 
 - `outputs/MACROSHIFT-LOCAL-PREFLIGHT-20260901/metric_protocol_audit.json`
-- `status=pass`，正式入口 13/13 绑定。
+- 初始记录为 13/13；纳入方案14单折/固定代理与逐细类分析入口后，2026-09-02
+  复审为 `status=pass`、24/24 绑定。三个新决策器还会检查 payload 内协议名，旧格式
+  不能仅凭字段相似而通过门禁。
 
 历史研究脚本没有被删除；它们是复现实验资产，不属于新的正式准入入口。后续新增正式入口必须先加入
 registry 并通过审计，否则不能进入 recipe。

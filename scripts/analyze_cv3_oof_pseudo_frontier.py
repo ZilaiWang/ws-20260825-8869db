@@ -19,9 +19,13 @@ from typing import Any, TypeVar
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from rsdet.analysis.oof_detection import build_threshold_curve
-from rsdet.evaluation.absolute_score import competition_score, score_coarse_interpretations
+from rsdet.evaluation.absolute_score import platform_confirmed_score
 from rsdet.evaluation.coco import load_coco_ground_truth, load_coco_predictions
 from rsdet.evaluation.official_metric import evaluate_predictions, evaluate_ranking_metrics
+from rsdet.evaluation.platform_protocol import (
+    build_platform_observed_metrics,
+    platform_metrics_payload,
+)
 from rsdet.evaluation.protocol import parse_evaluation_protocol
 from rsdet.postprocess.calibration import build_threshold_grid
 from rsdet.utils.config import load_config
@@ -34,22 +38,38 @@ def _scoped(mapping: dict[int, list[T]], image_ids: set[int]) -> dict[int, list[
 
 
 def _select_threshold(points: list[dict[str, Any]], target_fdr: float) -> dict[str, Any]:
-    feasible = [point for point in points if float(point["overall_fdr"]) <= target_fdr]
+    feasible = [
+        point for point in points if float(point["platform_gate_fdr"]) <= target_fdr
+    ]
     if not feasible:
         return min(
             points,
             key=lambda point: (
-                float(point["overall_fdr"]),
+                float(point["platform_gate_fdr"]),
+                -float(point["platform_gate_recall"]),
                 -float(point["threshold"]),
             ),
         )
     return max(
         feasible,
         key=lambda point: (
-            float(point["overall_recall"]),
-            -float(point["overall_fdr"]),
+            float(point["platform_gate_recall"]),
+            -float(point["platform_gate_fdr"]),
             float(point["threshold"]),
         ),
+    )
+
+
+def _point_score(point: dict[str, Any], latency_seconds: float) -> dict[str, Any]:
+    return platform_confirmed_score(
+        {
+            name: {
+                "recall": float(point[f"{name}_macro_recall"]),
+                "fdr": float(point[f"{name}_macro_fdr"]),
+            }
+            for name in ("ship", "aircraft", "vehicle")
+        },
+        latency_seconds,
     )
 
 
@@ -63,38 +83,43 @@ def _select_absolute_score_threshold(
     feasible = [
         point
         for point in points
-        if float(point["overall_recall"]) >= minimum_recall
-        and float(point["overall_fdr"]) <= maximum_fdr
+        if float(point["platform_gate_recall"]) >= minimum_recall
+        and float(point["platform_gate_fdr"]) <= maximum_fdr
     ]
     pool = feasible or points
     selected = max(
         pool,
         key=lambda point: (
-            competition_score(
-                float(point["overall_recall"]),
-                float(point["overall_fdr"]),
-                latency_seconds,
-            )["total_score"],
-            float(point["overall_recall"]),
-            -float(point["overall_fdr"]),
+            _point_score(point, latency_seconds)["total_score"],
+            float(point["platform_gate_recall"]),
+            -float(point["platform_gate_fdr"]),
             float(point["threshold"]),
         ),
     )
     return {
         **selected,
         "constraint_feasible": bool(feasible),
-        "selection_score": competition_score(
-            float(selected["overall_recall"]),
-            float(selected["overall_fdr"]),
-            latency_seconds,
-        ),
+        "selection_score": _point_score(selected, latency_seconds),
     }
 
 
-def _metric_payload(metrics: Any, ranking: Any) -> dict[str, Any]:
+def _metric_payload(
+    metrics: Any, ranking: Any, protocol: Any, latency_seconds: float | None = None
+) -> dict[str, Any]:
+    platform = platform_metrics_payload(
+        build_platform_observed_metrics(
+            ranking,
+            recall_min=protocol.recall_min,
+            fdr_max=protocol.fdr_max,
+            latency_seconds=latency_seconds,
+            latency_max_seconds=protocol.latency_max_seconds,
+        )
+    )
     return {
         "recall": metrics.recall,
         "fdr": metrics.fdr,
+        "pooled_recall": metrics.recall,
+        "pooled_fdr": metrics.fdr,
         "tp": metrics.details["tp"],
         "fp": metrics.details["fp"],
         "fn": metrics.details["fn"],
@@ -110,6 +135,8 @@ def _metric_payload(metrics: Any, ranking: Any) -> dict[str, Any]:
         },
         "macro_recall": ranking.overall_recall,
         "macro_fdr": ranking.overall_fdr,
+        "fine25_macro_recall": ranking.overall_recall,
+        "fine25_macro_fdr": ranking.overall_fdr,
         "ranking_per_coarse": {
             name: {
                 "macro_recall": item.macro_recall,
@@ -117,6 +144,9 @@ def _metric_payload(metrics: Any, ranking: Any) -> dict[str, Any]:
             }
             for name, item in ranking.per_coarse.items()
         },
+        "platform": platform,
+        "platform_gate_recall": platform["gate_recall"],
+        "platform_gate_fdr": platform["gate_fdr"],
     }
 
 
@@ -135,14 +165,16 @@ def _admission_payload(
         "target": f"crossfit Recall>=0.90 and FDR<={float(admission_key):.3f}",
         "selected_level": float(admission_key),
         "passed": bool(
-            gate["recall"] >= 0.90 and gate["fdr"] <= float(admission_key)
+            gate["platform_gate_recall"] >= 0.90
+            and gate["platform_gate_fdr"] <= float(admission_key)
         ),
         "stretch_target": (
             f"crossfit Recall>=0.95 and FDR<={float(stretch_key):.3f}"
         ),
         "stretch_selected_level": float(stretch_key),
         "stretch_passed": bool(
-            stretch["recall"] >= 0.95 and stretch["fdr"] <= float(stretch_key)
+            stretch["platform_gate_recall"] >= 0.95
+            and stretch["platform_gate_fdr"] <= float(stretch_key)
         ),
     }
 
@@ -246,13 +278,17 @@ def main() -> int:
         )
         results[f"{target_fdr:.3f}"] = {
             "crossfit_thresholds": {str(key): value for key, value in chosen.items()},
-            "crossfit": _metric_payload(metrics, ranking),
+            "crossfit": _metric_payload(metrics, ranking, protocol),
             "pooled_oracle": {
                 "threshold": pooled_threshold,
                 "recall": float(pooled_selected["overall_recall"]),
                 "fdr": float(pooled_selected["overall_fdr"]),
                 "macro_recall": pooled_ranking.overall_recall,
                 "macro_fdr": pooled_ranking.overall_fdr,
+                "platform_gate_recall": float(
+                    pooled_selected["platform_gate_recall"]
+                ),
+                "platform_gate_fdr": float(pooled_selected["platform_gate_fdr"]),
             },
         }
 
@@ -306,7 +342,9 @@ def main() -> int:
             iou_thresholds=protocol.iou_thresholds,
             require_complete_taxonomy=True,
         )
-        score_payload = _metric_payload(score_metrics, score_ranking)
+        score_payload = _metric_payload(
+            score_metrics, score_ranking, protocol, args.latency_seconds
+        )
         pooled_selected = _select_absolute_score_threshold(
             pooled_points,
             latency_seconds=args.latency_seconds,
@@ -319,20 +357,28 @@ def main() -> int:
                 "latency_seconds": args.latency_seconds,
                 "minimum_recall": args.score_minimum_recall,
                 "maximum_fdr": args.score_maximum_fdr,
-                "objective": "maximize published absolute score within constraints",
+                "objective": (
+                    "maximize published seven-subscore absolute score under the "
+                    "observed three-coarse macro gates"
+                ),
             },
             "crossfit_thresholds": {str(key): value for key, value in chosen.items()},
             "training_selections": training_selections,
             "crossfit": score_payload,
-            "crossfit_score_interpretations": score_coarse_interpretations(
-                score_payload["per_coarse"], args.latency_seconds
-            ),
+            "crossfit_score": score_payload["platform"]["score_payload"],
+            "crossfit_score_interpretations": {
+                "platform_confirmed": score_payload["platform"]["score_payload"],
+                "legacy_note": (
+                    "Compatibility alias only. The former pooled/fine25 alternatives "
+                    "are intentionally not eligible for selection or admission."
+                ),
+            },
             "pooled_oracle": pooled_selected,
             "pooled_oracle_is_not_admissible": True,
         }
     payload = {
         "status": "complete",
-        "protocol": "formal_cv3_two_folds_select_one_fold_evaluate_pseudo10k_v1",
+        "protocol": "formal_cv3_platform_observed_outer_crossfit_pseudo10k_v2",
         "warning": (
             "Pseudo-10K is a deployment proxy, not an independent benchmark; "
             "pooled_oracle is diagnostic only."
@@ -344,7 +390,7 @@ def main() -> int:
         },
         "score_prefix_trace_audits": trace_audits,
         "fold_image_ids": {str(key): sorted(value) for key, value in fold_images.items()},
-        "candidate_floor": _metric_payload(floor_metrics, floor_ranking),
+        "candidate_floor": _metric_payload(floor_metrics, floor_ranking, protocol),
         "frontiers": results,
         "admission": _admission_payload(results, args.fdr_levels),
         "absolute_score_crossfit": absolute_score_crossfit,

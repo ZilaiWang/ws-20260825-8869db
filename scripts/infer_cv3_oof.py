@@ -91,6 +91,8 @@ def main(argv: list[str] | None = None) -> int:
         max_detections=int(model_cfg["max_detections"]),
         half=bool(model_cfg.get("half", True)),
         agnostic_nms=bool(model_cfg.get("agnostic_nms", False)),
+        label_map=model_cfg.get("label_map"),
+        drop_labels=model_cfg.get("drop_labels"),
         score_transform=model_cfg.get("score_transform"),
     )
     detector.load(str(checkpoint))

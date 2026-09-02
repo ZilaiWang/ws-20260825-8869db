@@ -107,6 +107,11 @@ def main() -> int:
     parser.add_argument("--imgsz", type=int, default=1024)
     parser.add_argument("--batch", type=int, default=12)
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument(
+        "--device",
+        default="cuda:0",
+        help="Ultralytics device contract, e.g. cuda:0, 0, or 0,1,2 for DDP",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--rotate90-p", type=float, default=1.0)
     parser.add_argument("--dry-run", action="store_true")
@@ -119,6 +124,8 @@ def main() -> int:
         raise ValueError(f"预训练权重 SHA 不匹配: {actual_sha}")
     if args.epochs <= 0 or args.imgsz <= 0 or args.batch <= 0 or args.workers < 0:
         raise ValueError("epochs/imgsz/batch 必须 >0，workers 必须 >=0")
+    if not str(args.device).strip():
+        raise ValueError("device 不能为空")
     if not 0.0 <= args.rotate90_p <= 1.0:
         raise ValueError("rotate90-p 必须在 [0,1]")
     if (args.output_dir / "runs" / "foundation" / "weights" / "last.pt").exists():
@@ -145,7 +152,7 @@ def main() -> int:
         "val": False,
         "plots": False,
         "close_mosaic": 20,
-        "device": "cuda:0",
+        "device": str(args.device),
         "project": str((args.output_dir / "runs").resolve()),
         "name": "foundation",
         "exist_ok": False,

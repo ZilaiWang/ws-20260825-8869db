@@ -116,6 +116,40 @@ def test_adapter_applies_explicit_label_map(monkeypatch, tmp_path: Path) -> None
     assert outputs[0].labels == [4]
 
 
+def test_adapter_drops_reject_label_before_mapping(monkeypatch, tmp_path: Path) -> None:
+    class TwoBoxes:
+        xyxy = _Array([[1.0, 2.0, 11.0, 22.0], [2.0, 3.0, 12.0, 23.0]])
+        conf = _Array([0.75, 0.8])
+        cls = _Array([4.0, 5.0])
+
+        def __len__(self):
+            return 2
+
+    class Result:
+        boxes = TwoBoxes()
+
+    fake = _FakeModel()
+    fake.predict = lambda **kwargs: [Result() for _ in kwargs["source"]]
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_bytes(b"placeholder")
+    monkeypatch.setattr(
+        "rsdet.models.ultralytics_adapter.create_ultralytics_model",
+        lambda family, weights: fake,
+    )
+    detector = UltralyticsDetector(label_map={4: 24}, drop_labels=[5])
+    detector.load(str(checkpoint))
+
+    outputs = detector.predict([InferenceSample(1, "image.jpg", 100, 80)])
+
+    assert outputs[0].labels == [24]
+    assert outputs[0].scores == [0.75]
+
+
+def test_adapter_rejects_overlapping_drop_and_map() -> None:
+    with np.testing.assert_raises(ValueError):
+        UltralyticsDetector(label_map={5: 24}, drop_labels=[5])
+
+
 def test_adapter_converts_rgb_numpy_to_bgr(monkeypatch, tmp_path: Path) -> None:
     fake = _FakeModel()
     checkpoint = tmp_path / "model.pt"

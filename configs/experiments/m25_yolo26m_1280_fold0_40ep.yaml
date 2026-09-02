@@ -1,0 +1,33 @@
+experiment_id: "M25-YOLO26M-1280-FOLD0-40EP"
+seed: 42
+output_dir: "/runtime/materialized/by/server/driver"
+model:
+  family: "yolo"
+  weights: "/runtime/materialized/by/server/driver/yolo26m.pt"
+data:
+  root: "/runtime/materialized/by/server/driver/data"
+  manifest: "/runtime/materialized/by/server/driver/split_view.json"
+train:
+  device: "cuda:0"
+  checkpoint_selection: "last"
+  args:
+    imgsz: 1280
+    batch: 8
+    workers: 4
+    optimizer: "AdamW"
+    lr0: 0.002
+    lrf: 0.01
+    weight_decay: 0.0005
+    warmup_epochs: 3
+    cos_lr: true
+    amp: true
+    deterministic: true
+    patience: 0
+    val: false
+    plots: false
+  stages:
+    - name: "foundation"
+      epochs: 40
+      balanced: false
+      args:
+        close_mosaic: 20

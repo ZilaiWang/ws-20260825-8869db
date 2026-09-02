@@ -33,15 +33,17 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def build_pipeline_config(*, batch_size: int, score_floor: float) -> PipelineConfig:
+def build_pipeline_config(
+    *, batch_size: int, score_floor: float, tile_size: int = 1024, overlap: int = 256
+) -> PipelineConfig:
     """Return the frozen pseudo-10K tiling contract shared by Y5 and M3."""
     if batch_size <= 0:
         raise ValueError("batch_size must be positive")
     if not 0.0 <= score_floor <= 1.0:
         raise ValueError("score_floor must be in [0, 1]")
     return PipelineConfig(
-        tile_size=1024,
-        overlap=256,
+        tile_size=tile_size,
+        overlap=overlap,
         batch_size=batch_size,
         score_threshold=score_floor,
         fine_nms_iou=0.70,
@@ -100,6 +102,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--score-floor", type=float, default=0.03)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--imgsz", type=int, default=1024)
+    parser.add_argument("--tile-size", type=int, default=1024)
+    parser.add_argument("--overlap", type=int, default=256)
     parser.add_argument(
         "--score-transform",
         choices=("coarse_purity_sqrt",),
@@ -113,6 +118,11 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="map detector labels ship/aircraft/vehicle from 0/1/2 to 0/4/24 placeholders",
     )
+    parser.add_argument(
+        "--macroexpert-label-space",
+        action="store_true",
+        help="map 0..3/4 to official 0..3/24 and drop aircraft-reject label 5",
+    )
     return parser.parse_args()
 
 
@@ -125,8 +135,11 @@ def main() -> int:
     image_id_by_name = {
         str(item["file_name"]): int(item["id"]) for item in combined_gt["images"]
     }
+    if args.coarse_label_space and args.macroexpert_label_space:
+        raise ValueError("coarse and macroexpert label spaces are mutually exclusive")
     pipeline = build_pipeline_config(
-        batch_size=args.batch_size, score_floor=args.score_floor
+        batch_size=args.batch_size, score_floor=args.score_floor,
+        tile_size=args.tile_size, overlap=args.overlap,
     )
 
     all_predictions: list[dict[str, object]] = []
@@ -158,13 +171,18 @@ def main() -> int:
             }
         detector = UltralyticsDetector(
             family=args.family,
-            imgsz=1024,
+            imgsz=args.imgsz,
             confidence=args.score_floor,
             iou=0.70,
             max_detections=300 if args.family == "rtdetr" else 500,
             half=True,
             agnostic_nms=False,
-            label_map={0: 0, 1: 4, 2: 24} if args.coarse_label_space else None,
+            label_map=(
+                {0: 0, 1: 4, 2: 24} if args.coarse_label_space else
+                {0: 0, 1: 1, 2: 2, 3: 3, 4: 24}
+                if args.macroexpert_label_space else None
+            ),
+            drop_labels=[5] if args.macroexpert_label_space else None,
             agreement=agreement,
             score_transform=args.score_transform,
         )

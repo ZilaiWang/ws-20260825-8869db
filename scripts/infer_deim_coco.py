@@ -65,6 +65,18 @@ def main() -> int:
     cfg = YAMLConfig(str(args.config), resume=str(args.checkpoint))
     if "HGNetv2" in cfg.yaml_cfg:
         cfg.yaml_cfg["HGNetv2"]["pretrained"] = False
+    decoder_name = cfg.yaml_cfg.get("DEIM", {}).get("decoder")
+    if decoder_name == "BHCLDFINETransformer":
+        decoder = cfg.model.decoder
+        initialize = getattr(decoder, "initialize_after_tuning", None)
+        if initialize is None:
+            raise RuntimeError(
+                "BHCLDFINETransformer requires initialize_after_tuning before "
+                "loading its decoupled checkpoint"
+            )
+        initialize()
+        if not getattr(decoder.decoder, "decoupled_ready", False):
+            raise RuntimeError("BHCL decoder materialization did not complete")
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     if int(checkpoint.get("last_epoch", -1)) != args.expected_checkpoint_epoch:
         raise RuntimeError(
@@ -80,6 +92,7 @@ def main() -> int:
     ledger = json.loads(args.coco.read_text(encoding="utf-8"))
     images = sorted(ledger["images"], key=lambda item: int(item["id"]))
     predictions: list[dict[str, Any]] = []
+    dropped_degenerate_boxes = 0
     started = time.perf_counter()
     peak_memory = 0
     with torch.inference_mode():
@@ -120,7 +133,8 @@ def main() -> int:
                     x1 = min(max(x1, 0.0), width)
                     y1 = min(max(y1, 0.0), height)
                     if x1 <= x0 or y1 <= y0:
-                        raise RuntimeError("non-positive detector box after clipping")
+                        dropped_degenerate_boxes += 1
+                        continue
                     predictions.append(
                         {
                             "image_id": int(item["id"]),
@@ -141,6 +155,7 @@ def main() -> int:
         "protocol": "deim_fixed_checkpoint_coco_candidate_export_v1",
         "images": len(images),
         "predictions": len(predictions),
+        "dropped_degenerate_boxes": dropped_degenerate_boxes,
         "score_floor": args.score_floor,
         "imgsz": args.imgsz,
         "batch_size": args.batch_size,

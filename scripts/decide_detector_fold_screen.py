@@ -14,6 +14,7 @@ from typing import Any
 
 COARSE = ("ship", "aircraft", "vehicle")
 TARGET_COARSE = ("ship", "vehicle")
+PLATFORM_OBSERVED_PROTOCOL = "platform_observed_20260831"
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -41,26 +42,42 @@ def decide(
     b_fdr15 = baseline["frontiers"]["0.150"]
     c_fdr15 = candidate["frontiers"]["0.150"]
 
+    for payload in (b_floor, c_floor, b_fdr15, c_fdr15):
+        platform = payload.get("platform")
+        if not isinstance(platform, dict) or platform.get(
+            "metric_protocol"
+        ) != PLATFORM_OBSERVED_PROTOCOL:
+            raise ValueError(
+                f"{PLATFORM_OBSERVED_PROTOCOL} metrics are required; legacy pooled "
+                "frontiers cannot authorize detector expansion"
+            )
+
     floor_delta = {
-        coarse: float(c_floor["per_coarse"][coarse]["recall"])
-        - float(b_floor["per_coarse"][coarse]["recall"])
+        coarse: float(c_floor["platform"]["per_coarse"][coarse]["macro_recall"])
+        - float(b_floor["platform"]["per_coarse"][coarse]["macro_recall"])
         for coarse in COARSE
     }
     fdr15_delta = {
-        coarse: float(c_fdr15["per_coarse"][coarse]["recall"])
-        - float(b_fdr15["per_coarse"][coarse]["recall"])
+        coarse: float(c_fdr15["platform"]["per_coarse"][coarse]["macro_recall"])
+        - float(b_fdr15["platform"]["per_coarse"][coarse]["macro_recall"])
         for coarse in COARSE
     }
-    pooled_delta = float(c_fdr15["recall"]) - float(b_fdr15["recall"])
+    platform_recall_delta = float(c_fdr15["platform"]["gate_recall"]) - float(
+        b_fdr15["platform"]["gate_recall"]
+    )
+    platform_fdr_delta = float(c_fdr15["platform"]["gate_fdr"]) - float(
+        b_fdr15["platform"]["gate_fdr"]
+    )
 
     floor_gate = max(floor_delta[name] for name in TARGET_COARSE) >= floor_gain
-    frontier_gate = pooled_delta >= fdr15_gain
+    frontier_gate = platform_recall_delta >= fdr15_gain
+    fdr_gate = platform_fdr_delta <= 0.0
     protection_gate = min(fdr15_delta.values()) >= -max_coarse_drop
-    admitted = floor_gate and frontier_gate and protection_gate
+    admitted = floor_gate and frontier_gate and fdr_gate and protection_gate
 
     return {
         "status": "screen_admitted_for_cv3" if admitted else "screen_rejected",
-        "scope": "single_heldout_fold_diagnostic_only",
+        "scope": "single_heldout_fold_platform_observed_diagnostic_only",
         "warning": (
             "Held-out labels were used to compute both frontiers. Admission only "
             "authorizes CV3; it does not authorize deployment or a threshold."
@@ -68,19 +85,22 @@ def decide(
         "gt_sha256": baseline_gt,
         "frozen_gate": {
             "ship_or_vehicle_score_floor_recall_gain_min": floor_gain,
-            "pooled_fdr15_recall_gain_min": fdr15_gain,
-            "max_any_coarse_fdr15_recall_drop": max_coarse_drop,
+            "platform_fdr15_recall_gain_min": fdr15_gain,
+            "maximum_platform_fdr_delta": 0.0,
+            "max_any_coarse_macro_fdr15_recall_drop": max_coarse_drop,
         },
         "observed": {
             "score_floor_recall_delta": floor_delta,
-            "pooled_fdr15_recall_delta": pooled_delta,
-            "fdr15_recall_delta": fdr15_delta,
-            "candidate_fdr15": float(c_fdr15["fdr"]),
+            "platform_fdr15_recall_delta": platform_recall_delta,
+            "platform_fdr15_fdr_delta": platform_fdr_delta,
+            "fdr15_coarse_macro_recall_delta": fdr15_delta,
+            "candidate_platform_fdr15": float(c_fdr15["platform"]["gate_fdr"]),
         },
         "gates": {
             "ship_or_vehicle_floor_gain": floor_gate,
-            "pooled_fdr15_gain": frontier_gate,
-            "coarse_recall_protection": protection_gate,
+            "platform_fdr15_gain": frontier_gate,
+            "platform_fdr_nondegrade": fdr_gate,
+            "coarse_macro_recall_protection": protection_gate,
         },
         "next_action": (
             "run_source_grouped_cv3_without_reusing_this_fold_threshold"

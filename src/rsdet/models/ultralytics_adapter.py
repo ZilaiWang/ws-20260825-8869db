@@ -86,6 +86,7 @@ class UltralyticsDetector(BaseDetector):
         half: bool = True,
         agnostic_nms: bool = False,
         label_map: Mapping[int, int] | None = None,
+        drop_labels: Sequence[int] | None = None,
         refiner: Mapping[str, Any] | None = None,
         agreement: Mapping[str, Any] | None = None,
         score_transform: str | None = None,
@@ -110,6 +111,9 @@ class UltralyticsDetector(BaseDetector):
             if label_map is not None
             else None
         )
+        self.drop_labels = {int(label) for label in (drop_labels or [])}
+        if self.label_map is not None and self.drop_labels & set(self.label_map):
+            raise ValueError("drop_labels and label_map keys must be disjoint")
         self.refiner_config = dict(refiner or {})
         self.agreement_config = dict(agreement or {})
         if score_transform not in {None, "coarse_purity_sqrt"}:
@@ -294,6 +298,12 @@ class UltralyticsDetector(BaseDetector):
                 raw_scores = coarse_purity_sqrt_scores(
                     raw_scores, raw_labels, probability_rows[batch_index]
                 )
+            if self.drop_labels:
+                keep = [index for index, label in enumerate(raw_labels)
+                        if label not in self.drop_labels]
+                raw_boxes = [raw_boxes[index] for index in keep]
+                raw_scores = [raw_scores[index] for index in keep]
+                raw_labels = [raw_labels[index] for index in keep]
             if self.label_map is not None:
                 unknown = sorted(set(raw_labels) - set(self.label_map))
                 if unknown:

@@ -14,10 +14,10 @@ SPEC.loader.exec_module(MODULE)
 
 def test_admission_payload_supports_custom_fdr_grid() -> None:
     results = {
-        "0.130": {"crossfit": {"recall": 0.94, "fdr": 0.129}},
-        "0.140": {"crossfit": {"recall": 0.95, "fdr": 0.139}},
-        "0.145": {"crossfit": {"recall": 0.951, "fdr": 0.144}},
-        "0.150": {"crossfit": {"recall": 0.952, "fdr": 0.149}},
+        "0.130": {"crossfit": {"platform_gate_recall": 0.94, "platform_gate_fdr": 0.129}},
+        "0.140": {"crossfit": {"platform_gate_recall": 0.95, "platform_gate_fdr": 0.139}},
+        "0.145": {"crossfit": {"platform_gate_recall": 0.951, "platform_gate_fdr": 0.144}},
+        "0.150": {"crossfit": {"platform_gate_recall": 0.952, "platform_gate_fdr": 0.149}},
     }
 
     payload = MODULE._admission_payload(results, [0.13, 0.14, 0.145, 0.15])
@@ -34,10 +34,25 @@ def test_admission_payload_rejects_empty_grid() -> None:
 
 
 def test_absolute_score_selector_uses_constraints_and_published_objective() -> None:
+    def point(threshold: float, recall: float, fdr: float) -> dict:
+        return {
+            "threshold": threshold,
+            "platform_gate_recall": recall,
+            "platform_gate_fdr": fdr,
+            **{
+                f"{name}_macro_recall": recall
+                for name in ("ship", "aircraft", "vehicle")
+            },
+            **{
+                f"{name}_macro_fdr": fdr
+                for name in ("ship", "aircraft", "vehicle")
+            },
+        }
+
     points = [
-        {"threshold": 0.1, "overall_recall": 0.95, "overall_fdr": 0.25},
-        {"threshold": 0.2, "overall_recall": 0.90, "overall_fdr": 0.17},
-        {"threshold": 0.3, "overall_recall": 0.88, "overall_fdr": 0.10},
+        point(0.1, 0.95, 0.25),
+        point(0.2, 0.90, 0.17),
+        point(0.3, 0.88, 0.10),
     ]
     selected = MODULE._select_absolute_score_threshold(
         points,

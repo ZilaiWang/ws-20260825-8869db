@@ -1,0 +1,23 @@
+{
+  "schema_version": "macroexpert_manual_review_v1",
+  "reviewer": "codex_visual_review",
+  "review_count": 100,
+  "contact_sheet_count": 5,
+  "status": "pass",
+  "valid_mapping_count": 100,
+  "invalid_mapping_count": 0,
+  "out_of_bounds_or_degenerate_box_count": 0,
+  "aircraft_as_unlabelled_background_count": 0,
+  "observations": [
+    "Ship examples remained in specialist classes 0..3.",
+    "Vehicle examples were mapped to specialist class 4 and aligned with visible vehicles.",
+    "Aircraft examples were explicitly mapped to AIRCRAFT_REJECT class 5.",
+    "Several vehicle targets are genuinely very small; they were accepted only when the box aligned with a visible vehicle.",
+    "This review validates transformation and visible box alignment, not the latent fine-grained truth of the original dataset."
+  ],
+  "server_artifacts": {
+    "directory": "/root/autodl-tmp/results/MACROEXPERT-M-V1/review100-v1",
+    "manifest": "review_manifest.json",
+    "contact_sheets": "contact_sheet_00.jpg..contact_sheet_04.jpg"
+  }
+}

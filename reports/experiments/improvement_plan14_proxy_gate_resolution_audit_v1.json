@@ -1,0 +1,175 @@
+{
+  "schema_version": "proxy_gate_resolution_audit_v1",
+  "fixed_delta": 0.005,
+  "interpretation": "If fixed_gate_allows_one_miss is false, a 0.5pp non-degradation veto permits zero additional misses and is unsuitable as a discovery gate.",
+  "proxies": [
+    {
+      "name": "Hard",
+      "ground_truth": "/root/autodl-tmp/pseudo10k-trial-mix-local/ground_truth.json",
+      "folds": {
+        "0": {
+          "ship": {
+            "gt": 295,
+            "one_object_pp": 0.3389830508474576,
+            "fixed_gate_object_budget": 1.475,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 2.0789501913959083,
+            "discovery_tolerance_two_objects": 0.006779661016949152
+          },
+          "aircraft": {
+            "gt": 331,
+            "one_object_pp": 0.3021148036253776,
+            "fixed_gate_object_budget": 1.655,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 1.9626420321147628,
+            "discovery_tolerance_two_objects": 0.006042296072507553
+          },
+          "vehicle": {
+            "gt": 50,
+            "one_object_pp": 2.0,
+            "fixed_gate_object_budget": 0.25,
+            "fixed_gate_allows_one_miss": false,
+            "binomial_recall_se_pp_at_r085": 5.049752469181039,
+            "discovery_tolerance_two_objects": 0.04
+          }
+        },
+        "1": {
+          "ship": {
+            "gt": 306,
+            "one_object_pp": 0.32679738562091504,
+            "fixed_gate_object_budget": 1.53,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 2.041241452319315,
+            "discovery_tolerance_two_objects": 0.006535947712418301
+          },
+          "aircraft": {
+            "gt": 334,
+            "one_object_pp": 0.2994011976047904,
+            "fixed_gate_object_budget": 1.67,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 1.9538078895994553,
+            "discovery_tolerance_two_objects": 0.005988023952095809
+          },
+          "vehicle": {
+            "gt": 64,
+            "one_object_pp": 1.5625,
+            "fixed_gate_object_budget": 0.32,
+            "fixed_gate_allows_one_miss": false,
+            "binomial_recall_se_pp_at_r085": 4.463392767839281,
+            "discovery_tolerance_two_objects": 0.03125
+          }
+        },
+        "2": {
+          "ship": {
+            "gt": 353,
+            "one_object_pp": 0.28328611898017,
+            "fixed_gate_object_budget": 1.7650000000000001,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 1.9004994125221844,
+            "discovery_tolerance_two_objects": 0.0056657223796034
+          },
+          "aircraft": {
+            "gt": 355,
+            "one_object_pp": 0.28169014084507044,
+            "fixed_gate_object_budget": 1.7750000000000001,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 1.8951383315670252,
+            "discovery_tolerance_two_objects": 0.005633802816901409
+          },
+          "vehicle": {
+            "gt": 70,
+            "one_object_pp": 1.4285714285714286,
+            "fixed_gate_object_budget": 0.35000000000000003,
+            "fixed_gate_allows_one_miss": false,
+            "binomial_recall_se_pp_at_r085": 4.267819784654187,
+            "discovery_tolerance_two_objects": 0.02857142857142857
+          }
+        }
+      }
+    },
+    {
+      "name": "Sentinel",
+      "ground_truth": "/root/autodl-tmp/pseudo10k-trial-mix-sentinel-v1/ground_truth.json",
+      "folds": {
+        "0": {
+          "ship": {
+            "gt": 320,
+            "one_object_pp": 0.3125,
+            "fixed_gate_object_budget": 1.6,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 1.9960899278339141,
+            "discovery_tolerance_two_objects": 0.00625
+          },
+          "aircraft": {
+            "gt": 332,
+            "one_object_pp": 0.30120481927710846,
+            "fixed_gate_object_budget": 1.6600000000000001,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 1.959684016820858,
+            "discovery_tolerance_two_objects": 0.006024096385542169
+          },
+          "vehicle": {
+            "gt": 50,
+            "one_object_pp": 2.0,
+            "fixed_gate_object_budget": 0.25,
+            "fixed_gate_allows_one_miss": false,
+            "binomial_recall_se_pp_at_r085": 5.049752469181039,
+            "discovery_tolerance_two_objects": 0.04
+          }
+        },
+        "1": {
+          "ship": {
+            "gt": 306,
+            "one_object_pp": 0.32679738562091504,
+            "fixed_gate_object_budget": 1.53,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 2.041241452319315,
+            "discovery_tolerance_two_objects": 0.006535947712418301
+          },
+          "aircraft": {
+            "gt": 252,
+            "one_object_pp": 0.3968253968253968,
+            "fixed_gate_object_budget": 1.26,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 2.2493385271060933,
+            "discovery_tolerance_two_objects": 0.007936507936507936
+          },
+          "vehicle": {
+            "gt": 55,
+            "one_object_pp": 1.8181818181818181,
+            "fixed_gate_object_budget": 0.275,
+            "fixed_gate_allows_one_miss": false,
+            "binomial_recall_se_pp_at_r085": 4.814750064314676,
+            "discovery_tolerance_two_objects": 0.03636363636363636
+          }
+        },
+        "2": {
+          "ship": {
+            "gt": 307,
+            "one_object_pp": 0.3257328990228013,
+            "fixed_gate_object_budget": 1.5350000000000001,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 2.037914243176272,
+            "discovery_tolerance_two_objects": 0.006514657980456026
+          },
+          "aircraft": {
+            "gt": 290,
+            "one_object_pp": 0.3448275862068966,
+            "fixed_gate_object_budget": 1.45,
+            "fixed_gate_allows_one_miss": true,
+            "binomial_recall_se_pp_at_r085": 2.096795584728738,
+            "discovery_tolerance_two_objects": 0.006896551724137931
+          },
+          "vehicle": {
+            "gt": 57,
+            "one_object_pp": 1.7543859649122806,
+            "fixed_gate_object_budget": 0.28500000000000003,
+            "fixed_gate_allows_one_miss": false,
+            "binomial_recall_se_pp_at_r085": 4.729526514634586,
+            "discovery_tolerance_two_objects": 0.03508771929824561
+          }
+        }
+      }
+    }
+  ]
+}
