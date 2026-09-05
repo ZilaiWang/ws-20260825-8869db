@@ -67,5 +67,9 @@ Hard/Sentinel 都在不丢 TP 的情况下删掉 Vehicle FP；Normal 的轻微�
 - v4.0 候选 ID：`p40_d4_shared_otm_ship23_t0560_optimized_20260905`
 - v5.0 配置：`submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_vehicle_t0550_v1.json`
 - v5.0 候选 ID：`p40_d4_shared_otm_ship23_t0560_vehicle_t0550_20260905`
+- v5.0 本地镜像：`xh-detector:hera-attempt5-final-20260905`
+- v5.0 镜像 ID：`sha256:5e54b5c7ec6d54915db1dc8021dc6c165c5db169272b88fb9dbe9691a2df0e85`
+- v5.0 配置 SHA：`9f8ce49c2543f6581603d6d1975ad295e2e01c937ab3ebf3a06c58f6863ca7ff`
+- v5.0 源码提交：`44c7284e920477cc7cd135acf18347be22c52055`，构建时工作树干净；容器内源码导入、配置与两项权重 SHA 已通过核验。
 - 决策与完整本地证据：`reports/experiments/HERA_GUARD_FINAL_TWO_ATTEMPTS_DECISION_20260905.md`
 - 技术报告索引：`docs/TECHNICAL_REPORT_P40_D4_EVIDENCE_INDEX_20260905.md`
