@@ -1,5 +1,7 @@
 # P40 加 Aircraft D4 技术报告证据索引
 
+> 2026-09-05 更新：第四次正式提交 `v4.0`（P40 + Aircraft-D4 + Shared OTM QHS/MS）获得官方 `77.1910`，成为当前最佳。官方结果与第五次决策见 `reports/experiments/FORMAL_ATTEMPT4_SHARED_OTM_PLATFORM_RESULT_20260905.md`。
+
 日期：2026-09-05
 
 用途：供技术报告作者或审阅仓库的模型快速定位当前稳定主线、实验依据、实现代码、冻结资产和结果边界。本文是导航页，不替代各项原始报告；没有列出的探索性分支不属于 P40+D4 主线。
