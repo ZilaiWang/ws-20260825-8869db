@@ -130,6 +130,37 @@ def build(output: Path, manifest: dict[str, Any], image: str) -> None:
         cwd=output,
         check=True,
     )
+    inspected = subprocess.run(
+        ["docker", "image", "inspect", image],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    image_meta = json.loads(inspected.stdout)[0]
+    if (image_meta["Os"], image_meta["Architecture"]) != ("linux", "amd64"):
+        raise RuntimeError("built image is not linux/amd64")
+    labels = image_meta["Config"].get("Labels") or {}
+    if labels.get("rsdet.candidate.id") != manifest["candidate_id"]:
+        raise RuntimeError("built image candidate label mismatch")
+    if labels.get("rsdet.config.sha256") != manifest["config_sha256"]:
+        raise RuntimeError("built image config label mismatch")
+    (output / "IMAGE_MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "status": "built",
+                "image": image,
+                "image_id": image_meta["Id"],
+                "os": image_meta["Os"],
+                "architecture": image_meta["Architecture"],
+                "candidate_id": manifest["candidate_id"],
+                "config_sha256": manifest["config_sha256"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def main() -> int:
@@ -145,7 +176,18 @@ def main() -> int:
     manifest = materialize(args.candidate, output, force=args.force)
     if args.build:
         build(output, manifest, image)
-    print(json.dumps({"status": "built" if args.build else "materialized", "output": str(output), "image": image, **manifest}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                **manifest,
+                "status": "built" if args.build else "materialized",
+                "output": str(output),
+                "image": image,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 
