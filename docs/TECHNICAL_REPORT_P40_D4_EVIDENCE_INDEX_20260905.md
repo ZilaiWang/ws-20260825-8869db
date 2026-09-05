@@ -166,3 +166,5 @@
 | 第五次 | 稳定保底 | `submission/docker/configs/p40_aircraft_d4_only_v1.json` | P40 全类；D4 仅 4--23 |
 
 两者共用完全相同的 P40 与 D4 权重 SHA。统一物化入口为 `scripts/build_final_two_attempt_submissions.py`；第四次构建上下文额外复制 `src/sprint20`，第五次不包含该实验包。任何后续镜像都必须从上述配置重新物化，不得从历史 v3.0 镜像改 tag，以免带入已拒绝的 Vehicle hierarchy。
+
+截至本文冻结时，本地镜像标签分别为 `xh-detector:hera-attempt4-20260905` 和 `xh-detector:hera-attempt5-20260905`；二者均通过 linux/amd64、候选标签、包内代码导入及 P40/D4 资产 SHA 检查。镜像标签是本地交付身份，不属于 Git 文件；Git 中的可重建身份以配置、构建入口、资产 SHA 和提交号为准。

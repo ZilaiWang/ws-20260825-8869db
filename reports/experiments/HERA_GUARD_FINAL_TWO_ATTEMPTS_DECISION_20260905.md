@@ -2,7 +2,7 @@
 
 日期：2026-09-05
 
-状态：P40+D4 稳定线与 shared OTM QHS/MS 攻击候选均已闭环；两套冻结配置和统一物化入口已完成；未构建镜像、未提交。
+状态：P40+D4 稳定线与 shared OTM QHS/MS 攻击候选均已闭环；两套 linux/amd64 镜像已在本机完成构建、包内导入与资产 SHA 检查；未推送、未提交。
 
 ## 1 决策
 
@@ -121,3 +121,10 @@ OTM 的短 OOF 来自 `S1024/40e→P40/40e`，而正式 full 是 `S1024/160e→P
 - 统一物化/构建入口：`scripts/build_final_two_attempt_submissions.py`。
 
 第五次固定为 P40+D4 batch64；不得从 v3.0 历史镜像改 tag，因为其中含已经失败的 Vehicle hierarchy。
+
+本地构建身份：
+
+- 第四次镜像：`xh-detector:hera-attempt4-20260905`，候选 ID `p40_d4_shared_otm_ship23_t0560_optimized_20260905`；
+- 第五次镜像：`xh-detector:hera-attempt5-20260905`，候选 ID `p40_aircraft_d4_only_batch64_20260905`；
+- 两个镜像均为 `linux/amd64`，包内 P40/D4 资产 SHA 与冻结配置一致；第四次额外验证 `sprint20.runtime` 可导入；
+- 本机构建环境无 NVIDIA GPU，因此 GPU 端真实整链依据是前述 RTX 3090 源码同路径审计，镜像本机检查只覆盖封装、导入和资产身份。
