@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -97,6 +97,7 @@ def route_after_fusion(
     alternative_labels: Sequence[int],
     primary_threshold: float,
     alternative_threshold: float,
+    primary_threshold_by_fine: Mapping[int, float] | None = None,
 ) -> Any:
     """Mutually exclusive ownership AFTER each full fusion and its own top-k.
 
@@ -113,6 +114,16 @@ def route_after_fusion(
     own = set(labels)
     t0 = validate_rate(primary_threshold, "primary_threshold")
     t1 = validate_rate(alternative_threshold, "alternative_threshold")
+    fine_thresholds: dict[int, float] = {}
+    for raw_label, raw_threshold in (primary_threshold_by_fine or {}).items():
+        if isinstance(raw_label, bool) or not isinstance(raw_label, int):
+            raise ValueError("primary fine-threshold labels must be integers")
+        label = int(raw_label)
+        if not 0 <= label < 25 or label in own:
+            raise ValueError("primary fine-threshold label is invalid or alternative-owned")
+        fine_thresholds[label] = validate_rate(
+            raw_threshold, f"primary_threshold_by_fine.{label}"
+        )
     rows = []
     for origin, prediction, threshold in ((0, primary, t0), (1, alternative, t1)):
         prediction_fingerprint(prediction)
@@ -124,7 +135,10 @@ def route_after_fusion(
                 raise ValueError("invalid detection")
             if len(box) != 4 or not all(math.isfinite(float(x)) for x in box):
                 raise ValueError("invalid box")
-            if (label in own) != bool(origin) or score < threshold:
+            effective_threshold = (
+                fine_thresholds.get(label, threshold) if origin == 0 else threshold
+            )
+            if (label in own) != bool(origin) or score < effective_threshold:
                 continue
             rows.append((score, origin, index, label, list(box)))
     rows.sort(key=lambda x: (-x[0], x[1], x[2]))

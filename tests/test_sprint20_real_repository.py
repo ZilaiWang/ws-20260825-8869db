@@ -159,3 +159,33 @@ def test_final_attempt_configs_preserve_scientific_contracts():
         }
     assert "sprint20" not in stable
     assert attack["sprint20"] == attack_source["sprint20"]
+
+
+def test_final_attempt5_is_attempt4_plus_vehicle_postroute_threshold_only():
+    attempt4 = json.loads(
+        (
+            ROOT
+            / "submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_v1.json"
+        ).read_text()
+    )
+    attempt5 = json.loads(
+        (
+            ROOT
+            / "submission/docker/configs/"
+            "p40_aircraft_d4_shared_otm_ship23_t0560_vehicle_t0550_v1.json"
+        ).read_text()
+    )
+    for key in (
+        "contract_version",
+        "metric_protocol",
+        "device",
+        "model",
+        "pipeline",
+        "post_fusion_score_threshold",
+        "aircraft_classifier_model",
+    ):
+        assert attempt5[key] == attempt4[key]
+    assert attempt5["sprint20"] == {
+        **attempt4["sprint20"],
+        "primary_threshold_by_fine": {"24": 0.55},
+    }

@@ -133,6 +133,35 @@ def test_empty_ownership_is_exact_primary_filter():
     assert out.labels == [24] and out.scores == [0.536]
 
 
+def test_primary_fine_threshold_is_postfusion_and_class_bounded():
+    primary = Prediction(
+        1,
+        [[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]],
+        [0.545, 0.545, 0.70],
+        [24, 4, 2],
+    )
+    alternative = Prediction(1, [[6, 6, 7, 7]], [0.60], [2])
+    out = route_after_fusion(
+        primary,
+        alternative,
+        alternative_labels=[2, 3],
+        primary_threshold=0.536,
+        alternative_threshold=0.56,
+        primary_threshold_by_fine={24: 0.55},
+    )
+    assert out.labels == [2, 4]
+    assert out.scores == [0.60, 0.545]
+    with pytest.raises(ValueError, match="alternative-owned"):
+        route_after_fusion(
+            primary,
+            alternative,
+            alternative_labels=[2, 3],
+            primary_threshold=0.536,
+            alternative_threshold=0.56,
+            primary_threshold_by_fine={2: 0.55},
+        )
+
+
 def test_same_class_nms_still_called_for_early_kept_objects():
     calls = []
 

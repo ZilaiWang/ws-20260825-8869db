@@ -39,11 +39,23 @@
 
 原先冻结的 P40+D4-only 最多只保留 Aircraft 的约 `+0.3215` 质量收益。即使它相对 v2.0 完全没有新增时延，理论上也只有约 `76.9225`，仍低于 v4.0 的 `77.1910`；因此不得直接提交已经构建的 `hera-attempt5-20260905` 作为冲分方案。
 
-第五次只能采用以下策略：
+第五次不再采用 D4-only。基于 v4.0 暴露出的 Vehicle `Recall=0.831579 / FDR=0.210000`，追加了一个不改权重、不增加模型前向且只影响细类 24 的探索候选：将 Vehicle 的融合后阈值从 `0.536` 提到 `0.550`，其余完全保持 v4.0。
+
+固定缓存复算：
+
+| 代理 | Vehicle Recall | Vehicle FDR | 七项总分差 |
+|---|---:|---:|---:|
+| Hard | `0.217391→0.217391` | `0.259259→0.230769` | **+0.3053** |
+| Sentinel | `0.358025→0.358025` | `0.183099→0.171429` | **+0.3334** |
+| Normal OOF pooled diagnostic | `0.325871→0.318408` | `0.220238→0.214724` | -0.0162 |
+
+Hard/Sentinel 都在不丢 TP 的情况下删掉 Vehicle FP；Normal 的轻微负向说明这不是独立正式准入，只能作为“最佳成绩取历史最高”规则下的最后一次受控探索。实现使用融合后 `primary_threshold_by_fine={24: 0.550}`，因此不会改变融合、Ship OTM、Aircraft D4 或其他类别，也没有新增网络前向时延。
+
+第五次策略：
 
 1. 以 v4.0 的 P40 + Aircraft-D4 + Shared OTM(QHS/MS, 0.560) 为不可回退基线；
-2. 只叠加一个已经有独立、逐框和固定代理证据的增量，且保持 Vehicle 不变；
-3. 若截止前没有这样的增量，则保留 v4.0 为最终最佳，不为了用完次数而提交更弱的 D4-only；
+2. 仅增加 Vehicle 24 的融合后阈值 `0.550`；不再引入任何模型、重训练、TTA、层级专家或 rescue；
+3. 该候选失败不会覆盖平台已经保留的 v4.0 最佳成绩，但不得描述为已获独立正式准入；
 4. 不临时扫描 Shared OTM 阈值。`0.560` 来自三折同方向的固定选择（折阈值 `0.565/0.565/0.539`），官方结果已验证；赛后按单次隐藏结果调阈值缺少独立验证。
 
 第五次提交前仍须核验镜像为 `linux/amd64`、P40/D4/OTM 权重 SHA 与 v4.0 一致、受保护标签逐框不变、3090 时延不退化，并使用新的 `v5.0` 仓库标签。
@@ -53,5 +65,7 @@
 - v4.0 配置：`submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_v1.json`
 - v4.0 本地镜像：`xh-detector:hera-attempt4-20260905`
 - v4.0 候选 ID：`p40_d4_shared_otm_ship23_t0560_optimized_20260905`
+- v5.0 配置：`submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_vehicle_t0550_v1.json`
+- v5.0 候选 ID：`p40_d4_shared_otm_ship23_t0560_vehicle_t0550_20260905`
 - 决策与完整本地证据：`reports/experiments/HERA_GUARD_FINAL_TWO_ATTEMPTS_DECISION_20260905.md`
 - 技术报告索引：`docs/TECHNICAL_REPORT_P40_D4_EVIDENCE_INDEX_20260905.md`

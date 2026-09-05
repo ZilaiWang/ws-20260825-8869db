@@ -41,12 +41,30 @@ def detector_factory(config):
             if t1 < float(config["pipeline"]["score_threshold"]):
                 raise ValueError("OTM threshold is below the cached candidate floor")
             capture = SharedHeadCapture(detector.detector)
+            primary_threshold_by_fine = options.get("primary_threshold_by_fine") or {}
+            if not isinstance(primary_threshold_by_fine, dict):
+                raise ValueError("primary_threshold_by_fine must be a mapping")
+            normalized_primary_thresholds = {}
+            for raw_label, raw_threshold in primary_threshold_by_fine.items():
+                if (
+                    not isinstance(raw_label, str)
+                    or not raw_label.isdigit()
+                    or str(int(raw_label)) != raw_label
+                ):
+                    raise ValueError("primary_threshold_by_fine keys must be category strings")
+                label = int(raw_label)
+                if label in labels or label not in WEAK_LABELS:
+                    raise ValueError("primary_threshold_by_fine must target primary-owned weak labels")
+                normalized_primary_thresholds[label] = validate_rate(
+                    raw_threshold, f"primary_threshold_by_fine.{label}"
+                )
             detector.resolution_runtime = SharedHeadPipeline(
                 capture,
                 detector.pipeline_config,
                 otm_labels=labels,
                 primary_threshold=t0,
                 otm_threshold=t1,
+                primary_threshold_by_fine=normalized_primary_thresholds,
                 optimized=bool(options.get("optimized_pipeline", False)),
             )
             # Both owners were filtered separately AFTER independent fusion.

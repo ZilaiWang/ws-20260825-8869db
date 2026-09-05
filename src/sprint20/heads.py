@@ -280,11 +280,13 @@ class SharedHeadPipeline:
         otm_labels,
         primary_threshold,
         otm_threshold,
+        primary_threshold_by_fine=None,
         optimized=False,
     ):
         self.capture, self.config = capture, config
         self.otm_labels = tuple(otm_labels)
         self.primary_threshold, self.otm_threshold = float(primary_threshold), float(otm_threshold)
+        self.primary_threshold_by_fine = dict(primary_threshold_by_fine or {})
         self.optimized = bool(optimized)
         self.last_primary = None
         self.last_otm = None
@@ -311,6 +313,7 @@ class SharedHeadPipeline:
             alternative_labels=self.otm_labels,
             primary_threshold=self.primary_threshold,
             alternative_threshold=self.otm_threshold,
+            primary_threshold_by_fine=self.primary_threshold_by_fine,
         )
         # Includes OTM decode, both fusions and cache/hash overhead. It is NOT
         # an official endpoint latency and must not be substituted for one.
@@ -411,6 +414,7 @@ class SharedHeadPipeline:
             alternative_labels=self.otm_labels,
             primary_threshold=self.primary_threshold,
             alternative_threshold=self.otm_threshold,
+            primary_threshold_by_fine=self.primary_threshold_by_fine,
         )
         return routed, {
             "optimized_shared_pipeline": {

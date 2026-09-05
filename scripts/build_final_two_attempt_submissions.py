@@ -17,7 +17,9 @@ ASSET_ROOT = ROOT / "outputs" / "HERA-GUARD-APEX-20260904" / "P40-HIER-D4-DEPLOY
 BASE_IMAGE = "xh-detector:p40-full-s1280-frozen0536-final"
 CANDIDATES = {
     "attempt4": DOCKER_ROOT / "configs" / "p40_aircraft_d4_shared_otm_ship23_t0560_v1.json",
-    "attempt5": DOCKER_ROOT / "configs" / "p40_aircraft_d4_only_v1.json",
+    "attempt5": DOCKER_ROOT
+    / "configs"
+    / "p40_aircraft_d4_shared_otm_ship23_t0560_vehicle_t0550_v1.json",
 }
 
 
