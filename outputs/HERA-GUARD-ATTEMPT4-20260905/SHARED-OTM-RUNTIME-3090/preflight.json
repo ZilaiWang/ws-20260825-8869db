@@ -1,0 +1,8 @@
+{
+  "status": "preflight_pass",
+  "protocol": "attempt4_shared_otm_paired_runtime_3090_v1",
+  "baseline_config": "/root/autodl-tmp/xh-sprint20-ab51106/configs/experiments/p40_aircraft_d4_full_runtime_candidate_v1.json",
+  "baseline_config_sha256": "02e1fb01aa98728eb01b80681d3ab86a15ebc9d9f7eb96966943577b0ea1a55b",
+  "candidate_config": "/root/autodl-tmp/xh-sprint20-ab51106/configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json",
+  "candidate_config_sha256": "62f5a7f22540ede969d2b9184fd36c1c1382f41ef1d9b45517e919a8ece3b4ba"
+}

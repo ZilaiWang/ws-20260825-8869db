@@ -90,3 +90,72 @@ def test_attempt4_shared_candidate_freezes_crossfit_threshold():
     assert candidate["sprint20"]["otm_labels"] == [2, 3]
     assert candidate["sprint20"]["otm_threshold"] == 0.56
     assert candidate["aircraft_classifier_model"]["batch_objects"] == 64
+
+
+def test_attempt4_optimized_candidate_changes_only_engineering_path():
+    reference = json.loads(
+        (
+            ROOT
+            / "configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json"
+        ).read_text()
+    )
+    candidate = json.loads(
+        (
+            ROOT
+            / "configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_optimized_candidate_v3.json"
+        ).read_text()
+    )
+    assert candidate["sprint20"] == {
+        **reference["sprint20"],
+        "optimized_pipeline": True,
+    }
+    for key in (
+        "contract_version",
+        "metric_protocol",
+        "device",
+        "model",
+        "pipeline",
+        "post_fusion_score_threshold",
+        "aircraft_classifier_model",
+    ):
+        assert candidate[key] == reference[key]
+
+
+def test_final_attempt_configs_preserve_scientific_contracts():
+    stable_source = json.loads(
+        (ROOT / "configs/experiments/p40_aircraft_d4_full_runtime_candidate_v1.json").read_text()
+    )
+    attack_source = json.loads(
+        (
+            ROOT
+            / "configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_optimized_candidate_v3.json"
+        ).read_text()
+    )
+    stable = json.loads(
+        (ROOT / "submission/docker/configs/p40_aircraft_d4_only_v1.json").read_text()
+    )
+    attack = json.loads(
+        (
+            ROOT
+            / "submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_v1.json"
+        ).read_text()
+    )
+    for source, materialized in ((stable_source, stable), (attack_source, attack)):
+        for key in (
+            "contract_version",
+            "metric_protocol",
+            "device",
+            "pipeline",
+            "post_fusion_score_threshold",
+        ):
+            assert materialized[key] == source[key]
+        assert materialized["model"] == {
+            **source["model"],
+            "weight_path": "/app/models/p40_official_sanitized.pt",
+        }
+        assert materialized["aircraft_classifier_model"] == {
+            **source["aircraft_classifier_model"],
+            "weight_path": "/app/models/aircraft_d4_full_checkpoint.pt",
+        }
+    assert "sprint20" not in stable
+    assert attack["sprint20"] == attack_source["sprint20"]

@@ -109,7 +109,7 @@
 | D4 official | v3.0 Aircraft 分量 | `+21 TP/-21 FP`，R `+0.4718pp`，FDR `-0.4962pp` | 官方隐藏集 | D4 模块成功 |
 | v3.0 整体 | P40+Vehicle hierarchy+D4 | 官方 `75.9405`，比 v2.0 低 `0.6605` | 官方隐藏集 | Vehicle 分支与双检测器拒绝；D4 保留 |
 | D4 batch | 64→128 | 输出完全一致；Hard 快约1.7%，Sentinel 慢约2.4% | 3090 配对工程审计 | 继续 batch64 |
-| Shared OTM QHS/MS | P40+D4+OTM 2/3 | 短 OOF 合并约 `+0.214`，三折同向；full-seen机制约 `+0.873` | 后验方向证据 | 第四次攻击候选，仍需整链复核 |
+| Shared OTM QHS/MS | P40+D4+OTM 2/3 | 短 OOF 合并约 `+0.214`，三折同向；Hard/Sentinel 整链约 `+0.743/+0.726` | 后验方向 + 固定代理整链证据 | 第四次攻击候选，已通过提交前复核 |
 
 ## 5 当前候选边界
 
@@ -119,15 +119,23 @@
 
 ### 5.2 第四次攻击候选
 
-`P40 + Aircraft-D4 + shared OTM(QHS/MS 2/3, threshold 0.560)`。它只替换 QHS/MS 两个 Ship 细类，Aircraft-D4 和 FSC 保持不变。配置与实现：
+`P40 + Aircraft-D4 + shared OTM(QHS/MS 2/3, threshold 0.560)`。它只替换 QHS/MS 两个 Ship 细类，Aircraft-D4 和 FSC 保持不变。Hard 与 Sentinel 的真实运行时均确认标签 0/1、4--24 完全一致；等价工程实现又在预测完全一致的条件下，将候选整链提速约 24%--27%。配置与实现：
 
-- [攻击候选配置](../configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json)
+- [攻击候选科学配置](../configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json)
+- [攻击候选优化运行配置](../configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_optimized_candidate_v3.json)
+- [第四次 Docker 冻结配置](../submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_v1.json)
+- [第五次 P40+D4 Docker 冻结配置](../submission/docker/configs/p40_aircraft_d4_only_v1.json)
 - [共享检测头实现](../src/sprint20/heads.py)
 - [共享运行时装配](../src/sprint20/runtime.py)
 - [共享 OTM OOF 分析](../scripts/analyze_sprint20_oof_routing.py)
 - [共享 OTM 整链 3090 驱动](../scripts/server/run_attempt4_shared_otm_runtime_3090_v1.sh)
+- [等价工程提速驱动](../scripts/server/run_attempt4_shared_otm_optimized_3090_v1.sh)
+- [最终两候选构建入口](../scripts/build_final_two_attempt_submissions.py)
+- [Hard 整链原始审计](../outputs/HERA-GUARD-ATTEMPT4-20260905/SHARED-OTM-OPTIMIZED-QUALITY-3090/hard/audit.json)
+- [Sentinel 整链原始审计](../outputs/HERA-GUARD-ATTEMPT4-20260905/SHARED-OTM-OPTIMIZED-QUALITY-3090/sentinel/audit.json)
+- [等价提速原始审计目录](../outputs/HERA-GUARD-ATTEMPT4-20260905/SHARED-OTM-OPTIMIZED-3090)
 
-该候选在完成 Hard/Sentinel 的类别旁路、质量方向和时延复核前不应写成最终方法；即使通过，也应在报告中与稳定主线分开说明。
+该候选已完成 Hard/Sentinel 的类别旁路、质量方向和时延复核，可以作为第四次进攻方案；它仍是后验探索候选，应在报告中与 P40+D4 稳定主线分开说明，不能把代理增量写成官方增量。
 
 ## 6 技术报告附录建议清单
 
@@ -136,7 +144,7 @@
 - 训练：`train_progressive_resolution_adaptation.py`、`resume_progressive_resolution_ddp.py`、`train_aircraft_view_consistency_full.py`；
 - 推理：`competition.py`、`large_image.py`、`ultralytics_adapter.py`、`aircraft_d4.py`；
 - 评估：`platform_protocol.py`、`official_metric.py`、`run_competition_runtime_coco.py`；
-- 配置：P40 正式配置、P40+D4 安全候选配置、P40 CV3/full 驱动、R1-5 三折/full 配置；
+- 配置：P40 正式配置、P40+D4 第五次冻结配置、P40 CV3/full 驱动、R1-5 三折/full 配置；
 - 结果：方案15报告、正式 v2.0 报告、R1-5结果、正式 v3.0报告、Attempt 4决策报告；
 - 权重：在附件清单写资产名、大小、SHA 和获取位置，不放入代码报告 ZIP；
 - 复现：使用本索引作为仓库阅读入口，不另建会改变公开仓库首页的 README。
@@ -149,3 +157,12 @@
 - Aircraft-D4 的官方正增量来自 v3.0 中 Aircraft 分项；P40+D4-only 组合尚无平台独立成绩。
 - v3.0 总分下降不是 D4 失败，而是 Vehicle FDR 和第二检测器时延覆盖了 D4 收益。
 - 权重、数据和服务器路径不是 Git 资产；SHA、冻结配置和训练报告共同构成可追溯身份链。
+
+## 8 最后两次候选的唯一身份
+
+| 次序 | 用途 | 唯一配置 | 模块边界 |
+|---|---|---|---|
+| 第四次 | 有依据的进攻 | `submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_v1.json` | P40 全类；D4 仅 4--23；OTM 仅 2/3 |
+| 第五次 | 稳定保底 | `submission/docker/configs/p40_aircraft_d4_only_v1.json` | P40 全类；D4 仅 4--23 |
+
+两者共用完全相同的 P40 与 D4 权重 SHA。统一物化入口为 `scripts/build_final_two_attempt_submissions.py`；第四次构建上下文额外复制 `src/sprint20`，第五次不包含该实验包。任何后续镜像都必须从上述配置重新物化，不得从历史 v3.0 镜像改 tag，以免带入已拒绝的 Vehicle hierarchy。

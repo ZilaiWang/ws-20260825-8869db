@@ -10,6 +10,7 @@ import copy
 import functools
 import hashlib
 import importlib.metadata
+import time
 from typing import Any
 
 import numpy as np
@@ -108,9 +109,13 @@ class SharedHeadCapture:
         self._captured = None
         self._input_hw = None
         self._hook = None
+        self.ordered_otm = []
+        self._ordered_only = False
 
-    def begin_image(self):
+    def begin_image(self, *, ordered_only: bool = False):
         self.cache.clear()
+        self.ordered_otm.clear()
+        self._ordered_only = bool(ordered_only)
         self._captured = None
         self._input_hw = None
 
@@ -220,15 +225,18 @@ class SharedHeadCapture:
                 for i, b in enumerate(clipped)
                 if np.isfinite(b).all() and b[2] > b[0] and b[3] > b[1]
             ]
-            key = sample_key(sample)
-            if key in self.cache:
-                raise RuntimeError("Duplicate tile in one parent image")
-            self.cache[key] = Prediction(
+            prediction = Prediction(
                 sample.image_id,
                 [clipped[i] for i in valid],
                 [float(scores[i]) for i in valid],
                 [int(labels[i]) for i in valid],
             )
+            self.ordered_otm.append(prediction)
+            if not self._ordered_only:
+                key = sample_key(sample)
+                if key in self.cache:
+                    raise RuntimeError("Duplicate tile in one parent image")
+                self.cache[key] = prediction
         return primary
 
     def close(self):
@@ -264,14 +272,26 @@ class CachedOTM:
 
 
 class SharedHeadPipeline:
-    def __init__(self, capture, config, *, otm_labels, primary_threshold, otm_threshold):
+    def __init__(
+        self,
+        capture,
+        config,
+        *,
+        otm_labels,
+        primary_threshold,
+        otm_threshold,
+        optimized=False,
+    ):
         self.capture, self.config = capture, config
         self.otm_labels = tuple(otm_labels)
         self.primary_threshold, self.otm_threshold = float(primary_threshold), float(otm_threshold)
+        self.optimized = bool(optimized)
         self.last_primary = None
         self.last_otm = None
 
     def predict_image(self, rgb, parent_image_id=0):
+        if self.optimized:
+            return self._predict_image_optimized(rgb, parent_image_id=parent_image_id)
         from rsdet.pipeline.large_image import run_pipeline
 
         self.capture.begin_image()
@@ -297,4 +317,106 @@ class SharedHeadPipeline:
         return routed, {
             "primary": primary_time.to_dict(),
             "cached_otm_pipeline": fusion_time.to_dict(),
+        }
+
+    def _predict_image_optimized(self, rgb, *, parent_image_id):
+        """Fuse both captured heads from one materialized tile grid.
+
+        The scientific candidate is unchanged: OTO and OTM still receive two
+        independent Safe Fusion passes before class-disjoint routing.  This
+        path removes only the second crop/copy/hash traversal used by the
+        parity-oriented cache implementation.
+        """
+        from rsdet.contracts import InferenceSample
+        from rsdet.engine.predictor import predict_batches
+        from rsdet.pipeline.large_image import _extract_tile_image
+        from rsdet.postprocess.safe_tile_fusion import fuse_safe_tile_predictions
+        from rsdet.tiling.slicer import generate_tiles
+
+        if self.config.fusion != "safe":
+            raise ValueError("optimized shared head path is frozen to Safe Fusion")
+        height, width = rgb.shape[:2]
+        started = time.perf_counter()
+        tiles = generate_tiles(
+            image_width=width,
+            image_height=height,
+            tile_size=self.config.tile_size,
+            overlap=self.config.overlap,
+        )
+        samples = []
+        for tile in tiles:
+            tile.image_id = tile.tile_id
+            tile.parent_image_id = parent_image_id
+            patch = _extract_tile_image(rgb, tile)
+            samples.append(
+                InferenceSample(
+                    image_id=tile.tile_id,
+                    image=patch,
+                    width=tile.width,
+                    height=tile.height,
+                    metadata={
+                        "tile_x_offset": tile.x_offset,
+                        "tile_y_offset": tile.y_offset,
+                        "tile_width": tile.width,
+                        "tile_height": tile.height,
+                    },
+                )
+            )
+        tiling_seconds = time.perf_counter() - started
+        self.capture.begin_image(ordered_only=True)
+        model_started = time.perf_counter()
+        primary_tiles = predict_batches(
+            self.capture,
+            samples,
+            batch_size=self.config.batch_size,
+        )
+        model_seconds = time.perf_counter() - model_started
+        otm_tiles = self.capture.ordered_otm
+        if len(primary_tiles) != len(tiles) or len(otm_tiles) != len(tiles):
+            raise RuntimeError("shared head tile predictions do not align with the frozen grid")
+        for index, (primary, alternative, tile) in enumerate(
+            zip(primary_tiles, otm_tiles, tiles, strict=True)
+        ):
+            if primary.image_id != tile.tile_id or alternative.image_id != tile.tile_id:
+                raise RuntimeError(f"shared head tile id mismatch at index {index}")
+
+        def fuse(rows):
+            return fuse_safe_tile_predictions(
+                rows,
+                tiles,
+                image_width=width,
+                image_height=height,
+                parent_image_id=parent_image_id,
+                score_threshold=self.config.score_threshold,
+                score_threshold_by_coarse=self.config.score_threshold_by_coarse,
+                score_threshold_by_fine=self.config.score_threshold_by_fine,
+                merge_iou=self.config.merge_iou,
+                merge_ios=self.config.merge_ios,
+                fine_nms_iou=self.config.fine_nms_iou,
+                border_margin=self.config.border_margin,
+                max_detections=self.config.max_detections,
+                output_score_threshold=self.config.output_score_threshold,
+                owner_logit_slack=self.config.owner_logit_slack,
+                threshold_safe_category_ids=self.config.threshold_safe_category_ids,
+            )
+
+        fusion_started = time.perf_counter()
+        primary = fuse(primary_tiles)
+        otm = fuse(otm_tiles)
+        fusion_seconds = time.perf_counter() - fusion_started
+        self.last_primary, self.last_otm = primary, otm
+        routed = route_after_fusion(
+            primary,
+            otm,
+            alternative_labels=self.otm_labels,
+            primary_threshold=self.primary_threshold,
+            alternative_threshold=self.otm_threshold,
+        )
+        return routed, {
+            "optimized_shared_pipeline": {
+                "tiling_s": tiling_seconds,
+                "model_and_head_decode_s": model_seconds,
+                "two_safe_fusions_s": fusion_seconds,
+                "n_tiles": len(tiles),
+            }
         }

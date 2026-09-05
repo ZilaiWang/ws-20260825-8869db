@@ -47,6 +47,7 @@ def detector_factory(config):
                 otm_labels=labels,
                 primary_threshold=t0,
                 otm_threshold=t1,
+                optimized=bool(options.get("optimized_pipeline", False)),
             )
             # Both owners were filtered separately AFTER independent fusion.
             # A second uniform P40 threshold would wrongly delete OTM outputs.

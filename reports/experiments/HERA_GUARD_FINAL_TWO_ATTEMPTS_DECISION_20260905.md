@@ -2,7 +2,7 @@
 
 日期：2026-09-05
 
-状态：P40+D4 稳定线已闭环；shared OTM QHS/MS 攻击候选正在执行整链复核；未打包、未提交。
+状态：P40+D4 稳定线与 shared OTM QHS/MS 攻击候选均已闭环；两套冻结配置和统一物化入口已完成；未构建镜像、未提交。
 
 ## 1 决策
 
@@ -65,7 +65,7 @@ P40 v2.0 官方分数为 76.6010。Aircraft-D4 在 v3.0 中使 Aircraft：
 
 这证明成熟 full checkpoint 的共享 OTM 分支仍有同方向能力，但由于图像已见，不能用于正式准入或官方分数预测。
 
-## 6 正在执行的最终复核
+## 6 最终整链复核结果
 
 3090 整链以 P40+D4 为基线、P40+D4+shared OTM(QHS/MS) 为候选，在 Hard 与 Sentinel 各执行真实 competition runtime。冻结要求：
 
@@ -75,7 +75,23 @@ P40 v2.0 官方分数为 76.6010。Aircraft-D4 在 v3.0 中使 Aircraft：
 4. 报告共享前向相对 P40+D4 的新增时延，不用代理绝对分预测官方成绩；
 5. 不扫描阈值、融合权重或类别范围。
 
-执行入口为 `scripts/server/run_attempt4_shared_otm_runtime_3090_v1.sh`，候选配置为 `configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json`。
+结果：
+
+| 固定代理 | Ship Recall | Ship FDR | 受保护标签 | 原共享候选增量时延 | 原实现分差 |
+|---|---:|---:|---|---:|---:|
+| Hard | `86.5002%→88.6350%` | `2.8880%→2.8480%` | 0/1、4--24 完全一致 | `+2.8075s` | `+0.4236` |
+| Sentinel | `86.1479%→88.2833%` | `9.1387%→8.9714%` | 0/1、4--24 完全一致 | `+2.7002s` | `+0.4756` |
+
+QHS/MS 在两套代理上都提高约 2.14 个百分点 Ship macro Recall，FDR 没有恶化。Aircraft 与 Vehicle 逐框不变，说明类别所有权实现正确。
+
+随后实现只消除重复切片、复制和哈希的等价路径，仍对 OTO/OTM 分别做完整 Safe Fusion。预测 JSON 在两套代理上完全一致：
+
+| 固定代理 | 旧共享实现 | 优化共享实现 | 提速 | 相对 P40+D4 增量时延 | 最终代理分差 |
+|---|---:|---:|---:|---:|---:|
+| Hard | 9.2785s | 7.4581s | 1.244× | `+0.5712s` | **`+0.7431`** |
+| Sentinel | 9.1841s | 7.2505s | 1.267× | `+0.9455s` | **`+0.7262`** |
+
+工程优化不改变任何预测、阈值、融合或类别所有权，因此准入第四次配置。执行入口分别为 `scripts/server/run_attempt4_shared_otm_runtime_3090_v1.sh`、`scripts/server/run_attempt4_shared_otm_optimized_3090_v1.sh` 与 `scripts/server/derive_attempt4_shared_otm_optimized_quality_v1.sh`。
 
 ## 7 其他方案的结论归并
 
@@ -96,4 +112,12 @@ P40 v2.0 官方分数为 76.6010。Aircraft-D4 在 v3.0 中使 Aircraft：
 
 OTM 的短 OOF 来自 `S1024/40e→P40/40e`，而正式 full 是 `S1024/160e→P40/40e`；QHS/MS 又是在比较多个所有权范围后选择。即使整链复核通过，也只能说它是当前最有依据的攻击候选，不能保证正式增分。
 
-第四次准入的最低条件是：类别旁路完全正确、Hard/Sentinel 没有显著反向、共享实现没有不可接受的新增时延。第五次保底不等待 OTM，固定为 P40+D4 batch64。
+第四次准入条件已经满足：类别旁路完全正确、Hard/Sentinel 同向、工程优化逐框等价且新增时延低于 1 秒/图的两套代理测量。它仍可能因隐藏分布迁移失败，因此不能取代第五次保底。
+
+最终身份：
+
+- 第四次：`submission/docker/configs/p40_aircraft_d4_shared_otm_ship23_t0560_v1.json`；
+- 第五次：`submission/docker/configs/p40_aircraft_d4_only_v1.json`；
+- 统一物化/构建入口：`scripts/build_final_two_attempt_submissions.py`。
+
+第五次固定为 P40+D4 batch64；不得从 v3.0 历史镜像改 tag，因为其中含已经失败的 Vehicle hierarchy。

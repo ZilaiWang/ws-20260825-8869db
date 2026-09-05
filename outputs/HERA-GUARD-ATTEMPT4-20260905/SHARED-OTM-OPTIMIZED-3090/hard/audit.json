@@ -1,0 +1,12 @@
+{
+  "status": "complete",
+  "protocol": "attempt4_shared_otm_hard_equivalent_optimization_3090_v1",
+  "predictions_exact": true,
+  "images": 6,
+  "predictions": 2064,
+  "reference_mean_image_seconds": 9.278510252130218,
+  "candidate_mean_image_seconds": 7.458102874302615,
+  "candidate_minus_reference_seconds": -1.8204073778276024,
+  "candidate_speedup": 1.2440845089573564,
+  "timing_is_proxy_diagnostic_not_official_measurement": true
+}

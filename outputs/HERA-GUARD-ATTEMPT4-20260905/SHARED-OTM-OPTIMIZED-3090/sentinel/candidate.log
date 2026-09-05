@@ -1,0 +1,24 @@
+[submission] CUDA ready: device=cuda:0 name=NVIDIA GeForce RTX 3090 torch=2.5.1+cu121
+[submission] model loaded: p40_official_sanitized.pt sha256=b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012 workpoint=hera_sprint20_p40_d4_otm_ship23_t0560_optimized_20260905
+{
+  "status": "complete",
+  "role": "exact_runtime_fixed_proxy_diagnostic_not_hidden_score_prediction",
+  "config": "/root/autodl-tmp/xh-sprint20-ab51106/configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_optimized_candidate_v3.json",
+  "config_sha256": "e7ec92aa248acfe7f43ae29f8aa89752aea37c88a1eb41eab2a061a1471ad4ae",
+  "ground_truth": "/root/autodl-tmp/pseudo10k-trial-mix-sentinel-v1/ground_truth.json",
+  "ground_truth_sha256": "eb1f8850624d77252b568b3515b1953d57adbd6234eed1dec6b467ff5f48c211",
+  "images": 6,
+  "predictions": 1904,
+  "per_coarse_prediction_count": {
+    "aircraft": 881,
+    "ship": 875,
+    "vehicle": 148
+  },
+  "device": "cuda:0",
+  "runtime_factory": "sprint20",
+  "mean_image_seconds": 7.250493936783944,
+  "p50_image_seconds": 7.167795995948836,
+  "p95_image_seconds": 8.435078413924202,
+  "wall_seconds": 43.51816654205322,
+  "predictions_sha256": "063609c9be35b0e4e008a77fbec518d03a05ea7a140cf140b89f4bcd8870e3f1"
+}

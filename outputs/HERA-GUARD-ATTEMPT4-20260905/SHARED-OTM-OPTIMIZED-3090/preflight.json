@@ -1,0 +1,9 @@
+{
+  "status": "preflight_pass",
+  "protocol": "attempt4_shared_otm_equivalent_optimization_3090_v1",
+  "reference_config": "/root/autodl-tmp/xh-sprint20-ab51106/configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json",
+  "reference_config_sha256": "62f5a7f22540ede969d2b9184fd36c1c1382f41ef1d9b45517e919a8ece3b4ba",
+  "candidate_config": "/root/autodl-tmp/xh-sprint20-ab51106/configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_optimized_candidate_v3.json",
+  "candidate_config_sha256": "e7ec92aa248acfe7f43ae29f8aa89752aea37c88a1eb41eab2a061a1471ad4ae",
+  "scientific_contract_exact_except_optimized_pipeline": true
+}
