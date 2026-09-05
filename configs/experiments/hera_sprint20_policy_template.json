@@ -1,0 +1,15 @@
+{
+  "purpose": "TEMPLATE_ONLY_NOT_A_DEPLOYMENT_POLICY",
+  "frozen_before_evaluation": false,
+  "primary_threshold": 0.536,
+  "alternative_threshold": null,
+  "alternative_labels": [24],
+  "baseline_latency_seconds": null,
+  "candidate_latency_seconds": null,
+  "selection_groups": [],
+  "evaluation_groups": [],
+  "lineage_note": "必须核对 detector 训练来源、训练长度和增强/尺度日程；不能以 full-seen 代替外层验证",
+  "threshold_note": "alternative_threshold 必须在非评估折冻结；0.536 不是自动可迁移的 OTM 阈值",
+  "latency_note": "填写该候选完整流程的实测时延，不用 D4-only 局部时延或单张小图时间",
+  "formal_admission": false
+}

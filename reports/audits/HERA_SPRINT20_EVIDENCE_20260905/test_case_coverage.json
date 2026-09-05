@@ -1,0 +1,69 @@
+{
+  "duplicate_command_display": {
+    "basis": "The orchestration trace contained one running execution/session while the UI rendered the same command twice; completed artifacts used non-overwriting paths. Historical OS process state can no longer be independently reconstructed.",
+    "conclusion": "NO_EVIDENCE_OF_DUPLICATE_CONCURRENT_WRITER"
+  },
+  "principle": "Test count is not used as a substitute for branch coverage.",
+  "schema_version": 1,
+  "scope": "declared Sprint20 and historical v2 branches",
+  "suites": [
+    {
+      "covered": [
+        "audit ancestor and unrelated-commit fail-closed paths",
+        "official matcher/scorer regression and coarse/fine taxonomy",
+        "empty rare-class handling and negative images",
+        "inclusive score-threshold boundary",
+        "selection/evaluation group-overlap rejection",
+        "native head pre-fusion audit and missing-head failure",
+        "instance-local head switch and reused-model rejection",
+        "cache pixel-hash guard and deep copy",
+        "class ownership and duplicate-preserving multiset comparison",
+        "D4 certification boundary, adversarial completions, relabel and NMS",
+        "invalid probabilities, labels and view counts"
+      ],
+      "id": "sprint20_unit_and_repository",
+      "not_covered": [
+        "actual official platform image digest attestation",
+        "actual GPU Docker execution of the historical v2 image",
+        "all empty/tail batches on the shared-head real-weight path"
+      ],
+      "status": "passed_for_executed_cases"
+    },
+    {
+      "covered": [
+        "native/shared decode integration with pinned Ultralytics",
+        "26-image exact parity for both heads",
+        "4481-image exact parity for shared OTO",
+        "100-hard-case D4 fallback/early-keep mixture and exact output"
+      ],
+      "failed_or_rejected": [
+        "shared OTM exact parity failed on 61 of 4481 images",
+        "bounded D4 increased matched hard100 local total time by 3.93 percent"
+      ],
+      "id": "sprint20_real_gpu_integration",
+      "not_covered": [
+        "official GPU container end-to-end latency",
+        "unseen-platform input behavior"
+      ],
+      "status": "mixed"
+    },
+    {
+      "covered": [
+        "normal manifests",
+        "path traversal and escaping symlinks",
+        "duplicate JSON keys and non-finite values",
+        "missing files and SHA mismatch",
+        "dependency cycles and indirect overlap",
+        "unknown lineage, signature fields and missing coverage",
+        "refusal to overwrite an existing report"
+      ],
+      "id": "evidence_audit_tool",
+      "limitation": "Synthetic tests validate the metadata tool, not Sprint20 model accuracy or deployment.",
+      "status": "46_passed_zero_skipped"
+    }
+  ],
+  "timing_boundary": {
+    "d4_times": "same-process local classifier/runtime measurements; no percentage is extrapolated to the full platform",
+    "native_and_shared_head_times": "local component measurements, not official end-to-end latency"
+  }
+}

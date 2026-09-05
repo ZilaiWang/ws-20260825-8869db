@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "notes": "Synthetic metadata, not a result from the user project.",
+  "datasets": [
+    {
+      "id": "fit_set",
+      "groups": [
+        "group-a",
+        "group-b"
+      ],
+      "role": "training",
+      "disclosure": "inspected"
+    },
+    {
+      "id": "selection_set",
+      "groups": [
+        "group-c"
+      ],
+      "role": "development",
+      "disclosure": "inspected"
+    },
+    {
+      "id": "confirmation_set",
+      "groups": [
+        "group-d"
+      ],
+      "role": "confirmation",
+      "disclosure": "inspected"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "base_model",
+      "kind": "fit",
+      "parents": [],
+      "exposure_datasets": [
+        "fit_set"
+      ],
+      "lineage_complete": true
+    },
+    {
+      "id": "fixed_procedure",
+      "kind": "select",
+      "parents": [
+        "base_model"
+      ],
+      "exposure_datasets": [
+        "selection_set"
+      ],
+      "lineage_complete": true
+    },
+    {
+      "id": "posthoc_subset_choice",
+      "kind": "select",
+      "parents": [
+        "fixed_procedure"
+      ],
+      "exposure_datasets": [
+        "confirmation_set"
+      ],
+      "lineage_complete": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "generic_confirmation",
+      "candidate_node": "posthoc_subset_choice",
+      "evaluation_dataset": "confirmation_set",
+      "claimed_role": "independent_confirmation"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "reference",
+      "path": "reference_output.json",
+      "expected_sha256": "827b522b0df17c1d401c5c741eda1a5cfb736895cee8c878d8b730b1114d7de1"
+    },
+    {
+      "id": "reproduction",
+      "path": "reproduced_output.json",
+      "expected_sha256": "827b522b0df17c1d401c5c741eda1a5cfb736895cee8c878d8b730b1114d7de1"
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "declared_output_parity",
+      "left": "reference",
+      "right": "reproduction",
+      "mode": "json_exact"
+    }
+  ],
+  "signature_checks": [
+    {
+      "id": "toy_training_comparison",
+      "required_fields": [
+        "stage_epochs",
+        "initialization_kind"
+      ],
+      "left": {
+        "stage_epochs": [
+          10,
+          5
+        ],
+        "initialization_kind": "generic_pretrained"
+      },
+      "right": {
+        "stage_epochs": [
+          10,
+          5
+        ],
+        "initialization_kind": "generic_pretrained"
+      }
+    }
+  ],
+  "test_coverage": [
+    {
+      "id": "generic_control_flow",
+      "required_cases": [
+        "ordinary",
+        "fallback",
+        "empty"
+      ],
+      "covered_cases": [
+        "ordinary",
+        "fallback",
+        "empty"
+      ]
+    }
+  ]
+}

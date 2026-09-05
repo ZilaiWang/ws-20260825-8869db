@@ -1,0 +1,58 @@
+{
+  "contract_version": "competition_docker_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "deployment_role": "experimental_not_admitted_p40_d4_otm_ship23",
+  "workpoint_id": "hera_sprint20_p40_d4_otm_ship23_20260905",
+  "device": "cuda:0",
+  "model": {
+    "family": "yolo",
+    "inference_adapter": "shared_offline",
+    "weight_path": "/root/autodl-tmp/assets/p40_official_sanitized.pt",
+    "expected_sha256": "b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012",
+    "imgsz": 1280,
+    "confidence": 0.001,
+    "iou": 0.7,
+    "max_detections": 500,
+    "half": true,
+    "rot90_views": [
+      0
+    ]
+  },
+  "pipeline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "batch_size": 4,
+    "fusion": "safe",
+    "score_threshold": 0.001,
+    "fine_nms_iou": 0.7,
+    "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0,
+    "merge_iou": 0.5,
+    "merge_ios": 0.75,
+    "border_margin": 8.0,
+    "nms_iou": 0.5,
+    "max_detections": 4000
+  },
+  "post_fusion_score_threshold": 0.536,
+  "aircraft_classifier_model": {
+    "method": "view_consistency_d4",
+    "weight_path": "/root/autodl-tmp/results/R1-5-AIRCRAFT-VIEW-CONSISTENCY-FULL-V1/training/final_checkpoint.pt",
+    "expected_sha256": "5f1b175f8b2c310a3c0583e652f5cf7cfd444d0b0d74d794a9ac59e4537832d5",
+    "checkpoint_contains_full_state": true,
+    "batch_objects": 64,
+    "tensorized_views": true,
+    "channels_last": false,
+    "relabel_min_probability": 0.9,
+    "nms_iou": 0.5
+  },
+  "sprint20": {
+    "mode": "shared",
+    "bounded_d4": false,
+    "allow_experimental": true,
+    "otm_labels": [
+      2,
+      3
+    ],
+    "otm_threshold": 0.536
+  }
+}

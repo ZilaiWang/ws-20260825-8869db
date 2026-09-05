@@ -1,0 +1,268 @@
+{
+  "artifact_inventory": [
+    {
+      "bytes": 30931,
+      "id": "v2_build_manifest",
+      "path": "dist/p40-full-s1280-frozen0536-final/BUILD_MANIFEST.json",
+      "sha256": "1627addf575858ba39c879fc7f565d10d2cde98f548fdeecb7edb1cd6793312d"
+    },
+    {
+      "bytes": 1078,
+      "id": "v2_config_dist",
+      "path": "dist/p40-full-s1280-frozen0536-final/app/config.json",
+      "sha256": "50156c2d3143f930cb6f07f0a72e76b69ad64897f363e2fdea05718c80a52e22"
+    },
+    {
+      "bytes": 1078,
+      "id": "v2_config_source",
+      "path": "submission/docker/configs/progressive40_full_s1280_frozen0536_v1.json",
+      "sha256": "50156c2d3143f930cb6f07f0a72e76b69ad64897f363e2fdea05718c80a52e22"
+    },
+    {
+      "bytes": 20537218,
+      "id": "v2_weight",
+      "path": "dist/p40-full-s1280-frozen0536-final/models/model.pt",
+      "sha256": "b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012"
+    },
+    {
+      "bytes": 20460,
+      "id": "v2_adapter",
+      "path": "dist/p40-full-s1280-frozen0536-final/app/rsdet/models/ultralytics_adapter.py",
+      "sha256": "e65f4afb237fa0206fdadf1b11f66f660966073051d8fc6519d0b42547f43097"
+    },
+    {
+      "bytes": 41578,
+      "id": "v2_competition_source",
+      "path": "dist/p40-full-s1280-frozen0536-final/app/rsdet/submission/competition.py",
+      "sha256": "68a8a59d1de6cad54946dfe01ed04ff5fc6d36c67138d0ac617c78b0282acb2a"
+    },
+    {
+      "bytes": 5065,
+      "id": "v2_push_log",
+      "path": "outputs/P40-DEPLOYMENT-PREFLIGHT-20260903/push-v2.0-20260903-161501.log",
+      "sha256": "9982debe652dff88ec38c86e5d322d27e91e895e7961d38d3c41d1768cfe48b2"
+    },
+    {
+      "bytes": 819,
+      "id": "v2_image_static",
+      "path": "outputs/P40-DEPLOYMENT-PREFLIGHT-20260903/image_static.log",
+      "sha256": "216b15e44c3ccaf2ddb9084afc1d5c4199919fa61bb0b6640fcf0fb895196a4f"
+    },
+    {
+      "bytes": 1042685,
+      "id": "v2_parity_result",
+      "path": "outputs/P40-DEPLOYMENT-PREFLIGHT-20260903/parity/result.json",
+      "sha256": "53b29b7aa28b00e015c3aa6a4c86bbb26d6db7e9809d49548c07b0c12e17fbdd"
+    },
+    {
+      "bytes": 3008,
+      "id": "v2_parity_summary",
+      "path": "outputs/P40-DEPLOYMENT-PREFLIGHT-20260903/parity/parity_summary.json",
+      "sha256": "844a21c2e821a4c52f818776de280278387e1469f2b22e2a46635e08c123d4b9"
+    },
+    {
+      "bytes": 925024,
+      "id": "split",
+      "path": "data/splits/cv3_airport_proxy_k60_v2.json",
+      "sha256": "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331"
+    },
+    {
+      "bytes": 8424,
+      "id": "split_groups",
+      "path": "data/splits/cv3_airport_proxy_k60_v2_groups.json",
+      "sha256": "5b87536cd49eb1ebcb79a0d1bc539a623d07c19557e07a082954cdb793ce2033"
+    },
+    {
+      "bytes": 1179,
+      "id": "sprint20_asset_audit",
+      "path": "outputs/HERA-SPRINT20-20260905/asset_audit.json",
+      "sha256": "a08eea9990e8c48f3fadd653980eae95774a91721d5219a5d98ef487bb425165"
+    },
+    {
+      "bytes": 277,
+      "id": "sprint20_shared_oto_parity",
+      "path": "outputs/HERA-SPRINT20-20260905/full_seen/parity_oto.json",
+      "sha256": "e6c33f43392186c2f580a0b0bba365179a5308052b2f3b431edcf2961c7a9c63"
+    },
+    {
+      "bytes": 5305,
+      "id": "sprint20_shared_otm_parity",
+      "path": "outputs/HERA-SPRINT20-20260905/full_seen/parity_otm.json",
+      "sha256": "e6a7a387b501bf7fba34a11d84218755a39e2061b5df17c39cafdb70f0ce3b16"
+    },
+    {
+      "bytes": 2559,
+      "id": "sprint20_oof_manifest",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/input_manifest.json",
+      "sha256": "5a06773d18977a8d8330d4b6d2561eac236564bb526a1e8d4132964b7b754c60"
+    },
+    {
+      "bytes": 1211173,
+      "id": "sprint20_oof_v7",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/crossfit_routing_v7.json",
+      "sha256": "ede8175c93a24ba302f062d90d6e836a48a5aa54e825eac7e526c18bc876150f"
+    },
+    {
+      "bytes": 822,
+      "id": "fold0_contract",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_0/training_contract.json",
+      "sha256": "b3c2c5d3ef1c4be3cc3a4f7720881e2b4f91504829716d8c4d56497e1b367530"
+    },
+    {
+      "bytes": 1122,
+      "id": "fold0_result",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_0/training_result.json",
+      "sha256": "d7a41e8808ffac859c082c3da01a5a53a5370efe32165bc0f37380c8e084d08e"
+    },
+    {
+      "bytes": 1969,
+      "id": "fold0_args",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_0/p40_args.yaml",
+      "sha256": "6d979c6ca55da8010c8f0250246b705acc18cb4d720e47b5dd04b9e1c865db99"
+    },
+    {
+      "bytes": 830,
+      "id": "fold1_contract",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_1/training_contract.json",
+      "sha256": "7e107ee64968a32459271fbea69d379b4c61974d2d837ab92db15f9ec37927c2"
+    },
+    {
+      "bytes": 1130,
+      "id": "fold1_result",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_1/training_result.json",
+      "sha256": "d42a1746fa9a94a3277d16170140ae2239146b25a72bf018aa01d3dc82b7466a"
+    },
+    {
+      "bytes": 1977,
+      "id": "fold1_args",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_1/p40_args.yaml",
+      "sha256": "cb19fb04efd39f1b400444f2e19fe69611e3ede8fe9867b9dae1998a6e95cb3e"
+    },
+    {
+      "bytes": 830,
+      "id": "fold2_contract",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_2/training_contract.json",
+      "sha256": "82480945def99e578e86455ed2f215f56b425e8c1b7a40d634a9083d542b579f"
+    },
+    {
+      "bytes": 1130,
+      "id": "fold2_result",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_2/training_result.json",
+      "sha256": "4bafd10e21740966bd36601ad80b7fb155c99be15ae8749cd1b9d3e9c6c9d179"
+    },
+    {
+      "bytes": 1977,
+      "id": "fold2_args",
+      "path": "outputs/HERA-SPRINT20-20260905/p40_short_oof/lineage/fold_2/p40_args.yaml",
+      "sha256": "c1fd6f588d00a6dac0dc1eda8851b5ea2d3ae88bf1f11aea61dd05e8882ef769"
+    }
+  ],
+  "audit_date": "2026-09-05",
+  "historical_submission": {
+    "head_path_status": "strongly_supported_by_exact_assets_and_pinned_source_not_platform_attested",
+    "identity_status": "strong_local_chain_not_platform_digest_attestation",
+    "local_image_id": "sha256:db2a0eaacc0608eecd80193f2cefb83995214288da0250d405b8f016e8ae1303",
+    "manifest_source_commit": "98959734aa4fc8336ea62fe3dd033e0c891555d0",
+    "manifest_source_tree_dirty": true,
+    "materialized_directory": "dist/p40-full-s1280-frozen0536-final",
+    "materialized_manifest_sha256": "1627addf575858ba39c879fc7f565d10d2cde98f548fdeecb7edb1cd6793312d",
+    "notes": [
+      "The exact materialized source is authoritative because the manifest records a dirty source tree.",
+      "The platform response does not expose the digest it pulled.",
+      "The historical adapter/config use the pinned Ultralytics 8.4.103 shared_offline path, but no platform field explicitly names OTO or OTM."
+    ],
+    "platform_pulled_digest": "UNKNOWN",
+    "platform_score": 76.601,
+    "registry_push_digest": "sha256:db2a0eaacc0608eecd80193f2cefb83995214288da0250d405b8f016e8ae1303",
+    "submission_id": 3953,
+    "tag": "v2.0"
+  },
+  "published_parity_scope": {
+    "entrypoint_vs_frozen_ledger": "PASS_12_IMAGES_3913_BOXES_EXACT",
+    "limitation": "This comparison proves the supplied historical entrypoint/ledger pair only; it does not independently attest the platform-pulled image digest or name the detector head.",
+    "result": "outputs/P40-DEPLOYMENT-PREFLIGHT-20260903/parity/result.json",
+    "summary": "outputs/P40-DEPLOYMENT-PREFLIGHT-20260903/parity/parity_summary.json"
+  },
+  "schema_version": 1,
+  "sprint20_native_control": {
+    "code_base": "ab51106949ad8369a5cccd862fcc19e1739cdeb2 plus the exact Sprint20 files fingerprinted below",
+    "code_fingerprint": {
+      "aggregate_sha256": "987506b2ab2eb7da0d6f578568e4918fe3164293585afdd2cc006de30f7c871b",
+      "files": [
+        {
+          "bytes": 1646,
+          "path": "configs/experiments/hera_sprint20_p40_d4_otm_ship23_candidate_v1.json",
+          "sha256": "7218c4e80fe524d537cee1ae2a83873bd7db1e6a36030802b85ba6e9d07e1ca0"
+        },
+        {
+          "bytes": 22811,
+          "path": "scripts/analyze_sprint20_oof_routing.py",
+          "sha256": "3d77135d9e3e379d8b0129edfa238e323a8ef01ec54d948f1c6ba59dd9eb3eee"
+        },
+        {
+          "bytes": 262,
+          "path": "src/sprint20/__init__.py",
+          "sha256": "01fef0d42f2111d33f5e59c1f68b8990a8bd3160bc750b17efa8f4eee90b7f15"
+        },
+        {
+          "bytes": 4138,
+          "path": "src/sprint20/bounded_d4.py",
+          "sha256": "1b4b8428423b6ddda5e81dfd89ff5e0d1bb9fe2009fcdf31e4b40ed0b93e462d"
+        },
+        {
+          "bytes": 19468,
+          "path": "src/sprint20/cli.py",
+          "sha256": "6c3d849dbc5c003ba421dea1edc50a8f1dfbefd8fc9719909ef33c1d7c128ce3"
+        },
+        {
+          "bytes": 8052,
+          "path": "src/sprint20/evaluation.py",
+          "sha256": "c18874060a19d2d7437d8f3bd9919716b5ee9af14029141dfef83f6dfe446bda"
+        },
+        {
+          "bytes": 11958,
+          "path": "src/sprint20/heads.py",
+          "sha256": "a8923cee67cf10fce0969f1c0a1a0c1a08d0a38f1242fff24beb3c5da666089a"
+        },
+        {
+          "bytes": 7611,
+          "path": "src/sprint20/policy.py",
+          "sha256": "f969a933c943c1dbc2ad4dbefbd37c18542f89aa1e24ec98f60fd4e048a3dd56"
+        },
+        {
+          "bytes": 770,
+          "path": "src/sprint20/run_submission.py",
+          "sha256": "3abaec90cc63d412e8a4a5698b875799f3f0cc41078a4270e21888a18ac25650"
+        },
+        {
+          "bytes": 3019,
+          "path": "src/sprint20/runtime.py",
+          "sha256": "0b2b2153168ba276cbf2954ce41099724d2110fe03368d317f9e16053763626d"
+        }
+      ]
+    },
+    "environment": {
+      "gpu": "RTX 3090",
+      "torch": "2.5.1+cu121",
+      "ultralytics": "8.4.103"
+    },
+    "outputs": [
+      "outputs/HERA-SPRINT20-20260905/asset_audit.json",
+      "outputs/HERA-SPRINT20-20260905/p40_short_oof/input_manifest.json",
+      "outputs/HERA-SPRINT20-20260905/p40_short_oof/crossfit_routing_v7.json"
+    ],
+    "publication_parity": "NOT_DIRECTLY_PROVEN_BY_SPRINT20_NATIVE_COMPARISON",
+    "weight_sha256": "b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012"
+  },
+  "sprint20_shared_implementation": {
+    "code_aggregate_sha256": "987506b2ab2eb7da0d6f578568e4918fe3164293585afdd2cc006de30f7c871b",
+    "code_base": "same exact Sprint20 file set as native control",
+    "deployment_admission": false,
+    "outputs": [
+      "outputs/HERA-SPRINT20-20260905/full_seen/parity_oto.json",
+      "outputs/HERA-SPRINT20-20260905/full_seen/parity_otm.json"
+    ],
+    "shared_otm_vs_native_otm": "FAIL_61_IMAGES_COORDINATE_DIFFERENCES",
+    "shared_oto_vs_native_oto": "PASS_4481_OF_4481_EXACT"
+  }
+}

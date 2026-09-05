@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "tool_version": "1.0.0",
+  "limitations": [
+    "Input metadata and group identifiers are self-reported, not independently authenticated.",
+    "An empty overlap cannot prove an incomplete training history is uncontaminated.",
+    "This tool does not execute models, optimize metrics, or choose a release.",
+    "Artifact equality applies only to supplied files, not all possible inputs.",
+    "No statistical confidence or out-of-distribution guarantee is produced."
+  ],
+  "accuracy_or_deployment_approved": false,
+  "claim_checks": [
+    {
+      "id": "generic_confirmation",
+      "claimed_role": "independent_confirmation",
+      "status": "CONSISTENT_WITH_DECLARED_METADATA_ONLY",
+      "overlapping_exposures": [],
+      "incomplete_lineage_nodes": [],
+      "disclosure": "untouched",
+      "evaluation_dataset_role": "confirmation"
+    }
+  ],
+  "artifact_checks": {
+    "reference": {
+      "path": "reference_output.json",
+      "actual_sha256": "827b522b0df17c1d401c5c741eda1a5cfb736895cee8c878d8b730b1114d7de1",
+      "expected_sha256": "827b522b0df17c1d401c5c741eda1a5cfb736895cee8c878d8b730b1114d7de1",
+      "status": "HASH_MATCH",
+      "bytes": 134
+    },
+    "reproduction": {
+      "path": "reproduced_output.json",
+      "actual_sha256": "827b522b0df17c1d401c5c741eda1a5cfb736895cee8c878d8b730b1114d7de1",
+      "expected_sha256": "827b522b0df17c1d401c5c741eda1a5cfb736895cee8c878d8b730b1114d7de1",
+      "status": "HASH_MATCH",
+      "bytes": 134
+    }
+  },
+  "comparisons": [
+    {
+      "id": "declared_output_parity",
+      "mode": "json_exact",
+      "equal": true,
+      "byte_equal": true,
+      "difference_count": 0,
+      "differences": [],
+      "scope": "these_artifacts_only_not_unseen_inputs"
+    }
+  ],
+  "signature_checks": [
+    {
+      "id": "toy_training_comparison",
+      "status": "DECLARED_FIELDS_EQUAL",
+      "missing_fields": [],
+      "differences": []
+    }
+  ],
+  "test_coverage": [
+    {
+      "id": "generic_control_flow",
+      "missing_cases": [],
+      "status": "DECLARED_CASES_COVERED",
+      "coverage_is_self_reported": true
+    }
+  ],
+  "findings": [],
+  "errors": 0,
+  "warnings": 0,
+  "manifest_sha256": "e18d2d65b91430dfce4e93d3beed988a3db8c75242f738639fe14da5fc973d77"
+}

@@ -1,5 +1,6 @@
 # 实验记录
 
+- [HERA_GUARD_SPRINT20_FINAL_READOUT_EXECUTION_20260905.md](HERA_GUARD_SPRINT20_FINAL_READOUT_EXECUTION_20260905.md)：方案20最终读出与方案21证据审计；QHS/MS 在后验选择的短 OOF 上三折同向、来源组 bootstrap 正向，但不满足严格嵌套独立性且训练成熟度不同；shared-OTM 全量精确一致性失败，D4有界早退在匹配当前分类器的100硬例上反而变慢，均不准入，工程安全线保持冻结 P40 路径 + 原版 Aircraft-D4 only；
 - [HERA_GUARD_PLAN19_BATIS_EXECUTION_20260905.md](HERA_GUARD_PLAN19_BATIS_EXECUTION_20260905.md)：方案19 BATIS 全链闭环；确认 Safe Fusion 阈值反转和网格相位敏感性真实存在，但 H1/H2、K=8 稀疏重居中、overlap320 与 Ship 跨细类去重均未跨原生/Natural/Trial 测试稳定增益；按停止条件不启动 K=16/随机相位微调，生产继续保持 P40 Safe Fusion + Aircraft-D4；
 - [HERA_GUARD_PLAN18_APRR_AND_TILING_AUDIT_20260905.md](HERA_GUARD_PLAN18_APRR_AND_TILING_AUDIT_20260905.md)：方案18离线APRR资格赛与大图差距审计；Ship支持虚警爆炸、Vehicle过度掉Recall，按预注册门禁停止；原生连续图whole-vs-tiled未见切片退化，但10×10伪大图人工缝将Ship/Vehicle推向相反方向，从此降级为工程压力测试；
 - [HERA_GUARD_ATTEMPT4_DEEP_DIAGNOSIS_20260905.md](HERA_GUARD_ATTEMPT4_DEEP_DIAGNOSIS_20260905.md)：方案17后续只读深挖；确认Vehicle有效统计仅21个站点、task-vector无逐折同FP Pareto、TP/背景FP分数重叠，短OOF不能选full绝对阈值；D4同进程AB/BA复测后预计仅净增约0.11--0.13分；

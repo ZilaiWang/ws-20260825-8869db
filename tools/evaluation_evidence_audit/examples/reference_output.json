@@ -1,0 +1,12 @@
+{
+  "records": [
+    {
+      "id": "sample-a",
+      "value": 0.6
+    },
+    {
+      "id": "sample-b",
+      "value": 0.4
+    }
+  ]
+}
