@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Aggregate fold-aligned Sprint20 OTO/OTM caches into one short-OOF pair."""
+"""Aggregate fold-aligned Sprint20 OTO/OTM caches into one short-OOF pair.
+
+The default ``native`` source preserves the original two-forward diagnostic.
+``shared`` extracts both heads from the exact shared-forward cache used by the
+deployment path.  Keeping the two sources explicit prevents a failed native vs
+shared parity audit from being silently reinterpreted as deployment evidence.
+"""
 
 from __future__ import annotations
 
@@ -29,21 +35,50 @@ def _write(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _load_fold_pair(input_dir: Path, fold: int, source: str) -> dict[str, dict[str, Any]]:
+    if source == "native":
+        return {
+            head: _read(input_dir / f"fold_{fold}/native_{head}.json")
+            for head in ("oto", "otm")
+        }
+
+    cache = _read(input_dir / f"fold_{fold}/shared.json")
+    if cache.get("head") != "shared" or cache.get("role") != "outer_oof_short":
+        raise ValueError(f"Invalid shared fold {fold} identity")
+    split: dict[str, dict[str, Any]] = {}
+    for head in ("oto", "otm"):
+        rows = []
+        for row in cache["images"]:
+            if "otm_prediction" not in row:
+                raise ValueError(f"Shared fold {fold} row lacks otm_prediction")
+            output = {key: value for key, value in row.items() if key != "otm_prediction"}
+            if head == "otm":
+                output["prediction"] = row["otm_prediction"]
+            rows.append(output)
+        split[head] = {**cache, "head": head, "images": rows}
+    return split
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, required=True)
     parser.add_argument("--aggregate-coco", type=Path, required=True)
     parser.add_argument("--output-oto", type=Path, required=True)
     parser.add_argument("--output-otm", type=Path, required=True)
+    parser.add_argument(
+        "--source",
+        choices=("native", "shared"),
+        default="native",
+        help="Read native_oto/native_otm pairs or split a deployment shared-forward cache.",
+    )
     args = parser.parse_args()
 
     coco = _read(args.aggregate_coco)
     expected_ids = {int(row["id"]) for row in coco["images"]}
     aggregate: dict[str, dict[str, Any]] = {}
+    fold_pairs = [_load_fold_pair(args.input_dir, fold, args.source) for fold in (0, 1, 2)]
     for head in ("oto", "otm"):
-        fold_caches = [
-            _read(args.input_dir / f"fold_{fold}/native_{head}.json") for fold in (0, 1, 2)
-        ]
+        fold_caches = [pair[head] for pair in fold_pairs]
         for fold, cache in enumerate(fold_caches):
             if cache.get("head") != head or cache.get("role") != "outer_oof_short":
                 raise ValueError(f"Invalid {head} fold {fold} identity")
@@ -86,6 +121,7 @@ def main() -> int:
             },
             "inference_model": model,
             "formal_admission": False,
+            "cache_source": args.source,
             "lineage_warning": (
                 "Source-disjoint OOF, but historical P40 folds use S1024/40e -> P40/40e, "
                 "not the full model's S1024/160e -> P40/40e maturity."
@@ -103,6 +139,7 @@ def main() -> int:
             {
                 "status": "complete",
                 "role": "outer_oof_short",
+                "source": args.source,
                 "images": len(expected_ids),
                 "oto_sha256": _sha256(args.output_oto),
                 "otm_sha256": _sha256(args.output_otm),

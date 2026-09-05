@@ -107,6 +107,34 @@ def _filter_fixed_threshold(
     }
 
 
+def _route_fixed_primary_labels(
+    oto: dict[int, list[dict[str, Any]]],
+    otm: dict[int, list[dict[str, Any]]],
+    ids: set[int],
+    *,
+    primary_threshold: float,
+    alternative_threshold: float,
+    alternative_labels: tuple[int, ...],
+) -> dict[int, list[dict[str, Any]]]:
+    """Keep deployed OTO fixed while assigning explicit labels to OTM."""
+    label_set = frozenset(alternative_labels)
+    return {
+        image_id: [
+            row
+            for row in oto[image_id]
+            if int(row["category_id"]) not in label_set
+            and float(row["score"]) >= primary_threshold
+        ]
+        + [
+            row
+            for row in otm[image_id]
+            if int(row["category_id"]) in label_set
+            and float(row["score"]) >= alternative_threshold
+        ]
+        for image_id in sorted(ids)
+    }
+
+
 def _route_fixed_primary_ship23(
     oto: dict[int, list[dict[str, Any]]],
     otm: dict[int, list[dict[str, Any]]],
@@ -115,20 +143,14 @@ def _route_fixed_primary_ship23(
     primary_threshold: float,
     alternative_threshold: float,
 ) -> dict[int, list[dict[str, Any]]]:
-    """Keep the deployed OTO policy fixed; vary only OTM ownership for QHS/MS."""
-    return {
-        image_id: [
-            row
-            for row in oto[image_id]
-            if int(row["category_id"]) not in (2, 3) and float(row["score"]) >= primary_threshold
-        ]
-        + [
-            row
-            for row in otm[image_id]
-            if int(row["category_id"]) in (2, 3) and float(row["score"]) >= alternative_threshold
-        ]
-        for image_id in sorted(ids)
-    }
+    return _route_fixed_primary_labels(
+        oto,
+        otm,
+        ids,
+        primary_threshold=primary_threshold,
+        alternative_threshold=alternative_threshold,
+        alternative_labels=(2, 3),
+    )
 
 
 def _alternative_threshold_curve(
@@ -139,22 +161,27 @@ def _alternative_threshold_curve(
     thresholds: list[float],
     protocol: Any,
     primary_threshold: float,
+    alternative_labels: tuple[int, ...] = (2, 3),
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Use the official prefix scorer while only thresholding OTM QHS/MS.
+    """Use the official prefix scorer while thresholding explicit OTM labels.
 
     Retained OTO rows use score 1.0 in this *selection-only* stream.  OTM owns
     different fine classes (2/3), so this does not change within-class matching;
     it prevents the prefix threshold from silently retuning the incumbent OTO
     policy while it sweeps the alternative head.
     """
+    label_set = frozenset(alternative_labels)
     stream = {}
     for image_id in sorted(ids):
         fixed = [
             {**row, "score": 1.0}
             for row in oto[image_id]
-            if int(row["category_id"]) not in (2, 3) and float(row["score"]) >= primary_threshold
+            if int(row["category_id"]) not in label_set
+            and float(row["score"]) >= primary_threshold
         ]
-        alternative = [row for row in otm[image_id] if int(row["category_id"]) in (2, 3)]
+        alternative = [
+            row for row in otm[image_id] if int(row["category_id"]) in label_set
+        ]
         stream[image_id] = fixed + alternative
     return build_threshold_curve(
         _subset(gt, ids),
@@ -174,6 +201,118 @@ def _macro_fdr(metrics: dict[str, Any], labels: tuple[int, ...]) -> float:
         return fp / (tp + fp) if tp + fp else 0.0
 
     return sum(fdr(metrics["per_fine"][str(label)]) for label in labels) / len(labels)
+
+
+def _evaluate_same_risk_route(
+    *,
+    gt: dict[int, list[dict[str, Any]]],
+    oto: dict[int, list[dict[str, Any]]],
+    otm: dict[int, list[dict[str, Any]]],
+    folds: dict[int, set[int]],
+    thresholds: list[float],
+    protocol: Any,
+    primary_threshold: float,
+    diagnostic_latency: float,
+    alternative_labels: tuple[int, ...],
+    image_to_group: dict[int, str] | None,
+    bootstrap: int,
+) -> dict[str, Any]:
+    """Cross-fit one explicit OTM ownership scope at incumbent Ship risk."""
+
+    all_ids = set(gt)
+    fixed_primary = _filter_fixed_threshold(oto, all_ids, primary_threshold)
+    curves = {
+        held_out: _alternative_threshold_curve(
+            gt,
+            oto,
+            otm,
+            all_ids - folds[held_out],
+            thresholds,
+            protocol,
+            primary_threshold,
+            alternative_labels,
+        )
+        for held_out in (0, 1, 2)
+    }
+    all_curve = _alternative_threshold_curve(
+        gt,
+        oto,
+        otm,
+        all_ids,
+        thresholds,
+        protocol,
+        primary_threshold,
+        alternative_labels,
+    )
+    stitched: dict[int, list[dict[str, Any]]] = {}
+    fold_rows = []
+    for held_out in (0, 1, 2):
+        selection_ids = all_ids - folds[held_out]
+        selection_baseline = evaluate(
+            _subset(gt, selection_ids),
+            _subset(fixed_primary, selection_ids),
+            diagnostic_latency,
+        )
+        ship_fdr_budget = _macro_fdr(selection_baseline, (0, 1, 2, 3))
+        curve, trace_parity = curves[held_out]
+        selected = _select_coarse(curve, "ship", ship_fdr_budget)
+        held_pred = _route_fixed_primary_labels(
+            oto,
+            otm,
+            folds[held_out],
+            primary_threshold=primary_threshold,
+            alternative_threshold=float(selected["threshold"]),
+            alternative_labels=alternative_labels,
+        )
+        stitched.update(held_pred)
+        candidate = evaluate(_subset(gt, folds[held_out]), held_pred, diagnostic_latency)
+        baseline = evaluate(
+            _subset(gt, folds[held_out]),
+            _subset(fixed_primary, folds[held_out]),
+            diagnostic_latency,
+        )
+        fold_rows.append(
+            {
+                "fold": held_out,
+                "selection_ship_macro_fdr_budget": ship_fdr_budget,
+                "selected_otm_threshold": selected,
+                "selection_trace_parity": trace_parity,
+                "candidate": candidate,
+                "fixed_primary_baseline": baseline,
+                "delta_score": _score_delta(candidate, baseline),
+            }
+        )
+    baseline_metrics = evaluate(gt, fixed_primary, diagnostic_latency)
+    ship_fdr_budget = _macro_fdr(baseline_metrics, (0, 1, 2, 3))
+    candidate_metrics = evaluate(gt, stitched, diagnostic_latency)
+    result = {
+        "selection_rule": "max_ship_macro_recall_at_or_below_fixed_primary_ship_macro_fdr",
+        "alternative_labels": list(alternative_labels),
+        "fixed_primary_threshold": primary_threshold,
+        "folds": fold_rows,
+        "stitched": candidate_metrics,
+        "fixed_primary_baseline": baseline_metrics,
+        "delta_score_vs_fixed_primary": _score_delta(candidate_metrics, baseline_metrics),
+        "fold_score_deltas_vs_fixed_primary": [row["delta_score"] for row in fold_rows],
+        "all_oof_ship_macro_fdr_budget": ship_fdr_budget,
+        "all_oof_otm_threshold_fit_after_crossfit_evaluation": _select_coarse(
+            all_curve[0], "ship", ship_fdr_budget
+        ),
+        "all_oof_trace_parity": all_curve[1],
+    }
+    if image_to_group is not None:
+        base_groups, base_counts = group_counts(gt, fixed_primary, image_to_group)
+        candidate_groups, candidate_counts = group_counts(gt, stitched, image_to_group)
+        if base_groups != candidate_groups:
+            raise RuntimeError("Paired source groups changed")
+        result["source_group_bootstrap_vs_fixed_primary"] = paired_bootstrap(
+            base_counts,
+            candidate_counts,
+            diagnostic_latency,
+            diagnostic_latency,
+            repetitions=bootstrap,
+        )
+    return result
 
 
 def main() -> int:
@@ -413,77 +552,41 @@ def main() -> int:
             )
         deployment_like[target_key] = item
 
-    # A fairer deployment decision uses the incumbent's selection-fold Ship
-    # risk as the budget.  It does not require the candidate to meet an
-    # arbitrary FDR that the fixed incumbent itself misses, and it never uses
-    # the held-out fold to choose the OTM threshold.
-    same_risk_stitched: dict[int, list[dict[str, Any]]] = {}
-    same_risk_folds = []
-    for held_out in (0, 1, 2):
-        selection_ids = all_ids - folds[held_out]
-        selection_baseline = evaluate(
-            _subset(gt, selection_ids),
-            _subset(fixed_primary, selection_ids),
-            args.diagnostic_latency,
-        )
-        ship_fdr_budget = _macro_fdr(selection_baseline, (0, 1, 2, 3))
-        curve, trace_parity = alternative_curves[held_out]
-        selected = _select_coarse(curve, "ship", ship_fdr_budget)
-        held_pred = _route_fixed_primary_ship23(
-            oto,
-            otm,
-            folds[held_out],
+    # Compare the pre-selected QHS/MS scope with the broader all-Ship scope
+    # under one identical, cross-fitted incumbent-risk contract.  This is an
+    # explicit route-scope audit, not permission to pick a scope on hidden data.
+    same_risk_routes = {
+        "otm_ship23": _evaluate_same_risk_route(
+            gt=gt,
+            oto=oto,
+            otm=otm,
+            folds=folds,
+            thresholds=thresholds,
+            protocol=protocol,
             primary_threshold=args.primary_threshold,
-            alternative_threshold=float(selected["threshold"]),
-        )
-        same_risk_stitched.update(held_pred)
-        candidate_metrics = evaluate(
-            _subset(gt, folds[held_out]), held_pred, args.diagnostic_latency
-        )
-        baseline_metrics = evaluate(
-            _subset(gt, folds[held_out]),
-            _subset(fixed_primary, folds[held_out]),
-            args.diagnostic_latency,
-        )
-        same_risk_folds.append(
-            {
-                "fold": held_out,
-                "selection_ship_macro_fdr_budget": ship_fdr_budget,
-                "selected_otm_ship23_threshold": selected,
-                "selection_trace_parity": trace_parity,
-                "candidate": candidate_metrics,
-                "fixed_primary_baseline": baseline_metrics,
-                "delta_score": _score_delta(candidate_metrics, baseline_metrics),
-            }
-        )
-    all_baseline_metrics = evaluate(gt, fixed_primary, args.diagnostic_latency)
-    all_ship_fdr_budget = _macro_fdr(all_baseline_metrics, (0, 1, 2, 3))
-    all_selected = _select_coarse(all_alternative_curve[0], "ship", all_ship_fdr_budget)
-    same_risk_metrics = evaluate(gt, same_risk_stitched, args.diagnostic_latency)
-    same_risk = {
-        "selection_rule": "max_ship_macro_recall_at_or_below_fixed_primary_ship_macro_fdr",
-        "fixed_primary_threshold": args.primary_threshold,
-        "folds": same_risk_folds,
-        "stitched": same_risk_metrics,
-        "fixed_primary_baseline": all_baseline_metrics,
-        "delta_score_vs_fixed_primary": _score_delta(same_risk_metrics, all_baseline_metrics),
-        "fold_score_deltas_vs_fixed_primary": [row["delta_score"] for row in same_risk_folds],
-        "all_oof_ship_macro_fdr_budget": all_ship_fdr_budget,
-        "all_oof_otm_ship23_threshold_fit_after_crossfit_evaluation": all_selected,
-        "all_oof_trace_parity": all_alternative_curve[1],
+            diagnostic_latency=args.diagnostic_latency,
+            alternative_labels=(2, 3),
+            image_to_group=image_to_group,
+            bootstrap=args.bootstrap,
+        ),
+        "otm_all_ship": _evaluate_same_risk_route(
+            gt=gt,
+            oto=oto,
+            otm=otm,
+            folds=folds,
+            thresholds=thresholds,
+            protocol=protocol,
+            primary_threshold=args.primary_threshold,
+            diagnostic_latency=args.diagnostic_latency,
+            alternative_labels=(0, 1, 2, 3),
+            image_to_group=image_to_group,
+            bootstrap=args.bootstrap,
+        ),
     }
-    if image_to_group is not None:
-        base_groups, base_counts = group_counts(gt, fixed_primary, image_to_group)
-        candidate_groups, candidate_counts = group_counts(gt, same_risk_stitched, image_to_group)
-        if base_groups != candidate_groups:
-            raise RuntimeError("Paired source groups changed")
-        same_risk["source_group_bootstrap_vs_fixed_primary"] = paired_bootstrap(
-            base_counts,
-            candidate_counts,
-            args.diagnostic_latency,
-            args.diagnostic_latency,
-            repetitions=args.bootstrap,
-        )
+    same_risk = same_risk_routes["otm_ship23"]
+    same_risk["all_oof_otm_ship23_threshold_fit_after_crossfit_evaluation"] = same_risk[
+        "all_oof_otm_threshold_fit_after_crossfit_evaluation"
+    ]
 
     payload = {
         "status": "complete_directional_oof",
@@ -513,6 +616,7 @@ def main() -> int:
         "frontiers": result,
         "deployment_like_fixed_primary_ship23": deployment_like,
         "deployment_like_same_risk_fixed_primary_ship23": same_risk,
+        "deployment_like_same_risk_fixed_primary_routes": same_risk_routes,
         "decision_boundary": (
             "Do not deploy from this file alone. Require consistent fold deltas, mature-full "
             "mechanism agreement, native-continuous sanity, exact shared parity, and latency."

@@ -67,6 +67,11 @@ def main() -> int:
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--summary", type=Path, required=True)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--runtime-factory",
+        choices=("competition", "sprint20"),
+        default="competition",
+    )
     args = parser.parse_args()
     for output in (args.predictions, args.summary):
         if output.exists():
@@ -82,7 +87,12 @@ def main() -> int:
 
     config = load_submission_config(args.config)
     config["device"] = args.device
-    detector = CompetitionDetector(config)
+    if args.runtime_factory == "sprint20":
+        from sprint20.runtime import detector_factory
+
+        detector = detector_factory(config)
+    else:
+        detector = CompetitionDetector(config)
     predictions: list[dict[str, Any]] = []
     durations: list[float] = []
     per_coarse: Counter[str] = Counter()
@@ -129,6 +139,7 @@ def main() -> int:
         "predictions": len(predictions),
         "per_coarse_prediction_count": dict(per_coarse),
         "device": args.device,
+        "runtime_factory": args.runtime_factory,
         "mean_image_seconds": fmean(durations),
         "p50_image_seconds": ordered[len(ordered) // 2],
         "p95_image_seconds": ordered[min(len(ordered) - 1, int(0.95 * len(ordered)))],

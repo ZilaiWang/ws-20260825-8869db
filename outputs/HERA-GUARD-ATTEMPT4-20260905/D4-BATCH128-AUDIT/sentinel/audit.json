@@ -1,0 +1,14 @@
+{
+  "status": "complete",
+  "protocol": "d4_batch64_vs_batch128_exact_output_paired_proxy_v1",
+  "predictions_exact": true,
+  "images": 6,
+  "predictions": 1870,
+  "reference_batch": 64,
+  "candidate_batch": 128,
+  "reference_mean_image_seconds": 6.762497740409647,
+  "candidate_mean_image_seconds": 6.925835682855298,
+  "candidate_minus_reference_seconds": 0.1633379424456507,
+  "candidate_speedup": 0.9764161395208972,
+  "timing_is_proxy_diagnostic_not_official_measurement": true
+}

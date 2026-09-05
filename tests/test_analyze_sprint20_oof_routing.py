@@ -48,6 +48,27 @@ def test_deployment_like_route_only_replaces_ship23():
     assert all(row["bbox_xyxy"][0] != 2 for row in routed)
 
 
+def test_generic_route_can_assign_all_ship_labels_to_otm():
+    module = _load_script()
+    oto = {1: [_row(0, 0.8, 0), _row(2, 0.8, 2), _row(4, 0.8, 4)]}
+    otm = {1: [_row(0, 0.7, 10), _row(2, 0.7, 12), _row(4, 0.99, 14)]}
+
+    routed = module._route_fixed_primary_labels(
+        oto,
+        otm,
+        {1},
+        primary_threshold=0.536,
+        alternative_threshold=0.6,
+        alternative_labels=(0, 1, 2, 3),
+    )[1]
+
+    assert [(row["category_id"], row["bbox_xyxy"][0]) for row in routed] == [
+        (4, 4),
+        (0, 10),
+        (2, 12),
+    ]
+
+
 def test_fixed_primary_filter_includes_boundary():
     module = _load_script()
     pred = {1: [_row(2, 0.536, 1), _row(3, 0.5359, 2)]}

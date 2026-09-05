@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare mature P40 native OTO/OTM readouts without overstating evidence.
+"""Compare mature P40 aligned OTO/OTM readouts without overstating evidence.
 
 The input caches must differ only in the native YOLO26 head selected before
 inference.  This tool reports fixed-policy metrics and same-split diagnostic
@@ -213,7 +213,10 @@ def main() -> int:
     coco = _read(args.coco)
     oto, otm = _read(args.oto_cache), _read(args.otm_cache)
     if oto.get("head") != "oto" or otm.get("head") != "otm":
-        raise ValueError("Expected native OTO and native OTM caches")
+        raise ValueError("Expected aligned OTO and OTM caches")
+    cache_source = oto.get("cache_source", "native_independent_forward")
+    if cache_source != otm.get("cache_source", "native_independent_forward"):
+        raise ValueError("OTO/OTM cache sources differ")
     changed = {
         key: {"oto": oto.get(key), "otm": otm.get(key)}
         for key in IMMUTABLE_CACHE_KEYS
@@ -325,7 +328,7 @@ def main() -> int:
     weak_fp_gain = sum(fixed_deltas["fine"][label]["delta_fp"] for label in weak)
     output = {
         "status": "complete_diagnostic_only",
-        "protocol": "sprint20_mature_p40_native_head_probe_v1",
+        "protocol": "sprint20_mature_p40_aligned_head_probe_v2",
         "evidence_role": oto["role"],
         "formal_admission": False,
         "warning": (
@@ -334,7 +337,8 @@ def main() -> int:
             "official endpoint latency."
         ),
         "comparison_contract": {
-            "only_intended_difference": "native YOLO26 OTO versus native OTM readout",
+            "cache_source": cache_source,
+            "only_intended_difference": "YOLO26 OTO versus OTM readout",
             "immutable_cache_keys_equal": True,
             "identical_image_pixels": True,
             "images": len(gt),

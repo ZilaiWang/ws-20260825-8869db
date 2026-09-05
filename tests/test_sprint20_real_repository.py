@@ -72,3 +72,21 @@ def test_ship23_candidate_changes_only_explicit_sprint20_ownership():
         "aircraft_classifier_model",
     ):
         assert candidate[key] == base[key]
+
+
+def test_attempt4_shared_candidate_freezes_crossfit_threshold():
+    candidate = json.loads(
+        (
+            ROOT
+            / "configs/experiments/hera_sprint20_p40_d4_otm_ship23_t0560_candidate_v2.json"
+        ).read_text()
+    )
+    assert candidate["model"]["expected_sha256"] == (
+        "b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012"
+    )
+    assert candidate["aircraft_classifier_model"]["expected_sha256"] == (
+        "5f1b175f8b2c310a3c0583e652f5cf7cfd444d0b0d74d794a9ac59e4537832d5"
+    )
+    assert candidate["sprint20"]["otm_labels"] == [2, 3]
+    assert candidate["sprint20"]["otm_threshold"] == 0.56
+    assert candidate["aircraft_classifier_model"]["batch_objects"] == 64
