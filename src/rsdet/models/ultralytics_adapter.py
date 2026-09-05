@@ -257,7 +257,10 @@ class UltralyticsDetector(BaseDetector):
             )
             selected_scores = selected.flatten(1).gather(1, flat_indices)
             if not torch.allclose(
-                selected_scores, processed[:, :k, 4], atol=2e-3, rtol=0
+                selected_scores.float(),
+                processed[:, :k, 4].float(),
+                atol=2e-3,
+                rtol=0,
             ):
                 raise RuntimeError("raw score reconstruction does not match YOLO output")
             probability_rows = []

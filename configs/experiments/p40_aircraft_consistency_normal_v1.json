@@ -1,0 +1,15 @@
+{
+  "experiment_id": "P40-AIRCRAFT-CONSISTENCY-NORMAL-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "scope": "Diagnostic on existing Normal OOF after view-consistency passed fixed Hard and Sentinel; not a new gate or calibration",
+  "parent_p40_contract": "configs/experiments/p40_rot90_complement_v1.json",
+  "classifier_contract": "configs/experiments/r1_aircraft_view_consistency_v1.yaml",
+  "classifier_method": "view_consistency",
+  "view_mode": "d4",
+  "relabel_min_probability": 0.9,
+  "preserve_detector_scores_and_boxes": true,
+  "ship_vehicle_bypass": true,
+  "aircraft_nms_iou": 0.5,
+  "batch_objects": 16,
+  "no_training_no_full_no_docker_no_submission": true
+}

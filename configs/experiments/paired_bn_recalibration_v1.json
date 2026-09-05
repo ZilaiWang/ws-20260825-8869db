@@ -1,0 +1,17 @@
+{
+  "id": "PAIRED-P40-BN-TRAINONLY-V1",
+  "parent": "paired_trend_v1_completed_adaptation_last",
+  "expected_train_images": 3136,
+  "batch": 8,
+  "passes": 1,
+  "imgsz": 1280,
+  "order_seed": 42,
+  "reset_running_stats": true,
+  "momentum": "cumulative_equal_batches",
+  "preprocessing": "RGB_uint8_square_LetterBox_scaleup_pad114_then_float32_div255",
+  "sampling": "all_training_images_once_natural_frequency_sha256_order",
+  "augmentation": "none",
+  "only_train_sources": true,
+  "inference_policy": "unchanged_paired_trend_v1",
+  "submission_or_full_training_authorized": false
+}

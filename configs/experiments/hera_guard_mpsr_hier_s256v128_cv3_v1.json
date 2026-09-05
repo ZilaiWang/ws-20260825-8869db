@@ -1,0 +1,33 @@
+{
+  "experiment_id": "HERA-GUARD-MPSR-HIER-S256V128-CV3-V1",
+  "candidate_role": "vehicle_expert_only_after_class_disjoint_routing",
+  "fold0_evidence": {
+    "fixed_quality_delta_full_candidate": 2.311485562310594,
+    "fixed_quality_delta_vehicle_route": 2.542084187373888,
+    "single_split_oracle_delta_vehicle_route": 1.2734032081662647,
+    "hard_quality_delta_vehicle_route": 3.1204951740068623,
+    "sentinel_quality_delta_vehicle_route": 5.328742608154371
+  },
+  "training": {
+    "folds": [0, 1, 2],
+    "fold_specific_s1024_initialization": true,
+    "epochs_each": 40,
+    "imgsz": 1280,
+    "global_batch": 60,
+    "seed": 42,
+    "lr0": 0.0002,
+    "lrf": 0.1,
+    "rotate90_probability": 1.0
+  },
+  "routing": {
+    "p40_owned_labels": "0-23",
+    "candidate_owned_labels": [24],
+    "score_recalibration": false,
+    "geometry_fusion_between_branches": false
+  },
+  "admission": {
+    "requires_outer_cv3_same_direction": true,
+    "requires_runtime_and_docker_parity": true,
+    "automatic_submission": false
+  }
+}

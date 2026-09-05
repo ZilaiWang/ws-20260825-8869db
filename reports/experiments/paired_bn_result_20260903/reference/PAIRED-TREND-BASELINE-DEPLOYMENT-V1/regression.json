@@ -1,0 +1,53 @@
+{
+  "status": "pass",
+  "engineering_only": true,
+  "container_gpu_tested": false,
+  "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+  "config_sha256": "fd12af39d9d3ac9cd2da1caa9621b2b28f22d93e31569bf06f9fb92548e7dfb3",
+  "checkpoint_sha256": "76dc9c3174f6163e449794c9bfc589f6738fbb70e24e27a31f58e1b758a654e9",
+  "threshold": 0.551,
+  "background_fp": 7,
+  "background_fp_per_100mp": 6.990282947480366,
+  "background_fp_by_fine": {
+    "24": 3,
+    "3": 3,
+    "2": 1
+  },
+  "background_megapixels": 100.139008,
+  "entrypoint_parity": [
+    {
+      "canvas": 0,
+      "objects": 68,
+      "per_box_parity": true,
+      "known_gt": 75,
+      "tp": 67,
+      "fp": 1,
+      "fn": 8,
+      "partial_taxonomy_engineering_counts_not_platform_score": true
+    },
+    {
+      "canvas": 1,
+      "objects": 71,
+      "per_box_parity": true,
+      "known_gt": 75,
+      "tp": 69,
+      "fp": 2,
+      "fn": 6,
+      "partial_taxonomy_engineering_counts_not_platform_score": true
+    }
+  ],
+  "output_counts": {
+    "images": 2,
+    "objects": 139
+  },
+  "latency_seconds": 5.342158519022632,
+  "timings": [
+    5.429025745019317,
+    5.255291293025948
+  ],
+  "timing_scope": "warm loaded model; preprocessing+safe tiling+inference+fusion+serialization; excludes image IO",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "gpu_uuid": "34c2384a-4f47-4581-b94b-380d79b721e3",
+  "torch": "2.5.1+cu121",
+  "automatic_full_or_submission_admission": false
+}

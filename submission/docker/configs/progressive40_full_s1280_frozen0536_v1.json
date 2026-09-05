@@ -1,0 +1,36 @@
+{
+  "contract_version": "competition_docker_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "deployment_role": "user_selected_progressive40_full_candidate",
+  "workpoint_id": "p40_full_s1280_safe1024_post0536_20260903",
+  "source_training_checkpoint_sha256": "904c4935a85484a83d98930b0862bd1b5a1b0e9e7c6ed4eea7525391d383123f",
+  "device": "cuda:0",
+  "model": {
+    "family": "yolo",
+    "inference_adapter": "shared_offline",
+    "weight_path": "/app/models/model.pt",
+    "expected_sha256": "b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012",
+    "imgsz": 1280,
+    "confidence": 0.001,
+    "iou": 0.7,
+    "max_detections": 500,
+    "half": true,
+    "rot90_views": [0]
+  },
+  "pipeline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "batch_size": 4,
+    "fusion": "safe",
+    "score_threshold": 0.001,
+    "fine_nms_iou": 0.7,
+    "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0,
+    "merge_iou": 0.5,
+    "merge_ios": 0.75,
+    "border_margin": 8.0,
+    "nms_iou": 0.5,
+    "max_detections": 4000
+  },
+  "post_fusion_score_threshold": 0.536
+}

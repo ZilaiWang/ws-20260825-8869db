@@ -1,5 +1,11 @@
 # 实验记录
 
+- [HERA_GUARD_PLAN19_BATIS_EXECUTION_20260905.md](HERA_GUARD_PLAN19_BATIS_EXECUTION_20260905.md)：方案19 BATIS 全链闭环；确认 Safe Fusion 阈值反转和网格相位敏感性真实存在，但 H1/H2、K=8 稀疏重居中、overlap320 与 Ship 跨细类去重均未跨原生/Natural/Trial 测试稳定增益；按停止条件不启动 K=16/随机相位微调，生产继续保持 P40 Safe Fusion + Aircraft-D4；
+- [HERA_GUARD_PLAN18_APRR_AND_TILING_AUDIT_20260905.md](HERA_GUARD_PLAN18_APRR_AND_TILING_AUDIT_20260905.md)：方案18离线APRR资格赛与大图差距审计；Ship支持虚警爆炸、Vehicle过度掉Recall，按预注册门禁停止；原生连续图whole-vs-tiled未见切片退化，但10×10伪大图人工缝将Ship/Vehicle推向相反方向，从此降级为工程压力测试；
+- [HERA_GUARD_ATTEMPT4_DEEP_DIAGNOSIS_20260905.md](HERA_GUARD_ATTEMPT4_DEEP_DIAGNOSIS_20260905.md)：方案17后续只读深挖；确认Vehicle有效统计仅21个站点、task-vector无逐折同FP Pareto、TP/背景FP分数重叠，短OOF不能选full绝对阈值；D4同进程AB/BA复测后预计仅净增约0.11--0.13分；
+- [HERA_GUARD_ATTEMPT4_PLAN17_EXECUTION_20260904.md](HERA_GUARD_ATTEMPT4_PLAN17_EXECUTION_20260904.md)：方案17两条冻结链；Vehicle class-row task-vector拒绝，P40+Aircraft-D4-only边际保留，完整实现、门禁、结果和深层诊断入口；
+- [P40_SHIP_VEHICLE_RECALL_20260904.md](P40_SHIP_VEHICLE_RECALL_20260904.md)：保留飞机正向候选；P40漏检容量诊断、细类阈值Hard +0.016停止、弱类整图RFS Hard -1.309停止、targeted EQLv2三折Normal正向但Hard -0.960停止；RFS/EQL/EFL方法族关闭；
+
 正式实验统一追加到 [`leaderboard.csv`](leaderboard.csv)，字段和阈值规则见
 [`docs/EXPERIMENT_PROTOCOL.md`](../../docs/EXPERIMENT_PROTOCOL.md)。失败实验也保留一行，
 `notes` 写清停止原因。
@@ -9,7 +15,17 @@
 
 跨实验状态统一查看：
 
-- [`S1280_FULL_CANDIDATE_AND_PLAN14_CLOSURE_20260902.md`](S1280_FULL_CANDIDATE_AND_PLAN14_CLOSURE_20260902.md)：S1280 单折配对尺寸/错误分析、同阈值因果核验、三卡 160e 全量候选、方案14逐项闭环与提交前硬验收；
+- [FIXED_PROXY_LITE_AND_P40_VIEWS_20260903.md](FIXED_PROXY_LITE_AND_P40_VIEWS_20260903.md)：当前默认旧Hard筛选→正向才Sentinel确认；三个补框配方停止；P40+CE及view-consistency飞机精识别两套测试正向，单/八视图成本、细类诊断与逐框回放已记录；不改变历史失败、不打包；
+- [`PAIRED_TREND_REFERENCE_AND_BN_RESULT_20260903.md`](PAIRED_TREND_REFERENCE_AND_BN_RESULT_20260903.md)：17879固定160+40/A/B/anchor全部完成；新A开发方向+3.244而确认−10.194，官方趋势可靠性未通过；19864的train-only BN开发−2.962，停止且不看确认、不打包；完整结果、环境修复、错误结构及产物索引；
+- [`P40_NEXT_IMPROVEMENT_AUDIT_20260903.md`](P40_NEXT_IMPROVEMENT_AUDIT_20260903.md)：正式76.601之后的方案13–15逐项核对、A漏检诊断和BN事前设计；实跑闭环以上一项为准，固定BN配方已拒绝；
+- [`PAIRED_TREND_GPU_AND_DIRECTION_AUDIT_20260903.md`](PAIRED_TREND_GPU_AND_DIRECTION_AUDIT_20260903.md)：17879基线启动记录、预声明S1024→P40趋势合同；历史质量贡献Hard +6.402、Sentinel +2.379与正式+4.622同向，但新A确认反向，完成结果见最上方实跑报告；
+- [`PAIRED_TREND_IMPLEMENTATION_20260903.md`](PAIRED_TREND_IMPLEMENTATION_20260903.md)：固定流程的数据/代码落地记录，3,136/673/672图、25类覆盖、来源隔离、A/B入口及白天86项相关CPU测试；后续GPU状态见上一项，不能以已见full诊断替代；
+- [`EVALUATION_WORKFLOW_SIMPLIFICATION_20260903.md`](EVALUATION_WORKFLOW_SIMPLIFICATION_20260903.md)：最初测试链审计与“一套配对验证+一套部署回归”的依据，当前落地状态见上一项；
+- [`FORMAL_ATTEMPT2_P40_PLATFORM_RESULT_ANALYSIS_20260903.md`](FORMAL_ATTEMPT2_P40_PLATFORM_RESULT_ANALYSIS_20260903.md)：正式v2.0/ID3953为76.6010分、读取时第16名、三硬门全过；完整本队API响应、七子分、TP/FP/FN、相对v1净增4.468分与召回代价、本地同源约85分不可作预估的差距分析；
+- [`IMPROVEMENT_PLAN15_SCALEROUTE_EXECUTION_20260903.md`](IMPROVEMENT_PLAN15_SCALEROUTE_EXECUTION_20260903.md)：方案15、P40 full40/40及含泄漏诊断（Hard84.965/Sentinel85.278，非官方预估）；3913框入口一致，已由用户提交并获得正式76.6010分；背景误检2→10风险仍保留；
+- [`P40_SUBMISSION_FREEZE_20260903.md`](../submission/P40_SUBMISSION_FREEZE_20260903.md)：本次唯一P40镜像/权重SHA、导出与封装修复、验收边界、带镜像身份防错的用户提交流程；
+- [`S1280_CV3_FINAL_ANALYSIS_20260903.md`](S1280_CV3_FINAL_ANALYSIS_20260903.md)：S1280 160e 全量权重、三折 outer-CV、共同阈值因果诊断、细类错误结构、purity 否决和下一步最小高价值路径的最终入口；
+- [`S1280_FULL_CANDIDATE_AND_PLAN14_CLOSURE_20260902.md`](S1280_FULL_CANDIDATE_AND_PLAN14_CLOSURE_20260902.md)：S1280 单折配对尺寸/错误分析、三卡 160e 全量候选、方案14逐项闭环与提交前硬验收；最终 CV3 结论以上一项为准；
 - [`IMPROVEMENT_PLAN14_MACROEXPERT_AND_GATE_AUDIT_20260901.md`](IMPROVEMENT_PLAN14_MACROEXPERT_AND_GATE_AUDIT_20260901.md)：方案14六类 MacroExpert-M、互斥路由、fold0 实施证据，以及 40ep/160ep 与小样本 Hard/Sentinel 门禁分辨率自查；
 - [`YOLO_CAPACITY_SCALE_2X2_PLAN_20260902.md`](YOLO_CAPACITY_SCALE_2X2_PLAN_20260902.md)：MacroExpert/DEIM-HCL 复核后的标准 25 类 `S/M × 1024/1280` 同长度四格合同、官方三粗类宏平均门禁与 GPU 驱动；
 - [`PEER_DEIM_HCL_REPLAY_20260901.md`](PEER_DEIM_HCL_REPLAY_20260901.md)：同赛道公开 DEIM 解耦查询 + HCL 方案的严格单因素复现、固定 Hard/Sentinel-B 压力测试与主线集成门禁；

@@ -1,0 +1,35 @@
+{
+  "total": 2,
+  "rows": [
+    {
+      "createTime": "2026-09-03 16:17:01",
+      "remark": "",
+      "submissionId": 3953,
+      "teamCode": "team612528",
+      "teamName": "南京林业大学",
+      "stageCode": "preliminary",
+      "imageTag": "v2.0",
+      "status": "ACCEPTED",
+      "taskStatus": "SUCCESS",
+      "score": 76.601,
+      "metricsJson": "{\"basic_metrics\":{\"ship\":{\"TP\":418,\"FP\":35,\"FN\":202,\"recall\":0.809894,\"false_detection_rate\":0.067489},\"aircraft\":{\"TP\":4711,\"FP\":168,\"FN\":231,\"recall\":0.945967,\"false_detection_rate\":0.037265},\"vehicle\":{\"TP\":79,\"FP\":21,\"FN\":16,\"recall\":0.831579,\"false_detection_rate\":0.21}},\"average_inference_time_sec\":3.551833,\"score_details\":{\"recall_average\":0.862480,\"false_detection_rate_average\":0.104918,\"average_inference_time_sec\":3.551833,\"recall_score\":67.1533,\"false_detection_rate_score\":79.4331,\"category_scores\":{\"ship_recall_score\":57.1690,\"ship_false_detection_rate_score\":86.5022,\"aircraft_recall_score\":85.5912,\"aircraft_false_detection_rate_score\":92.5470,\"vehicle_recall_score\":58.6997,\"vehicle_false_detection_rate_score\":59.2500},\"time_score\":96.4482,\"total_score\":76.6010,\"score_rule\":\"score=(ship_recall_score+aircraft_recall_score+vehicle_recall_score+ship_false_detection_rate_score+aircraft_false_detection_rate_score+vehicle_false_detection_rate_score+time_score)/7\"}}",
+      "bestResult": "1"
+    },
+    {
+      "createTime": "2026-08-31 21:42:49",
+      "remark": "",
+      "submissionId": 3358,
+      "teamCode": "team612528",
+      "teamName": "南京林业大学",
+      "stageCode": "preliminary",
+      "imageTag": "v1.0",
+      "status": "ACCEPTED",
+      "taskStatus": "SUCCESS",
+      "score": 72.1331,
+      "metricsJson": "{\"basic_metrics\":{\"ship\":{\"TP\":466,\"FP\":94,\"FN\":154,\"recall\":0.874969,\"false_detection_rate\":0.320177},\"aircraft\":{\"TP\":4800,\"FP\":290,\"FN\":142,\"recall\":0.967641,\"false_detection_rate\":0.064691},\"vehicle\":{\"TP\":81,\"FP\":39,\"FN\":14,\"recall\":0.852632,\"false_detection_rate\":0.325}},\"average_inference_time_sec\":2.473167,\"score_details\":{\"recall_average\":0.898414,\"false_detection_rate_average\":0.236623,\"average_inference_time_sec\":2.473167,\"recall_score\":72.9104,\"false_detection_rate_score\":62.8912,\"category_scores\":{\"ship_recall_score\":66.6584,\"ship_false_detection_rate_score\":50.9867,\"aircraft_recall_score\":91.3709,\"aircraft_false_detection_rate_score\":87.0618,\"vehicle_recall_score\":60.7019,\"vehicle_false_detection_rate_score\":50.6250},\"time_score\":97.5268,\"total_score\":72.1331,\"score_rule\":\"score=(ship_recall_score+aircraft_recall_score+vehicle_recall_score+ship_false_detection_rate_score+aircraft_false_detection_rate_score+vehicle_false_detection_rate_score+time_score)/7\"}}",
+      "bestResult": "0"
+    }
+  ],
+  "code": 200,
+  "msg": "查询成功"
+}

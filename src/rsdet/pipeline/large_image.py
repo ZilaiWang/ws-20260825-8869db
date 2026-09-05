@@ -44,6 +44,9 @@ class PipelineConfig:
     nms_iou: float = 0.5  # 全局聚合同类 NMS 阈值
     merge_ios: float = 0.75  # safe 路径 intersection-over-smaller 阈值
     border_margin: float = 8.0  # safe 路径内部 tile 边界宽度
+    output_score_threshold: float | None = None  # BATIS: canonical 最终资格阈值
+    owner_logit_slack: float | None = None  # BATIS: 近分 owner 优先；None 关闭
+    threshold_safe_category_ids: tuple[int, ...] | None = None  # BATIS 类别所有权
 
 
 @dataclass
@@ -256,6 +259,9 @@ def run_pipeline(
             fine_nms_iou=config.fine_nms_iou,
             border_margin=config.border_margin,
             max_detections=config.max_detections,
+            output_score_threshold=config.output_score_threshold,
+            owner_logit_slack=config.owner_logit_slack,
+            threshold_safe_category_ids=config.threshold_safe_category_ids,
         )
     else:
         if (

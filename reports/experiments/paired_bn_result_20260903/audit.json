@@ -1,0 +1,98 @@
+{
+  "schema": "paired_reference_bn_closure_20260903",
+  "status": "complete_bn_rejected_and_benchmark_trend_not_validated",
+  "metric_protocol": "platform_observed_20260831",
+  "official_best_score_unchanged": 76.601,
+  "baseline_checkpoint_sha256": "76dc9c3174f6163e449794c9bfc589f6738fbb70e24e27a31f58e1b758a654e9",
+  "baseline_plan_sha256": "7e02c6b70083f8cd092c03f00bbcb5a44bee61b46244ee989ba9b2f7a363bea8",
+  "bn_checkpoint_sha256": "d790dbe9434026174e2d82a52227480129f7464d9c31424ef8172f0d3e1a9a09",
+  "bn_plan_sha256": "8a8bbc8ce39e2361caf0c783b64e9d881806cb64bfa17e21a82868f570a23abc",
+  "bn_receipt_sha256": "5d27a9ff921701f213531616a67df51191322c98328d60798be6921b9b275c79",
+  "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+  "bn_start_cst": "2026-09-03T22:11:13+08:00",
+  "bn_end_cst": "2026-09-03T22:13:42+08:00",
+  "bn_development_delta_quality": -2.9616832473063184,
+  "bn_confirmation_executed": false,
+  "bn_deployment_executed": false,
+  "bn_audit": {
+    "bn_layers": 114,
+    "batches": 392,
+    "images": 3136,
+    "all_non_bn_state_bitwise_equal": true
+  },
+  "saved_checkpoint_independent_cpu_reload_on_server_verified": true,
+  "local_parent_lineage_and_complete_artifact_sha_verified": true,
+  "new_server_environment_repaired_with_original_packages_quarantined": true,
+  "cpu_tests": {
+    "passed": 49,
+    "failed": 0,
+    "seconds": 3.71
+  },
+  "gpu_smoke_not_accuracy": {
+    "batch": 8,
+    "imgsz": 1280,
+    "peak_allocated_bytes": 1875394560,
+    "bn_layers": 114,
+    "non_bn_unchanged": true
+  },
+  "common_threshold_diagnostic": {
+    "purpose": "posthoc_explanation_not_admission_or_reselection",
+    "thresholds_from_development_only": true,
+    "threshold_search": false,
+    "original_audit_unchanged": true,
+    "rows": [
+      {
+        "split": "development",
+        "threshold": 0.551,
+        "foundation_quality_contribution": 49.84422901693609,
+        "p40_quality_contribution": 58.56122102560443,
+        "delta_quality_contribution": 8.716992008668342
+      },
+      {
+        "split": "development",
+        "threshold": 0.706,
+        "foundation_quality_contribution": 55.31727145448285,
+        "p40_quality_contribution": 56.1299332740192,
+        "delta_quality_contribution": 0.812661819536352
+      },
+      {
+        "split": "confirmation",
+        "threshold": 0.551,
+        "foundation_quality_contribution": 44.091299012141924,
+        "p40_quality_contribution": 41.429469188489925,
+        "delta_quality_contribution": -2.661829823651999
+      },
+      {
+        "split": "confirmation",
+        "threshold": 0.706,
+        "foundation_quality_contribution": 51.62366204923699,
+        "p40_quality_contribution": 44.52670792468058,
+        "delta_quality_contribution": -7.096954124556412
+      }
+    ]
+  },
+  "driver_sha256": "c35c5419efdd5f5c7b6cdec63ba938544f54dcb337f11a2912d0372316ce517b",
+  "full_training": false,
+  "docker_packaging": false,
+  "official_submission": false,
+  "github_push": false,
+  "evidence_sha256": {
+    "candidate/candidate_development_capacity.json": "e66d79a51811551e4eb8a61f1254e0d81a56775f7d8c294480231fa0c56fe175",
+    "candidate/calibration/complete.json": "5d27a9ff921701f213531616a67df51191322c98328d60798be6921b9b275c79",
+    "candidate/calibration/started.json": "294cac08a8c5b36236e1f4f3ce517091f14b828a16a9fdae96ea9f393a1a0001",
+    "candidate/evaluation/development_metrics.json": "11a0b40a4ff1557ec062dae6bae0a8ce243c4cfa48e7be698642165be7c1b1d8",
+    "candidate/evaluation/review.json": "33af54f9504849fd52c54ba7f08dcd04cd6ec393e41d070aa5512f5cae034178",
+    "candidate/evaluation/threshold.json": "605fa992841f5eb48505c2accf8ddc01bd85a28f6fbef9932719305918b5c164",
+    "candidate/status.txt": "27e22381323a07e4ce6a13737dc415bf5b70594443e86fd312b61385729aa5f3",
+    "reference/PAIRED-TREND-ANCHOR-AUDIT-V1/contract.json": "694412a4b42c568fa573d5c6de0cf34adde05432269211b3e5dfc2c9766cfb48",
+    "reference/PAIRED-TREND-ANCHOR-AUDIT-V1/foundation/confirmation_metrics.json": "66ff9c2d1e092309ec0a63579f28ea1864dd6d4b6e17360e5ba1582767239a2f",
+    "reference/PAIRED-TREND-ANCHOR-AUDIT-V1/foundation/development_metrics.json": "a4c3be79734e90be04cd1a35726b8a662c517373b91404db31b8750fa9e3c9e6",
+    "reference/PAIRED-TREND-ANCHOR-AUDIT-V1/result.json": "7095e3516b5b65e662fc953784a2f0b7dc55892edb8ec0d07771fc3515a433b7",
+    "reference/PAIRED-TREND-BASELINE-DEPLOYMENT-V1/regression.json": "85a3792f839226c531ddcd9d85138cddcc3a7a756aa3f998575dca59aff592f8",
+    "reference/baseline_development_capacity.json": "d899954eaed37e3cd24c07f97287eb92daa3d1b1be5da4abb3904e6ca9eee739",
+    "reference/evaluation/confirmation_metrics.json": "98171fa7a14756be6050595d277770a168bd107fca2454a61bd7e826d042a1cc",
+    "reference/evaluation/development_metrics.json": "48b7f1142feb6b6f18c535cf828f98be9fbb20c4ee634473ee44474dfb70e74d",
+    "reference/evaluation/review.json": "7cb9bf77e8a3683c697f7c2e47b9d8c1fcd1b6f1a44562581ffd15d9108c9347",
+    "reference/evaluation/threshold.json": "c54f0e17a240ad2111693e40671237f790f75f79bf7c60908a98936c70a2822d"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "experiment_id": "HERA-GUARD-MPSR-S128-FOLD0-40EP-V1",
+  "purpose": "paired detector-level object-scale scene-crop exploration for Ship/Vehicle proposal recall",
+  "baseline": "SCALEROUTE-PLAN15-PROGRESSIVE40 fold0",
+  "training": {
+    "initial_checkpoint": "the same mature S1024 fold0 last.pt as P40",
+    "epochs": 40,
+    "imgsz": 1280,
+    "single_gpu_reference_batch": 8,
+    "three_gpu_total_batch": 60,
+    "three_gpu_per_device_batch": 20,
+    "effective_batch_note": "Ultralytics nbs=64: baseline batch8 accumulates about 8 steps; DDP batch60 uses one step, so effective batch remains approximately 64 versus 60",
+    "seed": 42,
+    "lr0": 0.0002,
+    "lrf": 0.1,
+    "rotate90_probability": 1.0,
+    "single_changed_factor": "82 deterministic context-preserving object-scale training scenes"
+  },
+  "scene_crop": {
+    "target_fine_ids": [0, 1, 2, 3, 24],
+    "target_network_side": 128,
+    "one_crop_per_source_image": true,
+    "target_visibility_min": 0.95,
+    "keep_annotation_visibility_min": 0.70,
+    "reject_partial_visibility_band": [0.05, 0.70],
+    "outside_policy": "reflect",
+    "isolated_object_stretching": false,
+    "validation_unchanged": true
+  },
+  "evaluation": {
+    "development_split": "fold0 held-out 1507 images",
+    "fixed_global_threshold": 0.546,
+    "metric_protocol": "platform_observed_20260831",
+    "primary": "delta official quality contribution at the identical fixed threshold",
+    "confirmation_rule": "quality delta > 0.5 points merits fixed Hard then Sentinel confirmation",
+    "risk_rule": "report every coarse recall/FDR change; do not reject only because a rare-class FDR changes by 0.5pp",
+    "absolute_hard_gate": "mean of the three coarse macro FDR values <= 0.20; this is not a per-class FDR ceiling",
+    "full_training_or_submission_from_fold0": false
+  }
+}

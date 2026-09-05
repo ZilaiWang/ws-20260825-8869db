@@ -1,0 +1,88 @@
+{
+  "protocol": "paired_trend_review_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "gt_sha256": "e02e139e5b7f440ee1107fa49c1673d9dc5dc40ed2b3e92de74af6460b885195",
+  "baseline": {
+    "quality_contribution_out_of_600_over_7": 41.60539786223745,
+    "total_score": null,
+    "latency_seconds": null,
+    "per_coarse": {
+      "ship": {
+        "recall": 0.3367108684593827,
+        "fdr": 0.08171475392220073,
+        "recall_points": 23.7678260088976,
+        "fdr_points": 83.65704921555985
+      },
+      "aircraft": {
+        "recall": 0.7907764153524146,
+        "fdr": 0.1664721610513077,
+        "recall_points": 55.819511671935146,
+        "fdr_points": 66.70556778973847
+      },
+      "vehicle": {
+        "recall": 0.23369565217391305,
+        "fdr": 0.4027777777777778,
+        "recall_points": 16.496163682864452,
+        "fdr_points": 44.79166666666667
+      }
+    },
+    "gate_recall": 0.45372764532857013,
+    "gate_fdr": 0.2169882309170954
+  },
+  "candidate": {
+    "quality_contribution_out_of_600_over_7": 44.76252405719877,
+    "total_score": null,
+    "latency_seconds": null,
+    "per_coarse": {
+      "ship": {
+        "recall": 0.4256864863840153,
+        "fdr": 0.07060338928470797,
+        "recall_points": 30.04845786240108,
+        "fdr_points": 85.8793221430584
+      },
+      "aircraft": {
+        "recall": 0.8016522334552472,
+        "fdr": 0.1527650897415418,
+        "recall_points": 56.58721647919392,
+        "fdr_points": 69.44698205169163
+      },
+      "vehicle": {
+        "recall": 0.22826086956521738,
+        "fdr": 0.2631578947368421,
+        "recall_points": 16.112531969309465,
+        "fdr_points": 55.26315789473684
+      }
+    },
+    "gate_recall": 0.4851998631348266,
+    "gate_fdr": 0.1621754579210306
+  },
+  "delta_quality_contribution": 3.1571261949613145,
+  "delta_total_score": null,
+  "direction": "positive",
+  "deadband_score_points": 0.5,
+  "deadband_is_not_a_confidence_interval": true,
+  "per_coarse_delta": {
+    "ship": {
+      "recall_pp": 8.89756179246326,
+      "fdr_pp": -1.1111364637492764,
+      "score_contribution": 1.21470068300029
+    },
+    "aircraft": {
+      "recall_pp": 1.0875818102832557,
+      "fdr_pp": -1.3707071309765895,
+      "score_contribution": 0.5013027241731345
+    },
+    "vehicle": {
+      "recall_pp": -0.5434782608695676,
+      "fdr_pp": -13.96198830409357,
+      "score_contribution": 1.4411227877878834
+    }
+  },
+  "warnings": [
+    "Timing missing: quality-only trend, not a total-score comparison.",
+    "Seen-source/exploratory evidence cannot authorize deployment."
+  ],
+  "training_and_timing_comparability_verified": false,
+  "automatic_full_training_or_submission_admission": false,
+  "official_score_forecast": false
+}

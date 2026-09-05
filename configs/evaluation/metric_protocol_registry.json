@@ -1,6 +1,13 @@
 {
   "formal_metric_protocol": "platform_observed_20260831",
+  "default_experiment_workflow": "configs/experiments/fixed_proxy_lite_v1.json",
+  "paired_trend_role": "diagnostic_only_after_failed_known_direction_anchor",
   "active_formal_entrypoints": [
+    "scripts/run_paired_trend.py",
+    "scripts/compare_candidate_trend.py",
+    "scripts/run_paired_deployment_regression.py",
+    "scripts/run_paired_bn_recalibration.py",
+    "scripts/analyze_paired_development_capacity.py",
     "scripts/analyze_macro_risk_v2.py",
     "scripts/analyze_formal_anchor_threshold_transfer.py",
     "scripts/analyze_quality_route_cv3.py",

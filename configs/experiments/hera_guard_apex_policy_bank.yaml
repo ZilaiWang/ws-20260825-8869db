@@ -1,0 +1,40 @@
+schema_version: hera_guard_apex_policy_bank_v1
+
+invariants:
+  aircraft_detector_proposals_bitwise_unchanged: true
+  do_not_write_jitter_regions_as_detector_background: true
+  validation_is_never_augmented: true
+  all_assets_source_grouped: true
+  missing_label_regions_excluded_or_ignored: true
+  single_split_oracle_is_diagnostic_only: true
+
+policies:
+  A0_control:
+    detector: p40
+    extra_assets: []
+  A1_lmp_boundary:
+    status: rejected_source_robust_calibration
+    geometry_change: false
+  A2_classifier_object_scale:
+    status: rejected_normal
+    geometry_change: false
+  A3_reviewed_background_classifier:
+    status: rejected_normal
+    geometry_change: false
+  detector_scene_scale_s128:
+    status: rejected_fixed_and_oracle
+    ship_target_network_side: 128
+    vehicle_target_network_side: 128
+  detector_scene_scale_hierarchical:
+    status: active_fold0_screen
+    ship_target_network_side: 256
+    vehicle_target_network_side: 128
+    generated_scene_count: 359
+
+screening:
+  fixed_threshold: 0.546
+  metric_protocol: platform_observed_20260831
+  primary: paired_quality_contribution_delta
+  diagnostic: single_split_global_oracle_delta
+  positive_deadband_score_points: 0.5
+  full_or_submission_from_single_fold: false

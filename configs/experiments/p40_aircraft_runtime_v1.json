@@ -1,0 +1,15 @@
+{
+  "experiment_id": "P40-AIRCRAFT-RUNTIME-V1",
+  "role": "engineering-only cost and exact output replay of already positive identity/D4; no tuning",
+  "views": ["identity", "d4"],
+  "warmup_batches_per_fold": 3,
+  "timed_repeats_per_image": 3,
+  "batch_objects": 16,
+  "precision": "autocast_cuda_fp16",
+  "timing_scope": "resident classifier; image reopen/decode, crop, normalize, inference, CPU transfer, relabel and NMS; excludes detector and checkpoint load",
+  "alternating_view_order": true,
+  "relabel_min_probability": 0.9,
+  "aircraft_nms_iou": 0.5,
+  "require_exact_cached_decisions": true,
+  "no_training_no_full_no_docker_no_submission": true
+}

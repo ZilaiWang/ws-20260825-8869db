@@ -1,0 +1,31 @@
+{
+  "experiment_id": "P40-WEAK-RFS-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "baseline": "P40 CV3 40+40, existing natural-sampling adaptation",
+  "only_factor": "training image sampling distribution; standard loss, same 25 classes and all images eligible",
+  "source_weight_sha256": [
+    "928a333f416f47f109b283644ef8f4a120b98b9310357fceddeb856e3eb9368d",
+    "76d63f51b50f5b43969371f8852376b6136eb683b0f38f962c9257ab6ac42946",
+    "d4bddcabd44cb53d85c7007c2623337b3ddd18ad528fafd3c5905722aa7ce6e4"
+  ],
+  "sampling": {"weak_category_ids": [0, 1, 2, 3, 24], "target_image_frequency": 0.10, "cap": 3.0,
+    "rule": "r_c=min(3,max(1,sqrt(0.10/f_c))); w_image=max r_c of present weak classes, else 1",
+    "replacement": true, "draws_per_epoch": "N_train; unchanged optimizer-step budget"},
+  "epochs": 40,
+  "imgsz": 1280,
+  "batch": 8,
+  "workers": 4,
+  "seed": 42,
+  "lr0": 0.0002,
+  "lrf": 0.10,
+  "optimizer": "AdamW",
+  "mosaic": 0.0,
+  "rotate90_p": 1.0,
+  "selection": "fixed last epoch; no validation selection",
+  "normal_role": "new candidate OOF calibration; same other-two-fold FDR15 selector",
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "no_threshold_fit_on_hard_or_sentinel": true,
+  "no_full_no_docker_no_submission": true,
+  "limitations": ["40+40 research lineage differs from full160+40", "weighted replacement differs from natural shuffled sampling", "all-class outputs are evaluated; no posthoc class routing to hide regressions"]
+}

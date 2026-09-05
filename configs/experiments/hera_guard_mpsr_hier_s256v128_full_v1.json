@@ -1,0 +1,36 @@
+{
+  "experiment_id": "HERA-GUARD-MPSR-HIER-S256V128-FULL-40EP-3X4080-B60-V1",
+  "candidate_role": "full_data_vehicle_expert_after_positive_cv3_class_disjoint_route",
+  "training": {
+    "initialization": "official_p40_full_s1024_160e",
+    "base_images": 4481,
+    "validation_images": 0,
+    "fixed_last": true,
+    "epochs": 40,
+    "imgsz": 1280,
+    "global_batch": 60,
+    "seed": 42,
+    "lr0": 0.0002,
+    "lrf": 0.1,
+    "rotate90_probability": 1.0
+  },
+  "scene_augmentation": {
+    "ship_target_network_side": 256,
+    "vehicle_target_network_side": 128,
+    "output_pixels": 800,
+    "max_extra_fraction": 0.25,
+    "full_annotation_visibility_guard": true
+  },
+  "routing": {
+    "p40_owned_labels": "0-23",
+    "candidate_owned_labels": [24],
+    "geometry_fusion_between_branches": false
+  },
+  "evidence": {
+    "cv3_quality_delta": 1.920882328508064,
+    "cv3_vehicle_recall_delta_pp": -1.741293532338306,
+    "cv3_vehicle_fdr_delta_pp": -8.852813852813854,
+    "all_three_folds_quality_positive": true
+  },
+  "automatic_submission": false
+}

@@ -1,0 +1,13 @@
+{
+  "parent_checkpoint_sha256": "76dc9c3174f6163e449794c9bfc589f6738fbb70e24e27a31f58e1b758a654e9",
+  "device": "cuda:0",
+  "environment": {
+    "python": "3.10.13",
+    "torch": "2.5.1+cu121",
+    "torchvision": "0.20.1+cu121",
+    "ultralytics": "8.4.103",
+    "albumentations": "2.0.8",
+    "numpy": "1.26.4",
+    "Pillow": "10.4.0"
+  }
+}

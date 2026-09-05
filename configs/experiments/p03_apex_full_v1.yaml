@@ -1,0 +1,40 @@
+experiment:
+  id: "P03-APEX-FULL-V1-CONVNEXT-T224"
+  purpose: "full-data crop backbone for admitted APEX proposal modules"
+
+data:
+  manifest_version: "formal_crop_manifest_v2"
+  manifest_sha256: "a3bed44fa6166fa7ee67555ea81ba96024652c0bba81a67da056c78d3e484128"
+  policy: "tight"
+  resolution: 224
+
+model:
+  architecture: "torchvision_convnext_tiny"
+  pretrained_source: "ImageNet-1K V1"
+  num_classes: 25
+  weight_sha256: "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d"
+
+training:
+  checkpoint_selection: "fixed_epoch_last"
+  fine_tune:
+    epochs: 30
+    backbone_lr: 0.0001
+    head_lr: 0.0005
+    weight_decay: 0.05
+    warmup_epochs: 2.0
+    label_smoothing: 0.1
+    grad_clip_norm: 1.0
+
+sampler:
+  name: "natural"
+  sqrt_inverse:
+    exponent: 0.5
+    max_weight_ratio: 10.0
+    replacement: true
+
+runtime:
+  batch_size: 96
+  num_workers: 8
+  image_cache_size_per_worker: 8
+  amp: "fp16"
+  deterministic_cudnn: true

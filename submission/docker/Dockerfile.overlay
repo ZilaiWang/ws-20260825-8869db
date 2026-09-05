@@ -1,0 +1,9 @@
+# Reuse a locally verified Linux/CUDA runtime without redownloading dependencies.
+# The build receipt must record the resolved base Image ID, not just this tag.
+ARG BASE_IMAGE=xh-detector:y5s-single-thr015-v1
+FROM ${BASE_IMAGE}
+WORKDIR /app
+ENV RSDET_SUBMISSION_CONFIG=/app/config.json
+COPY app /app
+COPY models/model.pt /app/models/model.pt
+ENTRYPOINT ["python", "/app/main.py"]

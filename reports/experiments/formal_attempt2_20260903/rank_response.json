@@ -1,0 +1,24 @@
+{
+  "msg": "操作成功",
+  "code": 200,
+  "data": {
+    "rankNo": 16,
+    "teamCode": "team612528",
+    "teamName": "南京林业大学",
+    "stageCode": "preliminary",
+    "score": 76.601,
+    "shipRecall": 0.809894,
+    "shipFalseDetectionRate": 0.067489,
+    "aircraftRecall": 0.945967,
+    "aircraftFalseDetectionRate": 0.037265,
+    "vehicleRecall": 0.831579,
+    "vehicleFalseDetectionRate": 0.21,
+    "averageInferenceTimeSec": 3.551833,
+    "falseDetectionRatePass": "是",
+    "recallPass": "是",
+    "timePass": "是",
+    "imageTag": "v2.0",
+    "submissionCount": 2,
+    "submitTime": "2026-09-03 16:20:12"
+  }
+}

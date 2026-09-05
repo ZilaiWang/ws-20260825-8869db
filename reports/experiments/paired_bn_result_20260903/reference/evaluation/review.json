@@ -1,0 +1,38 @@
+{
+  "version": "paired_trend_review_v1",
+  "role": "baseline",
+  "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+  "threshold": 0.551,
+  "development": null,
+  "confirmation": null,
+  "confirmation_evaluated": true,
+  "lineage_verified_against_recorded_sources": true,
+  "recipe_matches_baseline": null,
+  "next_action": "baseline_cached",
+  "quality_only_no_measured_100mp_latency": true,
+  "environment": {
+    "python": "3.10.13",
+    "torch": "2.5.1+cu121",
+    "torchvision": "0.20.1+cu121",
+    "ultralytics": "8.4.103",
+    "albumentations": "2.0.8",
+    "numpy": "1.26.4",
+    "Pillow": "10.4.0"
+  },
+  "environment_matches_baseline": null,
+  "official_score_forecast": false,
+  "automatic_full_or_submission_admission": false,
+  "small_support_warning": "HM and TU-160 have very small held-out support; inspect fine TP/FP/FN, not just the sign",
+  "deployment_regression": "not_run_by_quality_review; use run_paired_deployment_regression.py",
+  "artifacts": {
+    "code.json": "cb4504cf015e539aa2783b34bf350ca9718539b180e1310bdef09ed1e43e97cc",
+    "confirmation/inference.json": "2873d7a9c0f720be9079717aeb45fbd9ab480313b2c520753d2b3b22ff561662",
+    "confirmation/predictions_low.json": "edbb26f9003f4deca22cc7d07a6f3eaca12bb365ed59cc5b6da32350c345a0ca",
+    "confirmation_metrics.json": "98171fa7a14756be6050595d277770a168bd107fca2454a61bd7e826d042a1cc",
+    "development/inference.json": "8a207bdd82ba082ffc01344d9f448a254fb96c9b8da7f16369e77739f28445ca",
+    "development/predictions_low.json": "3fec1dbb98e329f620c344db8278a262f8162842ebbe187330ba9bc4bc566caf",
+    "development_metrics.json": "48b7f1142feb6b6f18c535cf828f98be9fbb20c4ee634473ee44474dfb70e74d",
+    "lineage.json": "29b443e38debfd2d3655586b5114746d44e25ccb28e5b777decc418ae45ae139",
+    "threshold.json": "c54f0e17a240ad2111693e40671237f790f75f79bf7c60908a98936c70a2822d"
+  }
+}

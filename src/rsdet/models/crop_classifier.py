@@ -45,8 +45,30 @@ def build_convnext_tiny_classifier(
                 f"{CONVNEXT_TINY_WEIGHT_SHA256}, actual={actual}"
             )
 
+    import torch
+
+    model = build_convnext_tiny_architecture(num_classes, regime=regime)
     try:
-        import torch
+        state_dict = torch.load(path, map_location="cpu", weights_only=True)
+    except TypeError:
+        state_dict = torch.load(path, map_location="cpu")
+    model.load_state_dict(state_dict, strict=True)
+    return model
+
+
+def build_convnext_tiny_architecture(num_classes: int, *, regime: str) -> Any:
+    """Build the architecture without loading an ImageNet state dictionary.
+
+    This is the deployment path for audited checkpoints that contain the full
+    model state.  Keeping it separate prevents Docker startup from loading a
+    109 MB ImageNet file only to overwrite every tensor immediately.
+    """
+
+    if num_classes <= 1:
+        raise ValueError("num_classes 必须大于 1")
+    if regime not in {"linear_probe", "fine_tune"}:
+        raise ValueError("regime 必须是 linear_probe 或 fine_tune")
+    try:
         from torch import nn
         from torchvision.models import convnext_tiny
     except ImportError as error:
@@ -56,21 +78,13 @@ def build_convnext_tiny_classifier(
         ) from error
 
     model = convnext_tiny(weights=None)
-    try:
-        state_dict = torch.load(path, map_location="cpu", weights_only=True)
-    except TypeError:
-        state_dict = torch.load(path, map_location="cpu")
-    model.load_state_dict(state_dict, strict=True)
     in_features = model.classifier[-1].in_features
     model.classifier[-1] = nn.Linear(in_features, num_classes)
-
+    trainable = regime == "fine_tune"
+    for parameter in model.parameters():
+        parameter.requires_grad = trainable
     if regime == "linear_probe":
-        for parameter in model.parameters():
-            parameter.requires_grad = False
         for parameter in model.classifier[-1].parameters():
-            parameter.requires_grad = True
-    else:
-        for parameter in model.parameters():
             parameter.requires_grad = True
     return model
 

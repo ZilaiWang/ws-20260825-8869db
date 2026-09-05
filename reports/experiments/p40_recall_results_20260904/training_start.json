@@ -1,0 +1,19 @@
+{
+  "status": "train_fold_0",
+  "time_cst": "2026-09-04 00:52:42",
+  "completed_epochs": 3,
+  "target_epochs": 40,
+  "folds_total": 3,
+  "losses": {
+    "box": 0.90504,
+    "cls": 0.50699,
+    "dfl": 0.00636
+  },
+  "gpu_util_percent": 76,
+  "memory_mib": 11308,
+  "power_w": 307.37,
+  "preflight_sha256": "5053149dbf4627a75c3e25e7567d7e629d5578b88551e870a7ca8c702efa245b",
+  "candidate_metrics_available": false,
+  "screen": "p40-weak-rfs",
+  "automatic_full_or_deployment": false
+}

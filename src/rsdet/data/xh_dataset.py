@@ -235,6 +235,11 @@ class XHDataset(Sequence[Sample]):
     def _build_index(self) -> tuple[SampleRef, ...]:
         image_by_stem: dict[str, Path] = {}
         for path in sorted(self.image_dir.iterdir(), key=lambda item: item.name):
+            # Finder may leave AppleDouble resource-fork sidecars (``._name.jpg``)
+            # when a dataset is copied from macOS to Linux.  They retain the image
+            # suffix but are metadata, not decodable images or dataset samples.
+            if path.name.startswith("._"):
+                continue
             if not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
                 continue
             if path.stem in image_by_stem:
@@ -247,6 +252,8 @@ class XHDataset(Sequence[Sample]):
         label_by_stem: dict[str, Path] = {}
         if self.label_dir.is_dir():
             for path in sorted(self.label_dir.glob("*.txt"), key=lambda item: item.name):
+                if path.name.startswith("._"):
+                    continue
                 if path.stem in label_by_stem:
                     raise ValueError(f"标签主名重复: {path.stem}")
                 label_by_stem[path.stem] = path

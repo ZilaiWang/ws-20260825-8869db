@@ -1,0 +1,27 @@
+{
+  "experiment_id": "P40-ROT90-SUPPORTED-RESCUE-V1",
+  "stage": "normal_oof_auxiliary_collection_then_frozen_crossfit_rescue",
+  "parent_contract": "configs/experiments/p40_rot90_complement_v1.json",
+  "normal_gt_sha256": "c4290b542ffdafe62d5dbcb575f0b3431d46721bbcb366f8ef05291653fcb975",
+  "images": 4481,
+  "imgsz": 1280,
+  "rotation": 90,
+  "score_floor": 0.001,
+  "batch_size": 4,
+  "weight_selection": "fixed P40 CV3 last, by heldout image fold",
+  "base_predictions": "existing P40 Normal OOF, never full weights",
+  "planned_rescue": {
+    "incumbent": "all existing frozen-threshold detections unchanged",
+    "candidates": "rot90 above same fold threshold, not overlapping incumbent same-fine at official IoU",
+    "features": ["rot90_score", "best_identity_same_fine_iou", "identity_score_at_best_iou", "log1p_width", "log1p_height"],
+    "learner": "StandardScaler + LogisticRegression C=1 max_iter=1000 seed=42, one per coarse",
+    "crossfit": "fit other two Normal folds only, apply to held-out fold and its Hard/Sentinel images",
+    "minimum_positive_and_negative": 10,
+    "on_insufficient_support": "abstain_from_rescue",
+    "probability_threshold": 0.9,
+    "no_parameter_grid": true
+  },
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "no_full_no_docker_no_submission": true
+}

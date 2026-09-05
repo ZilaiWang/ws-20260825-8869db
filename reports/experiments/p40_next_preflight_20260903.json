@@ -1,0 +1,61 @@
+{
+  "date_local": "2026-09-03",
+  "status": "code_and_cpu_preflight_pass_accuracy_not_run",
+  "experiment_id": "PAIRED-P40-BN-TRAINONLY-V1",
+  "local_contract_and_evaluation_tests": {
+    "python": "project .venv, no torch",
+    "passed": 36,
+    "failed": 0
+  },
+  "local_real_torch_cpu_tests": {
+    "torch": "2.13.0",
+    "passed": 13,
+    "failed": 0,
+    "includes_real_yolo_graph": true,
+    "official_weight_sha256": "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b"
+  },
+  "linux_combined_cpu_tests": {
+    "python": "3.10.13",
+    "torch": "2.5.1+cu121",
+    "ultralytics": "8.4.103",
+    "passed": 49,
+    "failed": 0,
+    "duration_seconds": 3.54,
+    "CUDA_VISIBLE_DEVICES": "",
+    "OMP_NUM_THREADS": 1,
+    "MKL_NUM_THREADS": 1,
+    "working_directory": "/root/autodl-tmp/paired-bn-cpu-preflight-20260903",
+    "initial_fixture_transfer_issue": "First isolated run had 46 pass / 2 fail because the historical official response fixture was not copied. Copied the existing small JSON unchanged; final run including the added recipe test passed 49/49. Running training snapshot was untouched."
+  },
+  "ruff": "all_changed_python_files_pass",
+  "metric_protocol_registry": {
+    "protocol": "platform_observed_20260831",
+    "active_entrypoints": 29,
+    "status": "pass",
+    "audit_artifact": "outputs/PAIRED-BN-LOCAL-PREFLIGHT-20260903/metric_protocol_audit.json",
+    "limitation": "Static protocol binding check; semantic behavior is covered separately by tests."
+  },
+  "preparation": {
+    "training_images": 3136,
+    "training_groups": 190,
+    "batches": 392,
+    "batch_size": 8,
+    "imgsz": 1280,
+    "plan_sha256_local_and_remote": "8a8bbc8ce39e2361caf0c783b64e9d881806cb64bfa17e21a82868f570a23abc",
+    "baseline_plan_sha256": "7e02c6b70083f8cd092c03f00bbcb5a44bee61b46244ee989ba9b2f7a363bea8",
+    "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+    "local_output": "outputs/PAIRED-BN-LOCAL-PREFLIGHT-20260903/candidate",
+    "remote_output": "/root/autodl-tmp/results/PAIRED-P40-BN-TRAINONLY-V1",
+    "status": "prepared_not_executed"
+  },
+  "limits": {
+    "calibration_on_real_3136_training_images_run": false,
+    "bn_candidate_accuracy_evaluated": false,
+    "new_full_training_run": false,
+    "docker_packaged": false,
+    "official_submission_made": false,
+    "running_reference_snapshot_modified": false,
+    "automatic_bn_queue_created": false,
+    "official_score_forecast": false
+  }
+}

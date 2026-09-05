@@ -1,4 +1,6 @@
 benchmark:
+  status: historical_reproduction_only_not_default_for_new_methods
+  superseded_by: docs/EXPERIMENT_PROTOCOL.md
   version: fixed_benchmark_v1
   official_matcher: official_eval_v1_6_same_fine_greedy
   ranking: official_ranking_v1_6_fine_macro_average

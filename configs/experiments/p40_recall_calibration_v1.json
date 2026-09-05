@@ -1,0 +1,21 @@
+{
+  "experiment_id": "P40-RECALL-CALIBRATION-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "normal_gt_sha256": "c4290b542ffdafe62d5dbcb575f0b3431d46721bbcb366f8ef05291653fcb975",
+  "normal_pred_sha256": "e96870c9e10bdd8022846b03ed40ec7700c822be81433d74c4245cad7cedfdbc",
+  "frontier_sha256": "545e02b2d252909400ff5cf8f9ea7768bb8438dd99c6e26269fc0807132c81be",
+  "group_map_sha256": "7ae203b589bf57a02bc57eac411b69c9e40040abd9201fa86231b82872040e97",
+  "targets_in_frozen_order": [0, 1, 2, 3, 24],
+  "fitting_source": "other two Normal OOF folds; not nested detector retraining",
+  "grid": [0.001, 0.996, 0.005],
+  "objective": "One lower-only coordinate pass maximizing actual coarse macro quality; no incumbent TP removed",
+  "coarse_fdr_ceiling": "max(0.15, incumbent coarse FDR on the two fitting folds)",
+  "prior_strength": 50,
+  "minimum_gt": 10,
+  "minimum_groups": 2,
+  "logit_caps": "existing MacroRisk evidence caps 0.2/0.4/0.8, anchored to incumbent, never a new coarse pooled anchor",
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "aircraft_bypass": true,
+  "no_full_no_docker_no_submission": true
+}

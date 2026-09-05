@@ -1,0 +1,22 @@
+ARG BASE_IMAGE=xh-detector:p40-full-s1280-frozen0536-final
+FROM ${BASE_IMAGE}
+
+ARG RSDET_CANDIDATE_ID
+ARG RSDET_CONFIG_SHA256
+ARG RSDET_ASSET_MANIFEST_SHA256
+
+LABEL rsdet.candidate.id="${RSDET_CANDIDATE_ID}" \
+      rsdet.config.sha256="${RSDET_CONFIG_SHA256}" \
+      rsdet.asset_manifest.sha256="${RSDET_ASSET_MANIFEST_SHA256}"
+
+WORKDIR /app
+ENV RSDET_SUBMISSION_CONFIG=/app/config.json
+
+# Do not leave the previous single-model application or its weight in the image.
+# The final candidate below is materialized as one self-contained, auditable layer.
+RUN rm -rf /app/main.py /app/config.json /app/rsdet /app/models
+COPY app /app
+COPY models /app/models
+COPY CANDIDATE_MANIFEST.json /app/CANDIDATE_MANIFEST.json
+
+ENTRYPOINT ["python", "/app/main.py"]

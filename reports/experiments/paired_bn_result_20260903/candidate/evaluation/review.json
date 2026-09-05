@@ -1,0 +1,122 @@
+{
+  "version": "paired_trend_review_v1",
+  "role": "candidate",
+  "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+  "threshold": 0.506,
+  "development": {
+    "protocol": "paired_trend_review_v1",
+    "metric_protocol": "platform_observed_20260831",
+    "gt_sha256": "a5ed05fed6f0eaed3ef276b12937f40afb0b9ace9f8d8f9d05aabb243e7f3159",
+    "baseline": {
+      "quality_contribution_out_of_600_over_7": 58.56122102560443,
+      "total_score": null,
+      "latency_seconds": null,
+      "per_coarse": {
+        "ship": {
+          "recall": 0.8515799776286354,
+          "fdr": 0.046259097525473074,
+          "recall_points": 60.4213273676361,
+          "fdr_points": 90.74818049490538
+        },
+        "aircraft": {
+          "recall": 0.8427799324384104,
+          "fdr": 0.06542125015952079,
+          "recall_points": 59.49034817212309,
+          "fdr_points": 86.91574996809584
+        },
+        "vehicle": {
+          "recall": 0.31666666666666665,
+          "fdr": 0.05,
+          "recall_points": 22.352941176470587,
+          "fdr_points": 90.0
+        }
+      },
+      "gate_recall": 0.6703421922445708,
+      "gate_fdr": 0.05389344922833128
+    },
+    "candidate": {
+      "quality_contribution_out_of_600_over_7": 55.599537778298114,
+      "total_score": null,
+      "latency_seconds": null,
+      "per_coarse": {
+        "ship": {
+          "recall": 0.8336129753914988,
+          "fdr": 0.06053030303030303,
+          "recall_points": 58.84326885116462,
+          "fdr_points": 87.89393939393939
+        },
+        "aircraft": {
+          "recall": 0.8367706412675234,
+          "fdr": 0.07776987565535749,
+          "recall_points": 59.06616291300166,
+          "fdr_points": 84.4460248689285
+        },
+        "vehicle": {
+          "recall": 0.2833333333333333,
+          "fdr": 0.10526315789473684,
+          "recall_points": 20.0,
+          "fdr_points": 78.94736842105263
+        }
+      },
+      "gate_recall": 0.6512389833307851,
+      "gate_fdr": 0.08118777886013245
+    },
+    "delta_quality_contribution": -2.9616832473063184,
+    "delta_total_score": null,
+    "direction": "negative",
+    "deadband_score_points": 0.5,
+    "deadband_is_not_a_confidence_interval": true,
+    "per_coarse_delta": {
+      "ship": {
+        "recall_pp": -1.7967002237136542,
+        "fdr_pp": 1.4271205504829958,
+        "score_contribution": -0.6331856596339246
+      },
+      "aircraft": {
+        "recall_pp": -0.6009291170886999,
+        "fdr_pp": 1.2348625495836707,
+        "score_contribution": -0.41341576546982345
+      },
+      "vehicle": {
+        "recall_pp": -3.3333333333333326,
+        "fdr_pp": 5.526315789473683,
+        "score_contribution": -1.9150818222025652
+      }
+    },
+    "warnings": [
+      "Timing missing: quality-only trend, not a total-score comparison."
+    ],
+    "training_and_timing_comparability_verified": false,
+    "automatic_full_training_or_submission_admission": false,
+    "official_score_forecast": false
+  },
+  "confirmation": null,
+  "confirmation_evaluated": false,
+  "lineage_verified_against_recorded_sources": true,
+  "post_training_transform": "PAIRED-P40-BN-TRAINONLY-V1",
+  "recipe_matches_baseline": true,
+  "next_action": "stop_or_analyze",
+  "quality_only_no_measured_100mp_latency": true,
+  "environment": {
+    "python": "3.10.13",
+    "torch": "2.5.1+cu121",
+    "torchvision": "0.20.1+cu121",
+    "ultralytics": "8.4.103",
+    "albumentations": "2.0.8",
+    "numpy": "1.26.4",
+    "Pillow": "10.4.0"
+  },
+  "environment_matches_baseline": true,
+  "official_score_forecast": false,
+  "automatic_full_or_submission_admission": false,
+  "small_support_warning": "HM and TU-160 have very small held-out support; inspect fine TP/FP/FN, not just the sign",
+  "deployment_regression": "not_run_by_quality_review; use run_paired_deployment_regression.py",
+  "artifacts": {
+    "code.json": "4ab4e93a639eae77bc76f089a981f599b504d116a8b2a86cae026e04a3dcad8a",
+    "development/inference.json": "e94402c85cc368609853a23f01210141b04f691b0f33affcce583b21b33f2831",
+    "development/predictions_low.json": "55a15f2643a5e02b92453777b24cf5f974080f992c7df7e5e3e5e1e392d955d8",
+    "development_metrics.json": "11a0b40a4ff1557ec062dae6bae0a8ce243c4cfa48e7be698642165be7c1b1d8",
+    "lineage.json": "9e45c982de3d71938642e3f48859acb204d802d617256eca28bdeec4fad9e6f5",
+    "threshold.json": "605fa992841f5eb48505c2accf8ddc01bd85a28f6fbef9932719305918b5c164"
+  }
+}

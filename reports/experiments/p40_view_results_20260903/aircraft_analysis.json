@@ -1,0 +1,4124 @@
+{
+  "status": "complete",
+  "metric_protocol": "platform_observed_20260831",
+  "cases": {
+    "d4_hard": {
+      "delta_quality_vs_nms_only": 2.764406348210663,
+      "delta_quality_vs_original": 2.7903238269583284,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.4256864863840153,
+            "macro_fdr": 0.07060338928470797
+          },
+          "aircraft": {
+            "macro_recall": 0.8016522334552472,
+            "macro_fdr": 0.15185797798537343
+          },
+          "vehicle": {
+            "macro_recall": 0.22826086956521738,
+            "macro_fdr": 0.2631578947368421
+          }
+        },
+        "gate_recall": 0.4851998631348266,
+        "gate_fdr": 0.16187308733564118,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.4256864863840153,
+            "macro_fdr": 0.07060338928470797
+          },
+          "aircraft": {
+            "macro_recall": 0.8508721761368072,
+            "macro_fdr": 0.07333057491777362
+          },
+          "vehicle": {
+            "macro_recall": 0.22826086956521738,
+            "macro_fdr": 0.2631578947368421
+          }
+        },
+        "gate_recall": 0.5016065106953466,
+        "gate_fdr": 0.13569728631310787,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 844,
+        "fp": 124,
+        "fn": 176
+      },
+      "aircraft_counts_after": {
+        "tp": 900,
+        "fp": 59,
+        "fn": 120
+      },
+      "aircraft_proposals": 969,
+      "changed_fine_labels": 69,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 70,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 59,
+            "fp": 7,
+            "fn": 11
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 61,
+            "fp": 6,
+            "fn": 9
+          },
+          "delta_tp": 2,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 71,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 5,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 4,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 36,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 34,
+            "fp": 7,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 34,
+            "fp": 4,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 53,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 0,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 0,
+            "fn": 3
+          },
+          "delta_tp": 2,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 86,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 60,
+            "fp": 28,
+            "fn": 26
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 74,
+            "fp": 14,
+            "fn": 12
+          },
+          "delta_tp": 14,
+          "delta_fp": -14
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 22,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 6,
+            "fp": 0,
+            "fn": 16
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 7,
+            "fp": 0,
+            "fn": 15
+          },
+          "delta_tp": 1,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 26,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 2,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 2,
+            "fn": 5
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 50,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 43,
+            "fp": 1,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 44,
+            "fp": 0,
+            "fn": 6
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 60,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 2,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 2,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 61,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 1,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 0,
+            "fn": 4
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 11,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 14,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 2,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": -12
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 16,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 8,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 7,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 71,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 61,
+            "fp": 9,
+            "fn": 10
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 2,
+            "fn": 9
+          },
+          "delta_tp": 1,
+          "delta_fp": -7
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 62,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 2,
+            "fn": 12
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 12,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 46,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 10,
+            "fp": 14,
+            "fn": 36
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 28,
+            "fp": 0,
+            "fn": 18
+          },
+          "delta_tp": 18,
+          "delta_fp": -14
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 104,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 100,
+            "fp": 5,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 100,
+            "fp": 4,
+            "fn": 4
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 60,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 55,
+            "fp": 0,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 55,
+            "fp": 0,
+            "fn": 5
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 14,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 11,
+            "fp": 1,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 11,
+            "fp": 2,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": 1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 55,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 41,
+            "fp": 12,
+            "fn": 14
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 5,
+            "fn": 9
+          },
+          "delta_tp": 5,
+          "delta_fp": -7
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 46,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 38,
+            "fp": 6,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 38,
+            "fp": 4,
+            "fn": 8
+          },
+          "delta_tp": 0,
+          "delta_fp": -2
+        }
+      ],
+      "fine_with_tp_loss": [],
+      "fine_with_fp_increase": [
+        "A18_KC-10"
+      ],
+      "load_decode_classify_seconds_total": 19.255904858000576,
+      "review": {
+        "stage": "hard",
+        "baseline_quality_contribution": 44.78844153594643,
+        "candidate_quality_contribution": 47.552847884157096,
+        "delta_quality": 2.764406348210663,
+        "minimum_exclusive": 0.5,
+        "direction_pass": true,
+        "next_action": "evaluate_frozen_sentinel",
+        "formal_admission": false,
+        "quality_excludes_latency": true,
+        "not_an_official_score_prediction": true
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "d4_sentinel": {
+      "delta_quality_vs_nms_only": 2.384981921140536,
+      "delta_quality_vs_original": 2.384981921140536,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.33871200221502207,
+            "macro_fdr": 0.07450468949442256
+          },
+          "aircraft": {
+            "macro_recall": 0.8485491640049977,
+            "macro_fdr": 0.1319306026201062
+          },
+          "vehicle": {
+            "macro_recall": 0.37037037037037035,
+            "macro_fdr": 0.2
+          }
+        },
+        "gate_recall": 0.5192105121967967,
+        "gate_fdr": 0.13547843070484292,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.33871200221502207,
+            "macro_fdr": 0.07450468949442256
+          },
+          "aircraft": {
+            "macro_recall": 0.8735886899574382,
+            "macro_fdr": 0.08041988175304716
+          },
+          "vehicle": {
+            "macro_recall": 0.37037037037037035,
+            "macro_fdr": 0.2
+          }
+        },
+        "gate_recall": 0.5275570208476102,
+        "gate_fdr": 0.11830819041582324,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 763,
+        "fp": 91,
+        "fn": 111
+      },
+      "aircraft_counts_after": {
+        "tp": 784,
+        "fp": 57,
+        "fn": 90
+      },
+      "aircraft_proposals": 854,
+      "changed_fine_labels": 42,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 43,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 32,
+            "fp": 2,
+            "fn": 11
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 35,
+            "fp": 1,
+            "fn": 8
+          },
+          "delta_tp": 3,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 31,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 30,
+            "fp": 1,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 31,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 1,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 19,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 1,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 0,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 22,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 1
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 48,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 40,
+            "fp": 6,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 1,
+            "fn": 2
+          },
+          "delta_tp": 6,
+          "delta_fp": -5
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 32,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 5,
+            "fp": 3,
+            "fn": 27
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 0,
+            "fn": 24
+          },
+          "delta_tp": 3,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 16,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 15,
+            "fp": 6,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 15,
+            "fp": 5,
+            "fn": 1
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 51,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 49,
+            "fp": 1,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 0,
+            "fn": 1
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 53,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 2,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 1,
+            "fn": 7
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 68,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 66,
+            "fp": 0,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 66,
+            "fp": 0,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 13,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 5,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 9,
+            "fp": 3,
+            "fn": 4
+          },
+          "delta_tp": 1,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 29,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 25,
+            "fp": 17,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 25,
+            "fp": 15,
+            "fn": 4
+          },
+          "delta_tp": 0,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 74,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 15,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 71,
+            "fp": 7,
+            "fn": 3
+          },
+          "delta_tp": 2,
+          "delta_fp": -8
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 51,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 7,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 5,
+            "fn": 1
+          },
+          "delta_tp": 2,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 54,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 42,
+            "fp": 4,
+            "fn": 12
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 42,
+            "fp": 2,
+            "fn": 12
+          },
+          "delta_tp": 0,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 116,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 112,
+            "fp": 5,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 114,
+            "fp": 4,
+            "fn": 2
+          },
+          "delta_tp": 2,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 64,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 56,
+            "fp": 0,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 56,
+            "fp": 0,
+            "fn": 8
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 21,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": 1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 39,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 39,
+            "fp": 10,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 39,
+            "fp": 4,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": -6
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 30,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 23,
+            "fp": 6,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 23,
+            "fp": 7,
+            "fn": 7
+          },
+          "delta_tp": 0,
+          "delta_fp": 1
+        }
+      ],
+      "fine_with_tp_loss": [],
+      "fine_with_fp_increase": [
+        "A18_KC-10",
+        "A20_SU-24"
+      ],
+      "load_decode_classify_seconds_total": 17.940299387089908,
+      "review": {
+        "stage": "sentinel",
+        "baseline_quality_contribution": 46.951914711924964,
+        "candidate_quality_contribution": 49.33689663306551,
+        "delta_quality": 2.384981921140543,
+        "minimum_exclusive": 0.0,
+        "direction_pass": true,
+        "next_action": "review_deployment_cost_and_risk",
+        "formal_admission": false,
+        "quality_excludes_latency": true,
+        "not_an_official_score_prediction": true
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "d4_normal_diagnostic": {
+      "delta_quality_vs_nms_only": 2.048809029247778,
+      "delta_quality_vs_original": 2.128498108654867,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.3763923580720443,
+            "macro_fdr": 0.15218633385112573
+          },
+          "aircraft": {
+            "macro_recall": 0.8449933195241808,
+            "macro_fdr": 0.08059688115743183
+          },
+          "vehicle": {
+            "macro_recall": 0.3308457711442786,
+            "macro_fdr": 0.23121387283236994
+          }
+        },
+        "gate_recall": 0.5174104829135012,
+        "gate_fdr": 0.15466569594697585,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.3763923580720443,
+            "macro_fdr": 0.15218633385112573
+          },
+          "aircraft": {
+            "macro_recall": 0.8726842566933695,
+            "macro_fdr": 0.040901304422266846
+          },
+          "vehicle": {
+            "macro_recall": 0.3308457711442786,
+            "macro_fdr": 0.23121387283236994
+          }
+        },
+        "gate_recall": 0.5266407953032308,
+        "gate_fdr": 0.14143383703525417,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 15656,
+        "fp": 968,
+        "fn": 2193
+      },
+      "aircraft_counts_after": {
+        "tp": 16073,
+        "fp": 548,
+        "fn": 1776
+      },
+      "aircraft_proposals": 16676,
+      "changed_fine_labels": 531,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 1317,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 1096,
+            "fp": 99,
+            "fn": 221
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 1149,
+            "fp": 70,
+            "fn": 168
+          },
+          "delta_tp": 53,
+          "delta_fp": -29
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 1297,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 1269,
+            "fp": 24,
+            "fn": 28
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 1277,
+            "fp": 22,
+            "fn": 20
+          },
+          "delta_tp": 8,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 998,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 976,
+            "fp": 30,
+            "fn": 22
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 979,
+            "fp": 11,
+            "fn": 19
+          },
+          "delta_tp": 3,
+          "delta_fp": -19
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 500,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 434,
+            "fp": 3,
+            "fn": 66
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 455,
+            "fp": 1,
+            "fn": 45
+          },
+          "delta_tp": 21,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 1017,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 880,
+            "fp": 50,
+            "fn": 137
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 901,
+            "fp": 29,
+            "fn": 116
+          },
+          "delta_tp": 21,
+          "delta_fp": -21
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 361,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 58,
+            "fp": 29,
+            "fn": 303
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 83,
+            "fp": 9,
+            "fn": 278
+          },
+          "delta_tp": 25,
+          "delta_fp": -20
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 547,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 487,
+            "fp": 51,
+            "fn": 60
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 490,
+            "fp": 36,
+            "fn": 57
+          },
+          "delta_tp": 3,
+          "delta_fp": -15
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 750,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 718,
+            "fp": 5,
+            "fn": 32
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 723,
+            "fp": 4,
+            "fn": 27
+          },
+          "delta_tp": 5,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 895,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 862,
+            "fp": 24,
+            "fn": 33
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 863,
+            "fp": 16,
+            "fn": 32
+          },
+          "delta_tp": 1,
+          "delta_fp": -8
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 762,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 720,
+            "fp": 2,
+            "fn": 42
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 735,
+            "fp": 2,
+            "fn": 27
+          },
+          "delta_tp": 15,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 432,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 344,
+            "fp": 147,
+            "fn": 88
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 366,
+            "fp": 55,
+            "fn": 66
+          },
+          "delta_tp": 22,
+          "delta_fp": -92
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 583,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 451,
+            "fp": 80,
+            "fn": 132
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 479,
+            "fp": 65,
+            "fn": 104
+          },
+          "delta_tp": 28,
+          "delta_fp": -15
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 1265,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 1113,
+            "fp": 72,
+            "fn": 152
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 1143,
+            "fp": 38,
+            "fn": 122
+          },
+          "delta_tp": 30,
+          "delta_fp": -34
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 1424,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 1217,
+            "fp": 57,
+            "fn": 207
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 1306,
+            "fp": 26,
+            "fn": 118
+          },
+          "delta_tp": 89,
+          "delta_fp": -31
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 493,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 340,
+            "fp": 67,
+            "fn": 153
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 387,
+            "fp": 21,
+            "fn": 106
+          },
+          "delta_tp": 47,
+          "delta_fp": -46
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 2147,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 2022,
+            "fp": 46,
+            "fn": 125
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 2028,
+            "fp": 28,
+            "fn": 119
+          },
+          "delta_tp": 6,
+          "delta_fp": -18
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 1114,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 955,
+            "fp": 8,
+            "fn": 159
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 957,
+            "fp": 7,
+            "fn": 157
+          },
+          "delta_tp": 2,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 262,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 241,
+            "fp": 3,
+            "fn": 21
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 246,
+            "fp": 2,
+            "fn": 16
+          },
+          "delta_tp": 5,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 933,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 814,
+            "fp": 139,
+            "fn": 119
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 847,
+            "fp": 80,
+            "fn": 86
+          },
+          "delta_tp": 33,
+          "delta_fp": -59
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 752,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 659,
+            "fp": 32,
+            "fn": 93
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 659,
+            "fp": 26,
+            "fn": 93
+          },
+          "delta_tp": 0,
+          "delta_fp": -6
+        }
+      ],
+      "fine_with_tp_loss": [],
+      "fine_with_fp_increase": [],
+      "load_decode_classify_seconds_total": 219.43088341201656,
+      "review": {
+        "next_action": "record_normal_diagnostic_not_an_additional_gate",
+        "formal_admission": false
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "identity_hard": {
+      "delta_quality_vs_nms_only": 2.640412749093187,
+      "delta_quality_vs_original": 2.6663302278408523,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.4256864863840153,
+            "macro_fdr": 0.07060338928470797
+          },
+          "aircraft": {
+            "macro_recall": 0.8016522334552472,
+            "macro_fdr": 0.15185797798537343
+          },
+          "vehicle": {
+            "macro_recall": 0.22826086956521738,
+            "macro_fdr": 0.2631578947368421
+          }
+        },
+        "gate_recall": 0.4851998631348266,
+        "gate_fdr": 0.16187308733564118,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.4256864863840153,
+            "macro_fdr": 0.07060338928470797
+          },
+          "aircraft": {
+            "macro_recall": 0.8416188388291328,
+            "macro_fdr": 0.07354939248730674
+          },
+          "vehicle": {
+            "macro_recall": 0.22826086956521738,
+            "macro_fdr": 0.2631578947368421
+          }
+        },
+        "gate_recall": 0.4985220649261218,
+        "gate_fdr": 0.13577022550295226,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 844,
+        "fp": 124,
+        "fn": 176
+      },
+      "aircraft_counts_after": {
+        "tp": 897,
+        "fp": 57,
+        "fn": 123
+      },
+      "aircraft_proposals": 969,
+      "changed_fine_labels": 82,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 70,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 59,
+            "fp": 7,
+            "fn": 11
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 7,
+            "fn": 8
+          },
+          "delta_tp": 3,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 71,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 5,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 70,
+            "fp": 3,
+            "fn": 1
+          },
+          "delta_tp": 1,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 36,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 34,
+            "fp": 7,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 34,
+            "fp": 1,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": -6
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 53,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 0,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 0,
+            "fn": 3
+          },
+          "delta_tp": 2,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 86,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 60,
+            "fp": 28,
+            "fn": 26
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 73,
+            "fp": 16,
+            "fn": 13
+          },
+          "delta_tp": 13,
+          "delta_fp": -12
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 22,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 6,
+            "fp": 0,
+            "fn": 16
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 0,
+            "fn": 14
+          },
+          "delta_tp": 2,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 26,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 2,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 2,
+            "fn": 5
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 50,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 43,
+            "fp": 1,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 44,
+            "fp": 1,
+            "fn": 6
+          },
+          "delta_tp": 1,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 60,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 2,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 1,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 61,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 1,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 0,
+            "fn": 4
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 11,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 14,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 7,
+            "fp": 2,
+            "fn": 4
+          },
+          "delta_tp": -1,
+          "delta_fp": -12
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 16,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 8,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 14,
+            "fp": 6,
+            "fn": 2
+          },
+          "delta_tp": -2,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 71,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 61,
+            "fp": 9,
+            "fn": 10
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 1,
+            "fn": 9
+          },
+          "delta_tp": 1,
+          "delta_fp": -8
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 62,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 2,
+            "fn": 12
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 2,
+            "fn": 0
+          },
+          "delta_tp": 12,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 46,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 10,
+            "fp": 14,
+            "fn": 36
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 27,
+            "fp": 0,
+            "fn": 19
+          },
+          "delta_tp": 17,
+          "delta_fp": -14
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 104,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 100,
+            "fp": 5,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 99,
+            "fp": 4,
+            "fn": 5
+          },
+          "delta_tp": -1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 60,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 55,
+            "fp": 0,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 55,
+            "fp": 0,
+            "fn": 5
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 14,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 11,
+            "fp": 1,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 11,
+            "fp": 3,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": 2
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 55,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 41,
+            "fp": 12,
+            "fn": 14
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 5,
+            "fn": 9
+          },
+          "delta_tp": 5,
+          "delta_fp": -7
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 46,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 38,
+            "fp": 6,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 38,
+            "fp": 3,
+            "fn": 8
+          },
+          "delta_tp": 0,
+          "delta_fp": -3
+        }
+      ],
+      "fine_with_tp_loss": [
+        "A11_E-8",
+        "A12_TU-22",
+        "A16_FA-18"
+      ],
+      "fine_with_fp_increase": [
+        "A18_KC-10"
+      ],
+      "load_decode_classify_seconds_total": 12.265759609872475,
+      "review": {
+        "stage": "hard",
+        "baseline_quality_contribution": 44.78844153594643,
+        "candidate_quality_contribution": 47.42885428503962,
+        "delta_quality": 2.640412749093187,
+        "minimum_exclusive": 0.5,
+        "direction_pass": true,
+        "next_action": "evaluate_frozen_sentinel",
+        "formal_admission": false,
+        "quality_excludes_latency": true,
+        "not_an_official_score_prediction": true
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "identity_sentinel": {
+      "delta_quality_vs_nms_only": 2.6447580475344594,
+      "delta_quality_vs_original": 2.6447580475344594,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.33871200221502207,
+            "macro_fdr": 0.07450468949442256
+          },
+          "aircraft": {
+            "macro_recall": 0.8485491640049977,
+            "macro_fdr": 0.1319306026201062
+          },
+          "vehicle": {
+            "macro_recall": 0.37037037037037035,
+            "macro_fdr": 0.2
+          }
+        },
+        "gate_recall": 0.5192105121967967,
+        "gate_fdr": 0.13547843070484292,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.33871200221502207,
+            "macro_fdr": 0.07450468949442256
+          },
+          "aircraft": {
+            "macro_recall": 0.8780726044090251,
+            "macro_fdr": 0.07730626993137543
+          },
+          "vehicle": {
+            "macro_recall": 0.37037037037037035,
+            "macro_fdr": 0.2
+          }
+        },
+        "gate_recall": 0.5290516589981392,
+        "gate_fdr": 0.11727031980859932,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 763,
+        "fp": 91,
+        "fn": 111
+      },
+      "aircraft_counts_after": {
+        "tp": 785,
+        "fp": 54,
+        "fn": 89
+      },
+      "aircraft_proposals": 854,
+      "changed_fine_labels": 52,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 43,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 32,
+            "fp": 2,
+            "fn": 11
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 35,
+            "fp": 1,
+            "fn": 8
+          },
+          "delta_tp": 3,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 31,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 30,
+            "fp": 1,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 31,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 1,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 19,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 1,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 0,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 22,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 1
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 48,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 40,
+            "fp": 6,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 2,
+            "fn": 0
+          },
+          "delta_tp": 8,
+          "delta_fp": -4
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 32,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 5,
+            "fp": 3,
+            "fn": 27
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 7,
+            "fp": 0,
+            "fn": 25
+          },
+          "delta_tp": 2,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 16,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 15,
+            "fp": 6,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 15,
+            "fp": 5,
+            "fn": 1
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 51,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 49,
+            "fp": 1,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 0,
+            "fn": 1
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 53,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 2,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 1,
+            "fn": 7
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 68,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 66,
+            "fp": 0,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 66,
+            "fp": 0,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 13,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 5,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 10,
+            "fp": 4,
+            "fn": 3
+          },
+          "delta_tp": 2,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 29,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 25,
+            "fp": 17,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 26,
+            "fp": 16,
+            "fn": 3
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 74,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 15,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 72,
+            "fp": 6,
+            "fn": 2
+          },
+          "delta_tp": 3,
+          "delta_fp": -9
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 51,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 7,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 3,
+            "fn": 1
+          },
+          "delta_tp": 2,
+          "delta_fp": -4
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 54,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 42,
+            "fp": 4,
+            "fn": 12
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 40,
+            "fp": 1,
+            "fn": 14
+          },
+          "delta_tp": -2,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 116,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 112,
+            "fp": 5,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 113,
+            "fp": 4,
+            "fn": 3
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 64,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 56,
+            "fp": 0,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 56,
+            "fp": 0,
+            "fn": 8
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 21,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": 1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 39,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 39,
+            "fp": 10,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 39,
+            "fp": 4,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": -6
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 30,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 23,
+            "fp": 6,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 23,
+            "fp": 5,
+            "fn": 7
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        }
+      ],
+      "fine_with_tp_loss": [
+        "A15_F-22"
+      ],
+      "fine_with_fp_increase": [
+        "A18_KC-10"
+      ],
+      "load_decode_classify_seconds_total": 12.072242035064846,
+      "review": {
+        "stage": "sentinel",
+        "baseline_quality_contribution": 46.951914711924964,
+        "candidate_quality_contribution": 49.59667275945943,
+        "delta_quality": 2.6447580475344665,
+        "minimum_exclusive": 0.0,
+        "direction_pass": true,
+        "next_action": "review_deployment_cost_and_risk",
+        "formal_admission": false,
+        "quality_excludes_latency": true,
+        "not_an_official_score_prediction": true
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "consistency_hard": {
+      "delta_quality_vs_nms_only": 3.3410931478543517,
+      "delta_quality_vs_original": 3.367010626602017,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.4256864863840153,
+            "macro_fdr": 0.07060338928470797
+          },
+          "aircraft": {
+            "macro_recall": 0.8016522334552472,
+            "macro_fdr": 0.15185797798537343
+          },
+          "vehicle": {
+            "macro_recall": 0.22826086956521738,
+            "macro_fdr": 0.2631578947368421
+          }
+        },
+        "gate_recall": 0.4851998631348266,
+        "gate_fdr": 0.16187308733564118,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.4256864863840153,
+            "macro_fdr": 0.07060338928470797
+          },
+          "aircraft": {
+            "macro_recall": 0.8608524132909574,
+            "macro_fdr": 0.06645351980244471
+          },
+          "vehicle": {
+            "macro_recall": 0.22826086956521738,
+            "macro_fdr": 0.2631578947368421
+          }
+        },
+        "gate_recall": 0.5049332564133967,
+        "gate_fdr": 0.13340493460799827,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 844,
+        "fp": 124,
+        "fn": 176
+      },
+      "aircraft_counts_after": {
+        "tp": 907,
+        "fp": 51,
+        "fn": 113
+      },
+      "aircraft_proposals": 969,
+      "changed_fine_labels": 76,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 70,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 59,
+            "fp": 7,
+            "fn": 11
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 61,
+            "fp": 5,
+            "fn": 9
+          },
+          "delta_tp": 2,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 71,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 5,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 4,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 36,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 34,
+            "fp": 7,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 34,
+            "fp": 3,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": -4
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 53,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 0,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 0,
+            "fn": 3
+          },
+          "delta_tp": 2,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 86,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 60,
+            "fp": 28,
+            "fn": 26
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 74,
+            "fp": 9,
+            "fn": 12
+          },
+          "delta_tp": 14,
+          "delta_fp": -19
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 22,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 6,
+            "fp": 0,
+            "fn": 16
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 9,
+            "fp": 0,
+            "fn": 13
+          },
+          "delta_tp": 3,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 26,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 2,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 2,
+            "fn": 5
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 50,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 43,
+            "fp": 1,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 44,
+            "fp": 0,
+            "fn": 6
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 60,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 2,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 2,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 61,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 1,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 57,
+            "fp": 0,
+            "fn": 4
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 11,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 14,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 2,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": -12
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 16,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 8,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 5,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 71,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 61,
+            "fp": 9,
+            "fn": 10
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 2,
+            "fn": 9
+          },
+          "delta_tp": 1,
+          "delta_fp": -7
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 62,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 2,
+            "fn": 12
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 62,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 12,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 46,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 10,
+            "fp": 14,
+            "fn": 36
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 33,
+            "fp": 0,
+            "fn": 13
+          },
+          "delta_tp": 23,
+          "delta_fp": -14
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 104,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 100,
+            "fp": 5,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 100,
+            "fp": 4,
+            "fn": 4
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 60,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 55,
+            "fp": 0,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 55,
+            "fp": 0,
+            "fn": 5
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 14,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 11,
+            "fp": 1,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 11,
+            "fp": 2,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": 1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 55,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 41,
+            "fp": 12,
+            "fn": 14
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 6,
+            "fn": 9
+          },
+          "delta_tp": 5,
+          "delta_fp": -6
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 46,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 38,
+            "fp": 6,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 38,
+            "fp": 4,
+            "fn": 8
+          },
+          "delta_tp": 0,
+          "delta_fp": -2
+        }
+      ],
+      "fine_with_tp_loss": [],
+      "fine_with_fp_increase": [
+        "A18_KC-10"
+      ],
+      "load_decode_classify_seconds_total": 18.70733274286613,
+      "review": {
+        "stage": "hard",
+        "baseline_quality_contribution": 47.552847884157096,
+        "candidate_quality_contribution": 48.129534683800784,
+        "delta_quality": 0.5766867996436886,
+        "minimum_exclusive": 0.5,
+        "direction_pass": true,
+        "next_action": "evaluate_frozen_sentinel",
+        "formal_admission": false,
+        "quality_excludes_latency": true,
+        "not_an_official_score_prediction": true
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "consistency_sentinel": {
+      "delta_quality_vs_nms_only": 2.740076938219133,
+      "delta_quality_vs_original": 2.740076938219133,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.33871200221502207,
+            "macro_fdr": 0.07450468949442256
+          },
+          "aircraft": {
+            "macro_recall": 0.8485491640049977,
+            "macro_fdr": 0.1319306026201062
+          },
+          "vehicle": {
+            "macro_recall": 0.37037037037037035,
+            "macro_fdr": 0.2
+          }
+        },
+        "gate_recall": 0.5192105121967967,
+        "gate_fdr": 0.13547843070484292,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.33871200221502207,
+            "macro_fdr": 0.07450468949442256
+          },
+          "aircraft": {
+            "macro_recall": 0.8779169945551392,
+            "macro_fdr": 0.07376262895223064
+          },
+          "vehicle": {
+            "macro_recall": 0.37037037037037035,
+            "macro_fdr": 0.2
+          }
+        },
+        "gate_recall": 0.5289997890468439,
+        "gate_fdr": 0.1160891061488844,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 763,
+        "fp": 91,
+        "fn": 111
+      },
+      "aircraft_counts_after": {
+        "tp": 787,
+        "fp": 50,
+        "fn": 87
+      },
+      "aircraft_proposals": 854,
+      "changed_fine_labels": 49,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 43,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 32,
+            "fp": 2,
+            "fn": 11
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 35,
+            "fp": 0,
+            "fn": 8
+          },
+          "delta_tp": 3,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 31,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 30,
+            "fp": 1,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 31,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 1,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 19,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 1,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 16,
+            "fp": 0,
+            "fn": 3
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 22,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 1
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 48,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 40,
+            "fp": 6,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 47,
+            "fp": 2,
+            "fn": 1
+          },
+          "delta_tp": 7,
+          "delta_fp": -4
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 32,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 5,
+            "fp": 3,
+            "fn": 27
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 9,
+            "fp": 0,
+            "fn": 23
+          },
+          "delta_tp": 4,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 16,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 15,
+            "fp": 6,
+            "fn": 1
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 15,
+            "fp": 5,
+            "fn": 1
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 51,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 49,
+            "fp": 1,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 0,
+            "fn": 1
+          },
+          "delta_tp": 1,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 53,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 2,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 46,
+            "fp": 1,
+            "fn": 7
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 68,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 66,
+            "fp": 0,
+            "fn": 2
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 66,
+            "fp": 0,
+            "fn": 2
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 13,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 8,
+            "fp": 5,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 9,
+            "fp": 3,
+            "fn": 4
+          },
+          "delta_tp": 1,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 29,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 25,
+            "fp": 17,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 26,
+            "fp": 13,
+            "fn": 3
+          },
+          "delta_tp": 1,
+          "delta_fp": -4
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 74,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 69,
+            "fp": 15,
+            "fn": 5
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 71,
+            "fp": 6,
+            "fn": 3
+          },
+          "delta_tp": 2,
+          "delta_fp": -9
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 51,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 48,
+            "fp": 7,
+            "fn": 3
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 50,
+            "fp": 5,
+            "fn": 1
+          },
+          "delta_tp": 2,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 54,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 42,
+            "fp": 4,
+            "fn": 12
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 42,
+            "fp": 2,
+            "fn": 12
+          },
+          "delta_tp": 0,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 116,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 112,
+            "fp": 5,
+            "fn": 4
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 114,
+            "fp": 2,
+            "fn": 2
+          },
+          "delta_tp": 2,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 64,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 56,
+            "fp": 0,
+            "fn": 8
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 56,
+            "fp": 0,
+            "fn": 8
+          },
+          "delta_tp": 0,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 21,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 0,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 21,
+            "fp": 1,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": 1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 39,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 39,
+            "fp": 10,
+            "fn": 0
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 39,
+            "fp": 4,
+            "fn": 0
+          },
+          "delta_tp": 0,
+          "delta_fp": -6
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 30,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 23,
+            "fp": 6,
+            "fn": 7
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 23,
+            "fp": 5,
+            "fn": 7
+          },
+          "delta_tp": 0,
+          "delta_fp": -1
+        }
+      ],
+      "fine_with_tp_loss": [],
+      "fine_with_fp_increase": [
+        "A18_KC-10"
+      ],
+      "load_decode_classify_seconds_total": 17.594257971970364,
+      "review": {
+        "stage": "sentinel",
+        "baseline_quality_contribution": 49.33689663306551,
+        "candidate_quality_contribution": 49.6919916501441,
+        "delta_quality": 0.3550950170785896,
+        "minimum_exclusive": 0.0,
+        "direction_pass": true,
+        "next_action": "review_deployment_cost_and_risk",
+        "formal_admission": false,
+        "quality_excludes_latency": true,
+        "not_an_official_score_prediction": true
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    },
+    "consistency_normal_diagnostic": {
+      "delta_quality_vs_nms_only": 2.1740852919801057,
+      "delta_quality_vs_original": 2.2537743713871947,
+      "before": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.3763923580720443,
+            "macro_fdr": 0.15218633385112573
+          },
+          "aircraft": {
+            "macro_recall": 0.8449933195241808,
+            "macro_fdr": 0.08059688115743183
+          },
+          "vehicle": {
+            "macro_recall": 0.3308457711442786,
+            "macro_fdr": 0.23121387283236994
+          }
+        },
+        "gate_recall": 0.5174104829135012,
+        "gate_fdr": 0.15466569594697585,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "after": {
+        "metric_protocol": "platform_observed_20260831",
+        "per_coarse": {
+          "ship": {
+            "macro_recall": 0.3763923580720443,
+            "macro_fdr": 0.15218633385112573
+          },
+          "aircraft": {
+            "macro_recall": 0.8739065363632139,
+            "macro_fdr": 0.03814634145309493
+          },
+          "vehicle": {
+            "macro_recall": 0.3308457711442786,
+            "macro_fdr": 0.23121387283236994
+          }
+        },
+        "gate_recall": 0.5270482218598457,
+        "gate_fdr": 0.1405155160455302,
+        "recall_pass": false,
+        "fdr_pass": true,
+        "latency_pass": null,
+        "absolute_score": null,
+        "score_payload": null,
+        "ranking_overall_is_not_platform_gate": true,
+        "pooled_counts_are_diagnostic_only": true
+      },
+      "aircraft_counts_before": {
+        "tp": 15656,
+        "fp": 968,
+        "fn": 2193
+      },
+      "aircraft_counts_after": {
+        "tp": 16090,
+        "fp": 530,
+        "fn": 1759
+      },
+      "aircraft_proposals": 16676,
+      "changed_fine_labels": 569,
+      "fine": [
+        {
+          "category_id": 4,
+          "name": "A1_SU-35",
+          "gt": 1317,
+          "before": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 1096,
+            "fp": 99,
+            "fn": 221
+          },
+          "after": {
+            "category_id": 4,
+            "coarse_class": "aircraft",
+            "tp": 1153,
+            "fp": 67,
+            "fn": 164
+          },
+          "delta_tp": 57,
+          "delta_fp": -32
+        },
+        {
+          "category_id": 5,
+          "name": "A2_C-130",
+          "gt": 1297,
+          "before": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 1269,
+            "fp": 24,
+            "fn": 28
+          },
+          "after": {
+            "category_id": 5,
+            "coarse_class": "aircraft",
+            "tp": 1277,
+            "fp": 22,
+            "fn": 20
+          },
+          "delta_tp": 8,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 6,
+          "name": "A3_C-17",
+          "gt": 998,
+          "before": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 976,
+            "fp": 30,
+            "fn": 22
+          },
+          "after": {
+            "category_id": 6,
+            "coarse_class": "aircraft",
+            "tp": 980,
+            "fp": 11,
+            "fn": 18
+          },
+          "delta_tp": 4,
+          "delta_fp": -19
+        },
+        {
+          "category_id": 7,
+          "name": "A4_C-5",
+          "gt": 500,
+          "before": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 434,
+            "fp": 3,
+            "fn": 66
+          },
+          "after": {
+            "category_id": 7,
+            "coarse_class": "aircraft",
+            "tp": 455,
+            "fp": 0,
+            "fn": 45
+          },
+          "delta_tp": 21,
+          "delta_fp": -3
+        },
+        {
+          "category_id": 8,
+          "name": "A5_F-16",
+          "gt": 1017,
+          "before": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 880,
+            "fp": 50,
+            "fn": 137
+          },
+          "after": {
+            "category_id": 8,
+            "coarse_class": "aircraft",
+            "tp": 903,
+            "fp": 33,
+            "fn": 114
+          },
+          "delta_tp": 23,
+          "delta_fp": -17
+        },
+        {
+          "category_id": 9,
+          "name": "A6_TU-160",
+          "gt": 361,
+          "before": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 58,
+            "fp": 29,
+            "fn": 303
+          },
+          "after": {
+            "category_id": 9,
+            "coarse_class": "aircraft",
+            "tp": 90,
+            "fp": 7,
+            "fn": 271
+          },
+          "delta_tp": 32,
+          "delta_fp": -22
+        },
+        {
+          "category_id": 10,
+          "name": "A7_E-3",
+          "gt": 547,
+          "before": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 487,
+            "fp": 51,
+            "fn": 60
+          },
+          "after": {
+            "category_id": 10,
+            "coarse_class": "aircraft",
+            "tp": 490,
+            "fp": 35,
+            "fn": 57
+          },
+          "delta_tp": 3,
+          "delta_fp": -16
+        },
+        {
+          "category_id": 11,
+          "name": "A8_B-52",
+          "gt": 750,
+          "before": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 718,
+            "fp": 5,
+            "fn": 32
+          },
+          "after": {
+            "category_id": 11,
+            "coarse_class": "aircraft",
+            "tp": 723,
+            "fp": 3,
+            "fn": 27
+          },
+          "delta_tp": 5,
+          "delta_fp": -2
+        },
+        {
+          "category_id": 12,
+          "name": "A9_P-3C",
+          "gt": 895,
+          "before": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 862,
+            "fp": 24,
+            "fn": 33
+          },
+          "after": {
+            "category_id": 12,
+            "coarse_class": "aircraft",
+            "tp": 863,
+            "fp": 16,
+            "fn": 32
+          },
+          "delta_tp": 1,
+          "delta_fp": -8
+        },
+        {
+          "category_id": 13,
+          "name": "A10_B-1B",
+          "gt": 762,
+          "before": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 720,
+            "fp": 2,
+            "fn": 42
+          },
+          "after": {
+            "category_id": 13,
+            "coarse_class": "aircraft",
+            "tp": 735,
+            "fp": 2,
+            "fn": 27
+          },
+          "delta_tp": 15,
+          "delta_fp": 0
+        },
+        {
+          "category_id": 14,
+          "name": "A11_E-8",
+          "gt": 432,
+          "before": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 344,
+            "fp": 147,
+            "fn": 88
+          },
+          "after": {
+            "category_id": 14,
+            "coarse_class": "aircraft",
+            "tp": 361,
+            "fp": 58,
+            "fn": 71
+          },
+          "delta_tp": 17,
+          "delta_fp": -89
+        },
+        {
+          "category_id": 15,
+          "name": "A12_TU-22",
+          "gt": 583,
+          "before": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 451,
+            "fp": 80,
+            "fn": 132
+          },
+          "after": {
+            "category_id": 15,
+            "coarse_class": "aircraft",
+            "tp": 483,
+            "fp": 60,
+            "fn": 100
+          },
+          "delta_tp": 32,
+          "delta_fp": -20
+        },
+        {
+          "category_id": 16,
+          "name": "A13_F-15",
+          "gt": 1265,
+          "before": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 1113,
+            "fp": 72,
+            "fn": 152
+          },
+          "after": {
+            "category_id": 16,
+            "coarse_class": "aircraft",
+            "tp": 1149,
+            "fp": 37,
+            "fn": 116
+          },
+          "delta_tp": 36,
+          "delta_fp": -35
+        },
+        {
+          "category_id": 17,
+          "name": "A14_KC-135",
+          "gt": 1424,
+          "before": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 1217,
+            "fp": 57,
+            "fn": 207
+          },
+          "after": {
+            "category_id": 17,
+            "coarse_class": "aircraft",
+            "tp": 1303,
+            "fp": 30,
+            "fn": 121
+          },
+          "delta_tp": 86,
+          "delta_fp": -27
+        },
+        {
+          "category_id": 18,
+          "name": "A15_F-22",
+          "gt": 493,
+          "before": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 340,
+            "fp": 67,
+            "fn": 153
+          },
+          "after": {
+            "category_id": 18,
+            "coarse_class": "aircraft",
+            "tp": 386,
+            "fp": 14,
+            "fn": 107
+          },
+          "delta_tp": 46,
+          "delta_fp": -53
+        },
+        {
+          "category_id": 19,
+          "name": "A16_FA-18",
+          "gt": 2147,
+          "before": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 2022,
+            "fp": 46,
+            "fn": 125
+          },
+          "after": {
+            "category_id": 19,
+            "coarse_class": "aircraft",
+            "tp": 2031,
+            "fp": 30,
+            "fn": 116
+          },
+          "delta_tp": 9,
+          "delta_fp": -16
+        },
+        {
+          "category_id": 20,
+          "name": "A17_TU-95",
+          "gt": 1114,
+          "before": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 955,
+            "fp": 8,
+            "fn": 159
+          },
+          "after": {
+            "category_id": 20,
+            "coarse_class": "aircraft",
+            "tp": 958,
+            "fp": 7,
+            "fn": 156
+          },
+          "delta_tp": 3,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 21,
+          "name": "A18_KC-10",
+          "gt": 262,
+          "before": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 241,
+            "fp": 3,
+            "fn": 21
+          },
+          "after": {
+            "category_id": 21,
+            "coarse_class": "aircraft",
+            "tp": 247,
+            "fp": 2,
+            "fn": 15
+          },
+          "delta_tp": 6,
+          "delta_fp": -1
+        },
+        {
+          "category_id": 22,
+          "name": "A19_SU-34",
+          "gt": 933,
+          "before": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 814,
+            "fp": 139,
+            "fn": 119
+          },
+          "after": {
+            "category_id": 22,
+            "coarse_class": "aircraft",
+            "tp": 843,
+            "fp": 73,
+            "fn": 90
+          },
+          "delta_tp": 29,
+          "delta_fp": -66
+        },
+        {
+          "category_id": 23,
+          "name": "A20_SU-24",
+          "gt": 752,
+          "before": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 659,
+            "fp": 32,
+            "fn": 93
+          },
+          "after": {
+            "category_id": 23,
+            "coarse_class": "aircraft",
+            "tp": 660,
+            "fp": 23,
+            "fn": 92
+          },
+          "delta_tp": 1,
+          "delta_fp": -9
+        }
+      ],
+      "fine_with_tp_loss": [],
+      "fine_with_fp_increase": [],
+      "load_decode_classify_seconds_total": 252.2561088760849,
+      "review": {
+        "next_action": "record_normal_diagnostic_not_an_additional_gate",
+        "formal_admission": false
+      },
+      "not_official_prediction": true,
+      "formal_admission": false
+    }
+  },
+  "source_sha256": {
+    "P40-AIRCRAFT-CE-D4-V1/comparison.json": "896804eceb740af8d128c0e53d458dd16946174eea7c4442cd49370ba08a303f",
+    "P40-AIRCRAFT-CE-D4-V1/sentinel/comparison.json": "f760cb10548b5a381c88d8046c3d095d19a4dd4a121473f89d314508bd54a6cd",
+    "P40-AIRCRAFT-CE-D4-NORMAL-V1/comparison.json": "ce50139c7709e2d701eed3cc9a997a716dea4ffde7c33265485fdbd98eddcfe2",
+    "P40-AIRCRAFT-CE-IDENTITY-V1/hard/comparison.json": "27fd3d1eff2372fe6e7405bac504ad23de76fc544c8362c34f2c2395a3fdaffc",
+    "P40-AIRCRAFT-CE-IDENTITY-V1/sentinel/comparison.json": "bf3103200e06fbf069f5aa33b9f5e4ed0f1a81fbfe59010b3b0be6cf44c06b2c",
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/hard/comparison.json": "d97ce51c0812c16c15cbd306263611f8a61b696c221cbd77bc0c98c6c03f679c",
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/sentinel/comparison.json": "f1e82fd83101d37473989656be373f033636468afa0076cf7abcb7ebb2081656",
+    "P40-AIRCRAFT-CONSISTENCY-NORMAL-V1/comparison.json": "4523694acdda7f3ab6d9e82044dc6132e690bf2b737602c000db701c26a0b11b"
+  },
+  "formal_admission": false,
+  "normal_is_diagnostic_only": true,
+  "ce_runtime": {
+    "summary": {
+      "hard": {
+        "identity": {
+          "mean_seconds": 1.452360715251416,
+          "p50_seconds": 1.4742054984671995,
+          "p95_seconds": 1.5876331457868218,
+          "max_seconds": 1.612958843819797,
+          "n_image_repeats": 18
+        },
+        "d4": {
+          "mean_seconds": 2.4967619080691494,
+          "p50_seconds": 2.4349055129569024,
+          "p95_seconds": 2.749705003912095,
+          "max_seconds": 2.758366900961846,
+          "n_image_repeats": 18
+        }
+      },
+      "sentinel": {
+        "identity": {
+          "mean_seconds": 1.3578211781439475,
+          "p50_seconds": 1.3726381415035576,
+          "p95_seconds": 1.4988095776643604,
+          "max_seconds": 1.5076366900466383,
+          "n_image_repeats": 18
+        },
+        "d4": {
+          "mean_seconds": 2.264196382007665,
+          "p50_seconds": 2.3032026194268838,
+          "p95_seconds": 2.6114789433428087,
+          "max_seconds": 2.662208782043308,
+          "n_image_repeats": 18
+        }
+      }
+    },
+    "scope": "resident classifier; image reopen/decode, crop, normalize, inference, CPU transfer, relabel and NMS; excludes detector and checkpoint load",
+    "all_cached_decisions_exact": true,
+    "environment": {
+      "python": "3.10.13",
+      "torch": "2.5.1+cu121",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "threads": 14
+    },
+    "not_docker_or_full_pipeline_latency": true,
+    "filesystem_cache_may_be_warm": true
+  },
+  "runtime_source_sha256": "0f1477be19999fb4eca3e2d6ad0798651c6ed4d8393be2d558c5bc5a59056ac7"
+}

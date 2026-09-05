@@ -1,94 +1,74 @@
-# 实验记录规范
+# 实验规范：固定代理精简流程
 
-模型训练框架可以不同，但正式结果必须使用同一评估协议、阈值规则和实验总表。
-预测交接格式见 [`INTEGRATION_CONTRACT.md`](INTEGRATION_CONTRACT.md)。
+2026-09-03晚按负责人要求调整，默认协议 `fixed_proxy_lite_v1`。
+[机器合同](../configs/experiments/fixed_proxy_lite_v1.json)；计分唯一使用
+`platform_observed_20260831`，代码见 [platform_protocol.py](../src/rsdet/evaluation/platform_protocol.py)。
 
-## 1. 协议版本
+## 1. 改了什么、没有改什么
 
-当前版本以 [`configs/project.yaml`](../configs/project.yaml) 为唯一配置源：
+回到既有 Hard / Sentinel 数据，不恢复整套多榜单必过流程。新的 paired-A 在已知
+S1024→P40方向核验中失败，因此降为诊断旁证，不再用它单独否决或批准新方法。
+失败数据、阈值及原始报告全部保留；不是重新抽一套更容易的数据来把失败改成成功。
 
-- `contract_version: contract_v1`：预测、模型 adapter 和跨模块接口；
-- `eval_version: official_eval_v1`：细类匹配、IoU、pooled Recall/FDR 计算规则；
-- `ranking_version: official_ranking_v1_6`：完整 25 细类上的 4/20/1 macro 聚合、
-  7 项排名与二次排名模拟口径。
+旧 Hard/Sentinel 同样经过多次分析，**不是盲集，也没有充分证据保证官方同趋势**。
+它们用于比较，不预测官方绝对分：代理58分和正式76分不是同一种数据难度。
+旧CV3研究权重为S1024/40e→P40/40e；正式full为S1024/160e→P40/40e，
+训练成熟度仍有差异，报告必须注明，不能把这个代理分直接当成full预期。
 
-接口语义变化时升级 `contract_version`，评估规则变化时升级 `eval_version`。包版本
-`rsdet.__version__` 与两者独立。历史实验不改写；不同协议版本的结果不得直接横向比较。
-`evaluate.py`、阈值扫描产物和正式实验总表都必须记录这三个版本。
+历史：[原全量规范](EXPERIMENT_PROTOCOL_PRE_TREND_20260903.md)、
+[paired-A规范](EXPERIMENT_PROTOCOL_PAIRED_20260903.md)、
+[paired-A与BN实跑失败](../reports/experiments/PAIRED_TREND_REFERENCE_AND_BN_RESULT_20260903.md)。
 
-**评分方案 V1.6 排名口径（2026-08-04）**：官方明确三大类各自的 Recall/FDR =
-大类内细类指标的简单平均（船 4 型各 1/4、飞机 20 型各 1/20、车辆 1 型即
-FSC），7 项排名二次排序；刚性门槛仍按三类合并 pooled。这是 `official_eval_v1`
-之上的补充聚合视图（`evaluate_ranking_metrics` / `evaluate.py` 的
-`official_ranking` 块），不改变 v1 的匹配与 pooled 规则，故 `eval_version`
-不升级；单独记为 `ranking_version=official_ranking_v1_6`。新实验一律同时
-报告两种口径，旧实验的 pooled 数字无需改写。正式 macro 必须在完整
-25 细类税表上计算；缺类子集只能标记为 partial-taxonomy diagnostic。
+## 2. 默认顺序：一项筛选、一项确认
 
-## 2. 实验总表
+|阶段|做什么|什么时候需要GPU|
+|---|---|---|
+|准备|明确一个改动、对照权重、训练血缘、数据/代码SHA和工作点来源|通常不需要|
+|Hard主比较|同一固定数据比较三类R/FDR及官方质量贡献；可直接重放缓存|模型/输入视图改变才推理|
+|Sentinel确认|仅Hard质量贡献提高超过0.5分的候选；工作点不变|不能复用预测时才推理|
+|入围后工程回归|背景FP/100MP、单卡时延、输出/容器一致性|仅有变化的项目；其余按SHA复用|
 
-总表为 [`reports/experiments/leaderboard.csv`](../reports/experiments/leaderboard.csv)，每个
-正式工作点占一行。字段按以下五组填写：
+Normal 不消失：它提供 OOF 校准和训练/验证血缘，而不是每次另跑一个完整必过榜单。
+已有三折权重就用它们做held-out推理，**不等于重新训练三折**。
+新训练方法先做同初始化、同训练预算的一折比较，只有正向才扩展必要的确认；
+没有对应held-out权重时，不能将full权重拿来冒充独立验证。
 
-- 身份：`experiment_id,date,status,git_commit,contract_version,eval_version,ranking_version`；
-- 数据与模型：`dataset_version,split_version,seed,model_name,config_path,pretrained_weight,checkpoint_checksum`；
-- 推理设置：`evaluation_scope,input_size,tile_size,tile_overlap,operating_point,score_threshold,threshold_stage`；
-- 结果：`overall_recall,overall_fdr` 及 ship、aircraft、vehicle 的 Recall/FDR（均为 pooled），
-  另加官方排名口径列 `ship_macro_recall,ship_macro_fdr,aircraft_macro_recall,aircraft_macro_fdr`
-  （车辆单细类 macro 与 pooled 相同，不设独立列；`overall_macro_recall,overall_macro_fdr`
-  为全部参与细类的简单平均，对应内部目标）；
-- 资源与追溯：`latency_p50,latency_p95,peak_vram,artifact_ref,notes`。
+不强制每次运行MacroRisk、所有FDR前沿、三套背景或完整Docker模拟。
+后处理改动优先CPU重放；同一权重改变输入视图，基线缓存经一次逐框核验后继续复用。
 
-`status` 仅用 `exploratory/complete/failed/invalid`。完整正式实验必须有 commit、配置、
-数据与划分版本、随机种子、预测和指标产物；只报 mAP 或 model forward 时间不能进入
-正式比较。延迟统一用秒、显存统一用 GiB、权重校验值统一用 SHA-256。失败实验保留
-一行简短结论，避免重复踩坑。
+## 3. 一个计分口径，工作点事前冻结
 
-当前基线编号：`M1` 为主线快速 one-stage，`M2` 为同系列高容量或高分辨率版本，
-`M3` 为 RT-DETR 类备选。实验 ID 示例：`E-M1-model-1024-devv1-seed42`。
+- 船/飞机按同细类IoU≥0.50匹配，车辆IoU≥0.35；重复框计FP。
+- 船4细类、飞机20细类、车辆1细类分别等权平均，三大类均值作为平台R/FDR门线。
+- 三个Recall子分、三个FDR子分和一个时延子分之和/7为平台总分。
+- 没有可比时延，比较**六项质量子分之和/7**，不是虚构总分；时延代价另外列出。
+- Hard/Sentinel不扫描阈值、不选checkpoint、不参与训练。每个实验明确来自Normal或
+  独立development的工作点。新模型分数尺度变化时需独立校准，不能默认沿用他人阈值。
+- 对当前P40输入视图实验，使用同一P40 OOF FDR15的三个外层折阈值；这是控制变量，
+  不是声称FDR15是所有新方法唯一最佳工作点。
 
-## 3. 全局阈值扫描
+## 4. 精简判断与停止条件
 
-先在足够低的候选门槛下交付原始 `score`，再在固定验证集上运行：
+1. Hard质量贡献差值 **> +0.5分**：进入Sentinel；否则该固定配方停止。
+2. Sentinel差值 **> 0**：方向确认，进入部署成本/风险讨论；否则停止该配方。
+3. 不要求六个R/FDR同时变好；必须列出每类损失、平台过线余量以及新增计算的代价。
+4. 代理绝对Recall未达85%不直接否决全部研究；正式交付仍关注R≥85%、FDR≤20%、
+   单卡时延≤20秒及安全余量。无可靠时延或部署检查时，不宣称正式准入。
+5. 0.5是固定工程筛选带，不是统计显著性。明显方向矛盾要解释，不得再换测试集。
+6. **不自动训练full、不自动打包、不自动提交。** 当前正式回退资产仍为v2.0 /76.6010。
 
-```bash
-PYTHONPATH=src python scripts/sweep_thresholds.py \
-  --gt outputs/dev_v1_gt.json \
-  --pred outputs/实验ID/predictions.json \
-  --output-dir outputs/实验ID/threshold_sweep
-```
+已知官方变化仍应记录到趋势账本；积累足够多独立候选前，不保证“本地94、官方至少92”。
 
-默认用同一个全局阈值从 0.00 扫到 1.00，步长 0.01，保留 `score >= threshold`。
-正式大图结果在跨 tile 融合后扫描（`post_fusion`）；需要研究融合前行为时显式传
-`--threshold-stage pre_fusion`，两者不得混记。
+## 5. 当前可执行入口与产物
 
-固定输出三个工作点：
+- 固定数据模型推理：[run_multifamily_cv3_pseudo_eval.py](../scripts/run_multifamily_cv3_pseudo_eval.py)。
+- 固定工作点指标：[evaluate_fixed_score_threshold.py](../scripts/evaluate_fixed_score_threshold.py)。
+- 配对指标校验：[compare_candidate_trend.py](../scripts/compare_candidate_trend.py)。
+- 简化方向判断：[fixed_proxy.py](../src/rsdet/experiments/fixed_proxy.py)。
+- 当前P40双视图端到端：[run_p40_vehicle_zoom_inference.sh](../scripts/server/run_p40_vehicle_zoom_inference.sh)
+  和 [analyze_p40_vehicle_zoom.py](../scripts/analyze_p40_vehicle_zoom.py)。后者也支持旋转视图，
+  校验数据/权重/代码SHA、折归属、600来源互斥及不改变原有框的约束。
+- 当前记录：[精简流程及双视图实验](../reports/experiments/FIXED_PROXY_LITE_AND_P40_VIEWS_20260903.md)。
 
-- `official_best`：pooled FDR ≤ 0.20 时 Recall 最高，门槛为 pooled Recall ≥ 0.85；
-- `internal_best`：官方排名口径（细类平均）FDR ≤ 0.17 时 Recall 最高，
-  内部目标为官方排名口径 Recall ≥ 0.88；
-- `recall_ceiling`：不限制 FDR 的 Recall 上限，只用于判断召回瓶颈。
-
-并列时依次选择 FDR 更低、阈值更高的点。扫描直接复用官方评测器，不另写匹配逻辑。
-选点依据以官方排名口径为主指标（决定 7 项排名），pooled 用于刚性门槛达标判断；
-每个工作点同时输出两套指标到 `metrics_at_selected_thresholds.json`。
-输出包括完整曲线 `threshold_sweep.csv`、选择结果 `selected_thresholds.yaml` 和三个工作点
-的完整指标 `metrics_at_selected_thresholds.json`。将使用的工作点、阈值、阶段和产物
-目录写入 leaderboard；暂不支持 25 类独立阈值或学习式校准。
-
-## 4. 实验产物
-
-```text
-outputs/YYYYMMDD-task-model-tag/
-├── config.yaml
-├── meta.json
-├── metrics.json
-├── runtime.json
-├── predictions.json
-├── train.log
-├── threshold_sweep/
-└── error_cases/
-```
-
-`outputs/` 不提交 Git；总表只记录小型结果和 `artifact_ref`。模型权重、大型日志和原始
-数据不得提交。
+每个实验只需小型 `comparison.json` + 一份结论记录。大预测与日志留在`outputs`。
+只对有希望或方向矛盾的结果展开细类/大小/背景诊断；不为每个失败配方再写一套长报告。

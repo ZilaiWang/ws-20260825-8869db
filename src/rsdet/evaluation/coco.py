@@ -11,7 +11,23 @@ def load_coco_ground_truth(path: str | Path) -> dict[int, list[dict[str, Any]]]:
     data = _load_json(Path(path))
     if not isinstance(data, dict) or not isinstance(data.get("annotations"), list):
         raise ValueError("GT 必须是包含 annotations 列表的 COCO JSON 对象")
-    return _group_annotations(data["annotations"], require_score=False)
+    grouped = _group_annotations(data["annotations"], require_score=False)
+    # Negative images are part of the evaluation universe.  Callers commonly
+    # iterate over GT keys before filtering predictions; dropping an empty
+    # image here would silently drop all of its false positives downstream.
+    if "images" in data:
+        if not isinstance(data["images"], list):
+            raise ValueError("GT images 必须是列表")
+        image_ids = [int(image["id"]) for image in data["images"]]
+        if len(image_ids) != len(set(image_ids)):
+            raise ValueError("GT images 包含重复 image id")
+        unknown = set(grouped) - set(image_ids)
+        if unknown:
+            raise ValueError(f"GT annotations 引用了 images 之外的 id: {sorted(unknown)[:10]}")
+        return {image_id: grouped.get(image_id, []) for image_id in image_ids}
+    # Legacy annotation-only inputs remain readable; their negative-image
+    # coverage is unknown, not zero.
+    return grouped
 
 
 def load_coco_predictions(path: str | Path) -> dict[int, list[dict[str, Any]]]:

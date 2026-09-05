@@ -1,0 +1,46 @@
+{
+  "platform": {
+    "metric_protocol": "platform_observed_20260831",
+    "per_coarse": {
+      "ship": {
+        "macro_recall": 0.3099778900037744,
+        "macro_fdr": 0.0778502474909071
+      },
+      "aircraft": {
+        "macro_recall": 0.843408547997254,
+        "macro_fdr": 0.1583131429417394
+      },
+      "vehicle": {
+        "macro_recall": 0.4074074074074074,
+        "macro_fdr": 0.25842696629213485
+      }
+    },
+    "gate_recall": 0.5202646151361453,
+    "gate_fdr": 0.1648634522415938,
+    "recall_pass": false,
+    "fdr_pass": true,
+    "latency_pass": null,
+    "absolute_score": null,
+    "score_payload": null,
+    "ranking_overall_is_not_platform_gate": true,
+    "pooled_counts_are_diagnostic_only": true
+  },
+  "input_sha256": {
+    "gt": "eb1f8850624d77252b568b3515b1953d57adbd6234eed1dec6b467ff5f48c211",
+    "primary_pred": "ba375b0054c87520638c9e31ab6582029f84087a22d005c2a143407b5a588237",
+    "highres_pred": "ba375b0054c87520638c9e31ab6582029f84087a22d005c2a143407b5a588237",
+    "primary_frontier": "455ff6e8d62989ef93de7e9472b2b01fe9600f8ed14171693def1b8dcdcfda38",
+    "highres_frontier": "455ff6e8d62989ef93de7e9472b2b01fe9600f8ed14171693def1b8dcdcfda38"
+  },
+  "diagnostic_only": true,
+  "latency_seconds": null,
+  "image_coverage": {
+    "negative_coverage_known": true,
+    "evaluated_images": 6,
+    "empty_gt_images": 0
+  },
+  "source": "outputs/SCALEROUTE-PLAN15-PROGRESSIVE-FIXED-BENCHMARKS-V1/sentinel/platform_frozen_thresholds.json",
+  "source_sha256": "5cb5b307b3e19ea14ab26a6921dd273bc97f8e585d9b369cead0b824ef4f779f",
+  "extraction": "primary.platform; historical FDR15 point, NOT rerun under new policy",
+  "warning": "Historical retrospective. This does not validate the new split or guarantee official trend."
+}

@@ -82,6 +82,36 @@ def test_load_submission_config_validates_coarse_thresholds(tmp_path: Path) -> N
         load_submission_config(path)
 
 
+def test_load_submission_config_validates_batis_threshold_contract(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["pipeline"].update(
+        {
+            "fusion": "safe",
+            "score_threshold": 0.001,
+            "output_score_threshold": 0.536,
+            "owner_logit_slack": 0.2,
+            "threshold_safe_category_ids": [0, 1, 2, 3, 24],
+        }
+    )
+    payload["post_fusion_score_threshold"] = 0.536
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["pipeline"]["output_score_threshold"] == 0.536
+    assert loaded["pipeline"]["threshold_safe_category_ids"] == [0, 1, 2, 3, 24]
+
+    payload["post_fusion_score_threshold"] = 0.537
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="必须与 post_fusion"):
+        load_submission_config(path)
+
+    payload["post_fusion_score_threshold"] = 0.536
+    payload["pipeline"]["fusion"] = "tile"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="仅适用于 safe"):
+        load_submission_config(path)
+
+
 def test_load_submission_config_validates_dfine_agreement_contract(tmp_path: Path) -> None:
     path = _config(tmp_path / "config.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -102,6 +132,154 @@ def test_load_submission_config_validates_dfine_agreement_contract(tmp_path: Pat
     payload["agreement_model"]["weight_path"] = "dfine.pth"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="weight_path.*绝对路径"):
+        load_submission_config(path)
+
+
+def test_load_submission_config_validates_resolution_route(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["pipeline"].update({"fusion": "safe", "score_threshold": 0.001})
+    payload["resolution_expert_model"] = {
+        **payload["model"],
+        "weight_path": "/app/models/s1280.pt",
+        "expected_sha256": "b" * 64,
+        "imgsz": 1280,
+    }
+    payload["resolution_expert_pipeline"] = dict(payload["pipeline"])
+    payload["resolution_route"] = {
+        "primary_labels": list(range(24)),
+        "expert_labels": [24],
+        "primary_threshold": 0.646,
+        "expert_threshold": 0.646,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["resolution_route"]["expert_labels"] == [24]
+
+    payload["agreement_model"] = {
+        "family": "dfine",
+        "root_path": "/app/vendor/dfine",
+        "config_path": "/app/models/dfine.yml",
+        "weight_path": "/app/models/dfine.pth",
+        "expected_sha256": "c" * 64,
+        "imgsz": 1024,
+        "score_floor": 0.001,
+        "support_iou": 0.35,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="不允许同时"):
+        load_submission_config(path)
+
+
+def test_load_submission_config_accepts_aircraft_d4_with_resolution_route(
+    tmp_path: Path,
+) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["pipeline"].update({"fusion": "safe", "score_threshold": 0.001})
+    payload["resolution_expert_model"] = {
+        **payload["model"],
+        "weight_path": "/app/models/v96.pt",
+        "expected_sha256": "b" * 64,
+        "imgsz": 1280,
+    }
+    payload["resolution_expert_pipeline"] = dict(payload["pipeline"])
+    payload["resolution_route"] = {
+        "primary_labels": list(range(24)),
+        "expert_labels": [24],
+        "primary_threshold": 0.536,
+        "expert_threshold": 0.505,
+    }
+    payload["aircraft_classifier_model"] = {
+        "method": "view_consistency_d4",
+        "weight_path": "/app/models/aircraft_d4.pt",
+        "expected_sha256": "c" * 64,
+        "imagenet_weight_path": "/app/models/convnext_tiny.pth",
+        "imagenet_expected_sha256": "d" * 64,
+        "batch_objects": 16,
+        "relabel_min_probability": 0.9,
+        "nms_iou": 0.5,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["aircraft_classifier_model"]["method"] == "view_consistency_d4"
+
+
+def test_load_submission_config_accepts_full_state_aircraft_without_imagenet(
+    tmp_path: Path,
+) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["aircraft_classifier_model"] = {
+        "method": "view_consistency_d4",
+        "weight_path": "/app/models/aircraft_d4.pt",
+        "expected_sha256": "c" * 64,
+        "checkpoint_contains_full_state": True,
+        "batch_objects": 32,
+        "channels_last": True,
+        "tensorized_views": True,
+        "relabel_min_probability": 0.9,
+        "nms_iou": 0.5,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    loaded = load_submission_config(path)
+    assert loaded["aircraft_classifier_model"]["checkpoint_contains_full_state"] is True
+
+
+@pytest.mark.parametrize("field", ["channels_last", "tensorized_views"])
+def test_aircraft_d4_optimization_flags_must_be_boolean(
+    tmp_path: Path, field: str
+) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["aircraft_classifier_model"] = {
+        "method": "view_consistency_d4",
+        "weight_path": "/app/models/aircraft_d4.pt",
+        "expected_sha256": "c" * 64,
+        "checkpoint_contains_full_state": True,
+        "batch_objects": 64,
+        "channels_last": "yes" if field == "channels_last" else False,
+        "tensorized_views": "yes" if field == "tensorized_views" else False,
+        "relabel_min_probability": 0.9,
+        "nms_iou": 0.5,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match=field):
+        load_submission_config(path)
+
+
+def test_resolution_route_rejects_prefusion_class_thresholds(tmp_path: Path) -> None:
+    path = _config(tmp_path / "config.json")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["pipeline"].update(
+        {
+            "fusion": "safe",
+            "score_threshold": 0.001,
+            "score_threshold_by_coarse": {
+                "ship": 0.2,
+                "aircraft": 0.2,
+                "vehicle": 0.2,
+            },
+        }
+    )
+    payload["resolution_expert_model"] = {
+        **payload["model"],
+        "weight_path": "/app/models/s1280.pt",
+        "expected_sha256": "b" * 64,
+        "imgsz": 1280,
+    }
+    payload["resolution_expert_pipeline"] = {
+        **payload["pipeline"],
+        "score_threshold_by_coarse": None,
+    }
+    payload["resolution_route"] = {
+        "primary_labels": list(range(24)),
+        "expert_labels": [24],
+        "primary_threshold": 0.646,
+        "expert_threshold": 0.646,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="类别阈值必须关闭"):
         load_submission_config(path)
 
 
@@ -148,6 +326,13 @@ def test_discover_images_first_level_and_sorted(tmp_path: Path) -> None:
     Image.new("RGB", (8, 6), "red").save(tmp_path / "nested" / "c.jpg")
     (tmp_path / "note.txt").write_text("ignored", encoding="utf-8")
     assert [path.name for path in discover_images(tmp_path)] == ["a.jpg", "b.PNG"]
+
+
+def test_discover_images_ignores_macos_sidecars(tmp_path: Path) -> None:
+    (tmp_path / "valid.jpg").write_bytes(b"valid")
+    (tmp_path / "._valid.jpg").write_bytes(b"sidecar")
+
+    assert discover_images(tmp_path) == [tmp_path / "valid.jpg"]
 
 
 def test_discover_images_rejects_duplicate_stems(tmp_path: Path) -> None:

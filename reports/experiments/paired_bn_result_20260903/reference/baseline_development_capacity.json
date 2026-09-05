@@ -1,0 +1,1308 @@
+{
+  "status": "development_diagnostic_only",
+  "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+  "checkpoint_sha256": "76dc9c3174f6163e449794c9bfc589f6738fbb70e24e27a31f58e1b758a654e9",
+  "development_gt_sha256": "a5ed05fed6f0eaed3ef276b12937f40afb0b9ace9f8d8f9d05aabb243e7f3159",
+  "prediction_sha256": "3fec1dbb98e329f620c344db8278a262f8162842ebbe187330ba9bc4bc566caf",
+  "selected_threshold": 0.551,
+  "decoded_floor": 0.001,
+  "selected": {
+    "model_key": "selected_development",
+    "threshold": 0.551,
+    "official_metrics": {
+      "overall_recall": 0.8299438990182328,
+      "overall_fdr": 0.07394366197183098,
+      "details": {
+        "tp": 2367,
+        "fp": 189,
+        "fn": 485,
+        "total_gt": 2852,
+        "total_pred": 2556,
+        "matching_policy": "same_fine_category_id",
+        "aggregation_policy": "fine_match_then_coarse_and_overall",
+        "iou_thresholds": {
+          "ship": 0.5,
+          "aircraft": 0.5,
+          "vehicle": 0.35
+        },
+        "empty_gt_recall_policy": 1.0,
+        "empty_prediction_fdr_policy": 0.0
+      },
+      "per_class": {
+        "ship": {
+          "recall": 0.7064676616915423,
+          "fdr": 0.08974358974358974,
+          "tp": 284,
+          "fp": 28,
+          "fn": 118
+        },
+        "aircraft": {
+          "recall": 0.8635983263598327,
+          "fdr": 0.07194244604316546,
+          "tp": 2064,
+          "fp": 160,
+          "fn": 326
+        },
+        "vehicle": {
+          "recall": 0.31666666666666665,
+          "fdr": 0.05,
+          "tp": 19,
+          "fp": 1,
+          "fn": 41
+        }
+      }
+    },
+    "diagnostic_not_official_metric": true,
+    "hierarchy": [
+      "official TP",
+      "FP_DUP: same-fine GT above official IoU, already consumed",
+      "FP_CLS/FN_CLS: one-to-one different-fine overlap above GT threshold",
+      "FP_LOC/FN_LOC: one-to-one same-fine partial overlap below threshold",
+      "FP_BG: remaining unattributed prediction",
+      "FN_MISS: remaining unattributed GT"
+    ],
+    "fp_counts": {
+      "FP_DUP": 12,
+      "FP_CLS": 145,
+      "FP_LOC": 1,
+      "FP_BG": 31
+    },
+    "fn_counts": {
+      "FN_CLS": 145,
+      "FN_LOC": 1,
+      "FN_MISS": 339
+    },
+    "per_class": {
+      "ship": {
+        "FP_DUP": 4,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 21,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 115
+      },
+      "aircraft": {
+        "FP_DUP": 8,
+        "FP_CLS": 142,
+        "FP_LOC": 0,
+        "FP_BG": 10,
+        "FN_CLS": 142,
+        "FN_LOC": 0,
+        "FN_MISS": 184
+      },
+      "vehicle": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 1,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 1,
+        "FN_MISS": 40
+      }
+    },
+    "per_fine_category": {
+      "0": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "1": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "2": {
+        "FP_DUP": 1,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 3,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 28
+      },
+      "3": {
+        "FP_DUP": 3,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 18,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 87
+      },
+      "4": {
+        "FP_DUP": 0,
+        "FP_CLS": 17,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 53,
+        "FN_LOC": 0,
+        "FN_MISS": 20
+      },
+      "5": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "6": {
+        "FP_DUP": 1,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 2,
+        "FN_LOC": 0,
+        "FN_MISS": 12
+      },
+      "7": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "8": {
+        "FP_DUP": 0,
+        "FP_CLS": 11,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 19,
+        "FN_LOC": 0,
+        "FN_MISS": 17
+      },
+      "9": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 1
+      },
+      "10": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 14,
+        "FN_LOC": 0,
+        "FN_MISS": 16
+      },
+      "11": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 8
+      },
+      "12": {
+        "FP_DUP": 3,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 1
+      },
+      "13": {
+        "FP_DUP": 0,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 17
+      },
+      "14": {
+        "FP_DUP": 1,
+        "FP_CLS": 12,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 2,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "15": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 4,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "16": {
+        "FP_DUP": 0,
+        "FP_CLS": 14,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "17": {
+        "FP_DUP": 2,
+        "FP_CLS": 13,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 4,
+        "FN_LOC": 0,
+        "FN_MISS": 8
+      },
+      "18": {
+        "FP_DUP": 0,
+        "FP_CLS": 4,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 9
+      },
+      "19": {
+        "FP_DUP": 0,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 20,
+        "FN_LOC": 0,
+        "FN_MISS": 49
+      },
+      "20": {
+        "FP_DUP": 1,
+        "FP_CLS": 7,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "21": {
+        "FP_DUP": 0,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 8,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "22": {
+        "FP_DUP": 0,
+        "FP_CLS": 52,
+        "FP_LOC": 0,
+        "FP_BG": 2,
+        "FN_CLS": 8,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "23": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 2,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 8
+      },
+      "24": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 1,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 1,
+        "FN_MISS": 40
+      }
+    },
+    "conservation": {
+      "official_fp": 189,
+      "decomposed_fp": 189,
+      "official_fn": 485,
+      "decomposed_fn": 485,
+      "passed": true
+    },
+    "fp_bg_semantics": "unattributed after duplicate/class/localization rules; not proof of semantic background"
+  },
+  "floor": {
+    "model_key": "decoded_floor_diagnostic",
+    "threshold": 0.001,
+    "official_metrics": {
+      "overall_recall": 0.967391304347826,
+      "overall_fdr": 0.6874008610922275,
+      "details": {
+        "tp": 2759,
+        "fp": 6067,
+        "fn": 93,
+        "total_gt": 2852,
+        "total_pred": 8826,
+        "matching_policy": "same_fine_category_id",
+        "aggregation_policy": "fine_match_then_coarse_and_overall",
+        "iou_thresholds": {
+          "ship": 0.5,
+          "aircraft": 0.5,
+          "vehicle": 0.35
+        },
+        "empty_gt_recall_policy": 1.0,
+        "empty_prediction_fdr_policy": 0.0
+      },
+      "per_class": {
+        "ship": {
+          "recall": 0.9402985074626866,
+          "fdr": 0.8562737642585552,
+          "tp": 378,
+          "fp": 2252,
+          "fn": 24
+        },
+        "aircraft": {
+          "recall": 0.9786610878661088,
+          "fdr": 0.5868221162338809,
+          "tp": 2339,
+          "fp": 3322,
+          "fn": 51
+        },
+        "vehicle": {
+          "recall": 0.7,
+          "fdr": 0.9214953271028037,
+          "tp": 42,
+          "fp": 493,
+          "fn": 18
+        }
+      }
+    },
+    "diagnostic_not_official_metric": true,
+    "hierarchy": [
+      "official TP",
+      "FP_DUP: same-fine GT above official IoU, already consumed",
+      "FP_CLS/FN_CLS: one-to-one different-fine overlap above GT threshold",
+      "FP_LOC/FN_LOC: one-to-one same-fine partial overlap below threshold",
+      "FP_BG: remaining unattributed prediction",
+      "FN_MISS: remaining unattributed GT"
+    ],
+    "fp_counts": {
+      "FP_DUP": 642,
+      "FP_CLS": 51,
+      "FP_LOC": 9,
+      "FP_BG": 5365
+    },
+    "fn_counts": {
+      "FN_CLS": 51,
+      "FN_LOC": 9,
+      "FN_MISS": 33
+    },
+    "per_class": {
+      "ship": {
+        "FP_DUP": 435,
+        "FP_CLS": 3,
+        "FP_LOC": 8,
+        "FP_BG": 1806,
+        "FN_CLS": 3,
+        "FN_LOC": 8,
+        "FN_MISS": 13
+      },
+      "aircraft": {
+        "FP_DUP": 148,
+        "FP_CLS": 47,
+        "FP_LOC": 1,
+        "FP_BG": 3126,
+        "FN_CLS": 48,
+        "FN_LOC": 1,
+        "FN_MISS": 2
+      },
+      "vehicle": {
+        "FP_DUP": 59,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 433,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 18
+      }
+    },
+    "per_fine_category": {
+      "0": {
+        "FP_DUP": 3,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 33,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "1": {
+        "FP_DUP": 2,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 73,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "2": {
+        "FP_DUP": 210,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 654,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 1
+      },
+      "3": {
+        "FP_DUP": 220,
+        "FP_CLS": 0,
+        "FP_LOC": 8,
+        "FP_BG": 1046,
+        "FN_CLS": 3,
+        "FN_LOC": 8,
+        "FN_MISS": 12
+      },
+      "4": {
+        "FP_DUP": 9,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 292,
+        "FN_CLS": 12,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "5": {
+        "FP_DUP": 6,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 217,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "6": {
+        "FP_DUP": 11,
+        "FP_CLS": 2,
+        "FP_LOC": 1,
+        "FP_BG": 117,
+        "FN_CLS": 1,
+        "FN_LOC": 1,
+        "FN_MISS": 0
+      },
+      "7": {
+        "FP_DUP": 0,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 167,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "8": {
+        "FP_DUP": 5,
+        "FP_CLS": 2,
+        "FP_LOC": 0,
+        "FP_BG": 261,
+        "FN_CLS": 6,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "9": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 76,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "10": {
+        "FP_DUP": 4,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 63,
+        "FN_CLS": 10,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "11": {
+        "FP_DUP": 8,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 99,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "12": {
+        "FP_DUP": 18,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 111,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "13": {
+        "FP_DUP": 4,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 80,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "14": {
+        "FP_DUP": 7,
+        "FP_CLS": 6,
+        "FP_LOC": 0,
+        "FP_BG": 126,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "15": {
+        "FP_DUP": 4,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 72,
+        "FN_CLS": 4,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "16": {
+        "FP_DUP": 3,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 234,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "17": {
+        "FP_DUP": 31,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 199,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "18": {
+        "FP_DUP": 2,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 96,
+        "FN_CLS": 2,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "19": {
+        "FP_DUP": 1,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 150,
+        "FN_CLS": 5,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "20": {
+        "FP_DUP": 19,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 90,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "21": {
+        "FP_DUP": 0,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 75,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "22": {
+        "FP_DUP": 7,
+        "FP_CLS": 11,
+        "FP_LOC": 0,
+        "FP_BG": 338,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "23": {
+        "FP_DUP": 9,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 263,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "24": {
+        "FP_DUP": 59,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 433,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 18
+      }
+    },
+    "conservation": {
+      "official_fp": 6067,
+      "decomposed_fp": 6067,
+      "official_fn": 93,
+      "decomposed_fn": 93,
+      "passed": true
+    },
+    "fp_bg_semantics": "unattributed after duplicate/class/localization rules; not proof of semantic background"
+  },
+  "per_fine": {
+    "0": {
+      "fine_name": "HM",
+      "gt": 3,
+      "selected_fn": 0,
+      "fn_recovered_at_decoded_floor": 0,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "floor_error_roles": {
+        "FP_DUP": 3,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 33,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "1": {
+      "fine_name": "LQS",
+      "gt": 5,
+      "selected_fn": 0,
+      "fn_recovered_at_decoded_floor": 0,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "floor_error_roles": {
+        "FP_DUP": 2,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 73,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "2": {
+      "fine_name": "QHS",
+      "gt": 96,
+      "selected_fn": 28,
+      "fn_recovered_at_decoded_floor": 27,
+      "remaining_fn_at_decoded_floor": 1,
+      "selected_error_roles": {
+        "FP_DUP": 1,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 3,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 28
+      },
+      "floor_error_roles": {
+        "FP_DUP": 210,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 654,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 1
+      }
+    },
+    "3": {
+      "fine_name": "MS",
+      "gt": 298,
+      "selected_fn": 90,
+      "fn_recovered_at_decoded_floor": 67,
+      "remaining_fn_at_decoded_floor": 23,
+      "selected_error_roles": {
+        "FP_DUP": 3,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 18,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 87
+      },
+      "floor_error_roles": {
+        "FP_DUP": 220,
+        "FP_CLS": 0,
+        "FP_LOC": 8,
+        "FP_BG": 1046,
+        "FN_CLS": 3,
+        "FN_LOC": 8,
+        "FN_MISS": 12
+      }
+    },
+    "4": {
+      "fine_name": "A1_SU-35",
+      "gt": 210,
+      "selected_fn": 73,
+      "fn_recovered_at_decoded_floor": 61,
+      "remaining_fn_at_decoded_floor": 12,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 17,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 53,
+        "FN_LOC": 0,
+        "FN_MISS": 20
+      },
+      "floor_error_roles": {
+        "FP_DUP": 9,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 292,
+        "FN_CLS": 12,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "5": {
+      "fine_name": "A2_C-130",
+      "gt": 59,
+      "selected_fn": 3,
+      "fn_recovered_at_decoded_floor": 3,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "floor_error_roles": {
+        "FP_DUP": 6,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 217,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "6": {
+      "fine_name": "A3_C-17",
+      "gt": 172,
+      "selected_fn": 14,
+      "fn_recovered_at_decoded_floor": 12,
+      "remaining_fn_at_decoded_floor": 2,
+      "selected_error_roles": {
+        "FP_DUP": 1,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 2,
+        "FN_LOC": 0,
+        "FN_MISS": 12
+      },
+      "floor_error_roles": {
+        "FP_DUP": 11,
+        "FP_CLS": 2,
+        "FP_LOC": 1,
+        "FP_BG": 117,
+        "FN_CLS": 1,
+        "FN_LOC": 1,
+        "FN_MISS": 0
+      }
+    },
+    "7": {
+      "fine_name": "A4_C-5",
+      "gt": 5,
+      "selected_fn": 1,
+      "fn_recovered_at_decoded_floor": 0,
+      "remaining_fn_at_decoded_floor": 1,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      },
+      "floor_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 167,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "8": {
+      "fine_name": "A5_F-16",
+      "gt": 159,
+      "selected_fn": 36,
+      "fn_recovered_at_decoded_floor": 30,
+      "remaining_fn_at_decoded_floor": 6,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 11,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 19,
+        "FN_LOC": 0,
+        "FN_MISS": 17
+      },
+      "floor_error_roles": {
+        "FP_DUP": 5,
+        "FP_CLS": 2,
+        "FP_LOC": 0,
+        "FP_BG": 261,
+        "FN_CLS": 6,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "9": {
+      "fine_name": "A6_TU-160",
+      "gt": 8,
+      "selected_fn": 1,
+      "fn_recovered_at_decoded_floor": 1,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 1
+      },
+      "floor_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 76,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "10": {
+      "fine_name": "A7_E-3",
+      "gt": 84,
+      "selected_fn": 30,
+      "fn_recovered_at_decoded_floor": 20,
+      "remaining_fn_at_decoded_floor": 10,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 14,
+        "FN_LOC": 0,
+        "FN_MISS": 16
+      },
+      "floor_error_roles": {
+        "FP_DUP": 4,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 63,
+        "FN_CLS": 10,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "11": {
+      "fine_name": "A8_B-52",
+      "gt": 80,
+      "selected_fn": 11,
+      "fn_recovered_at_decoded_floor": 8,
+      "remaining_fn_at_decoded_floor": 3,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 8
+      },
+      "floor_error_roles": {
+        "FP_DUP": 8,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 99,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "12": {
+      "fine_name": "A9_P-3C",
+      "gt": 120,
+      "selected_fn": 1,
+      "fn_recovered_at_decoded_floor": 1,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 3,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 1
+      },
+      "floor_error_roles": {
+        "FP_DUP": 18,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 111,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "13": {
+      "fine_name": "A10_B-1B",
+      "gt": 35,
+      "selected_fn": 18,
+      "fn_recovered_at_decoded_floor": 13,
+      "remaining_fn_at_decoded_floor": 5,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 17
+      },
+      "floor_error_roles": {
+        "FP_DUP": 4,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 80,
+        "FN_CLS": 3,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      }
+    },
+    "14": {
+      "fine_name": "A11_E-8",
+      "gt": 54,
+      "selected_fn": 4,
+      "fn_recovered_at_decoded_floor": 4,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 1,
+        "FP_CLS": 12,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 2,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "floor_error_roles": {
+        "FP_DUP": 7,
+        "FP_CLS": 6,
+        "FP_LOC": 0,
+        "FP_BG": 126,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "15": {
+      "fine_name": "A12_TU-22",
+      "gt": 85,
+      "selected_fn": 7,
+      "fn_recovered_at_decoded_floor": 3,
+      "remaining_fn_at_decoded_floor": 4,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 4,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "floor_error_roles": {
+        "FP_DUP": 4,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 72,
+        "FN_CLS": 4,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "16": {
+      "fine_name": "A13_F-15",
+      "gt": 179,
+      "selected_fn": 4,
+      "fn_recovered_at_decoded_floor": 4,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 14,
+        "FP_LOC": 0,
+        "FP_BG": 1,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "floor_error_roles": {
+        "FP_DUP": 3,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 234,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "17": {
+      "fine_name": "A14_KC-135",
+      "gt": 211,
+      "selected_fn": 12,
+      "fn_recovered_at_decoded_floor": 12,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 2,
+        "FP_CLS": 13,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 4,
+        "FN_LOC": 0,
+        "FN_MISS": 8
+      },
+      "floor_error_roles": {
+        "FP_DUP": 31,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 199,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "18": {
+      "fine_name": "A15_F-22",
+      "gt": 63,
+      "selected_fn": 10,
+      "fn_recovered_at_decoded_floor": 8,
+      "remaining_fn_at_decoded_floor": 2,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 4,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 9
+      },
+      "floor_error_roles": {
+        "FP_DUP": 2,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 96,
+        "FN_CLS": 2,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "19": {
+      "fine_name": "A16_FA-18",
+      "gt": 326,
+      "selected_fn": 69,
+      "fn_recovered_at_decoded_floor": 64,
+      "remaining_fn_at_decoded_floor": 5,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 20,
+        "FN_LOC": 0,
+        "FN_MISS": 49
+      },
+      "floor_error_roles": {
+        "FP_DUP": 1,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 150,
+        "FN_CLS": 5,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "20": {
+      "fine_name": "A17_TU-95",
+      "gt": 146,
+      "selected_fn": 2,
+      "fn_recovered_at_decoded_floor": 2,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 1,
+        "FP_CLS": 7,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "floor_error_roles": {
+        "FP_DUP": 19,
+        "FP_CLS": 5,
+        "FP_LOC": 0,
+        "FP_BG": 90,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "21": {
+      "fine_name": "A18_KC-10",
+      "gt": 30,
+      "selected_fn": 11,
+      "fn_recovered_at_decoded_floor": 10,
+      "remaining_fn_at_decoded_floor": 1,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 0,
+        "FN_CLS": 8,
+        "FN_LOC": 0,
+        "FN_MISS": 3
+      },
+      "floor_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 3,
+        "FP_LOC": 0,
+        "FP_BG": 75,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "22": {
+      "fine_name": "A19_SU-34",
+      "gt": 226,
+      "selected_fn": 10,
+      "fn_recovered_at_decoded_floor": 10,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 52,
+        "FP_LOC": 0,
+        "FP_BG": 2,
+        "FN_CLS": 8,
+        "FN_LOC": 0,
+        "FN_MISS": 2
+      },
+      "floor_error_roles": {
+        "FP_DUP": 7,
+        "FP_CLS": 11,
+        "FP_LOC": 0,
+        "FP_BG": 338,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "23": {
+      "fine_name": "A20_SU-24",
+      "gt": 138,
+      "selected_fn": 9,
+      "fn_recovered_at_decoded_floor": 9,
+      "remaining_fn_at_decoded_floor": 0,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 2,
+        "FN_CLS": 1,
+        "FN_LOC": 0,
+        "FN_MISS": 8
+      },
+      "floor_error_roles": {
+        "FP_DUP": 9,
+        "FP_CLS": 0,
+        "FP_LOC": 0,
+        "FP_BG": 263,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 0
+      }
+    },
+    "24": {
+      "fine_name": "FSC",
+      "gt": 60,
+      "selected_fn": 41,
+      "fn_recovered_at_decoded_floor": 23,
+      "remaining_fn_at_decoded_floor": 18,
+      "selected_error_roles": {
+        "FP_DUP": 0,
+        "FP_CLS": 0,
+        "FP_LOC": 1,
+        "FP_BG": 0,
+        "FN_CLS": 0,
+        "FN_LOC": 1,
+        "FN_MISS": 40
+      },
+      "floor_error_roles": {
+        "FP_DUP": 59,
+        "FP_CLS": 1,
+        "FP_LOC": 0,
+        "FP_BG": 433,
+        "FN_CLS": 0,
+        "FN_LOC": 0,
+        "FN_MISS": 18
+      }
+    }
+  },
+  "selected_fn_recovered_at_floor": 392,
+  "selected_matches_lost_at_floor": 0,
+  "confirmation_used": false,
+  "thresholds_fitted": false,
+  "limitations": [
+    "Floor includes post-NMS/max_det truncation; it is not the detector's theoretical ceiling.",
+    "Recoverable FN comes with actual extra FP; not achievable free recall.",
+    "FP_BG is an unmatched-label role, not proof of visual background or a training-negative label.",
+    "Do not train on development cases. Use analogous training-only cases for any new loss/data recipe."
+  ]
+}

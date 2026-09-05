@@ -1,0 +1,151 @@
+{
+  "version": "paired_anchor_recipe_audit_v1",
+  "purpose": "retrospective_two_endpoint_recipe_direction_check",
+  "base": "/root/autodl-tmp/results/PAIRED-TREND-BASELINE-V1",
+  "bundle_sha256": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846",
+  "training_plan_sha256": "7e02c6b70083f8cd092c03f00bbcb5a44bee61b46244ee989ba9b2f7a363bea8",
+  "script_sha256": "efed347de7ae2308d9101933f89a1628d61ecbc1cc80ad596e25afd59817a016",
+  "official_source_sha256": "adcb1557b909b063730805f72569fa325e5fab83c6e3a9b936c83e7ae3f6059c",
+  "official": {
+    "baseline": {
+      "protocol": "platform_confirmed_absolute_score_v2026_08_31",
+      "per_coarse": {
+        "ship": {
+          "recall": 0.874969,
+          "fdr": 0.320177,
+          "recall_points": 66.6584,
+          "fdr_points": 50.986725
+        },
+        "aircraft": {
+          "recall": 0.967641,
+          "fdr": 0.064691,
+          "recall_points": 91.37093333333334,
+          "fdr_points": 87.0618
+        },
+        "vehicle": {
+          "recall": 0.852632,
+          "fdr": 0.325,
+          "recall_points": 60.70186666666666,
+          "fdr_points": 50.625
+        }
+      },
+      "latency_seconds": 2.473167,
+      "latency_points": 97.526833,
+      "seven_subscores": [
+        66.6584,
+        50.986725,
+        91.37093333333334,
+        87.0618,
+        60.70186666666666,
+        50.625,
+        97.526833
+      ],
+      "total_score": 72.13307971428571,
+      "hard_gates": {
+        "macro_coarse_recall": 0.8984139999999999,
+        "macro_coarse_fdr": 0.23662266666666665,
+        "latency_seconds": 2.473167,
+        "recall_threshold": 0.85,
+        "fdr_threshold": 0.2,
+        "latency_threshold_seconds": 20.0,
+        "recall_pass": true,
+        "fdr_pass": false,
+        "latency_pass": true
+      },
+      "pooled_counts_are_diagnostic_only": true
+    },
+    "candidate": {
+      "protocol": "platform_confirmed_absolute_score_v2026_08_31",
+      "per_coarse": {
+        "ship": {
+          "recall": 0.809894,
+          "fdr": 0.067489,
+          "recall_points": 57.16898823529412,
+          "fdr_points": 86.5022
+        },
+        "aircraft": {
+          "recall": 0.945967,
+          "fdr": 0.037265,
+          "recall_points": 85.59120000000001,
+          "fdr_points": 92.547
+        },
+        "vehicle": {
+          "recall": 0.831579,
+          "fdr": 0.21,
+          "recall_points": 58.699694117647056,
+          "fdr_points": 59.25
+        }
+      },
+      "latency_seconds": 3.551833,
+      "latency_points": 96.448167,
+      "seven_subscores": [
+        57.16898823529412,
+        86.5022,
+        85.59120000000001,
+        92.547,
+        58.699694117647056,
+        59.25,
+        96.448167
+      ],
+      "total_score": 76.60103562184874,
+      "hard_gates": {
+        "macro_coarse_recall": 0.86248,
+        "macro_coarse_fdr": 0.104918,
+        "latency_seconds": 3.551833,
+        "recall_threshold": 0.85,
+        "fdr_threshold": 0.2,
+        "latency_threshold_seconds": 20.0,
+        "recall_pass": true,
+        "fdr_pass": true,
+        "latency_pass": true
+      },
+      "pooled_counts_are_diagnostic_only": true
+    },
+    "delta_quality_contribution": 4.622051050420168,
+    "delta_total_score": 4.467955907563024,
+    "per_coarse_delta": {
+      "ship": {
+        "recall_pp": -6.507499999999999,
+        "fdr_pp": -25.268800000000002
+      },
+      "aircraft": {
+        "recall_pp": -2.167399999999997,
+        "fdr_pp": -2.7426
+      },
+      "vehicle": {
+        "recall_pp": -2.105299999999999,
+        "fdr_pp": -11.500000000000002
+      }
+    }
+  },
+  "foundation_inference": {
+    "imgsz": 1024,
+    "score_floor": 0.001,
+    "iou": 0.7,
+    "max_det": 500,
+    "batch": 4,
+    "half": true
+  },
+  "adaptation_inference": {
+    "imgsz": 1280,
+    "score_floor": 0.001,
+    "iou": 0.7,
+    "max_det": 500,
+    "batch": 4,
+    "half": true
+  },
+  "threshold_selection": "same_model_development_only_max_official_quality",
+  "confirmation_policy": "both_declared_anchors_once_even_if_negative; audit_only",
+  "deadband": 0.5,
+  "heldout_predictions_observed_when_declaring": false,
+  "official_outcomes_already_known": true,
+  "same_training_universe": true,
+  "equal_training_compute": false,
+  "not_exact_historical_reproduction": [
+    "new grouped 70/15/15 split, not full training data",
+    "stable single GPU batch12/8, not historical mid-run DDP migration",
+    "current common YOLO adapter, not every historical wrapper",
+    "own development threshold, not historical transferred thresholds"
+  ],
+  "automatic_full_or_submission_admission": false
+}

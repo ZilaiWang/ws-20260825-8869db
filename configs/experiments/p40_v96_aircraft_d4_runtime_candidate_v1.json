@@ -1,0 +1,77 @@
+{
+  "contract_version": "competition_docker_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "deployment_role": "pre_submission_runtime_candidate_not_admitted",
+  "workpoint_id": "p40_v96t0505_aircraft_d4_full_20260904",
+  "device": "cuda:0",
+  "model": {
+    "family": "yolo",
+    "inference_adapter": "shared_offline",
+    "weight_path": "/root/autodl-tmp/assets/p40_official_sanitized.pt",
+    "expected_sha256": "b0df7981f6ad58fe8eca65fb0deef54feed55caf300c2c219ac1ccb3500c8012",
+    "imgsz": 1280,
+    "confidence": 0.001,
+    "iou": 0.7,
+    "max_detections": 500,
+    "half": true,
+    "rot90_views": [0]
+  },
+  "pipeline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "batch_size": 4,
+    "fusion": "safe",
+    "score_threshold": 0.001,
+    "fine_nms_iou": 0.7,
+    "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0,
+    "merge_iou": 0.5,
+    "merge_ios": 0.75,
+    "border_margin": 8.0,
+    "nms_iou": 0.5,
+    "max_detections": 4000
+  },
+  "resolution_expert_model": {
+    "family": "yolo",
+    "inference_adapter": "shared_offline",
+    "weight_path": "/root/autodl-tmp/results/HERA-GUARD-MPSR-VEHICLE-S96-FULL-40EP-3X4080-B60-V1/v96_full_sanitized.pt",
+    "expected_sha256": "2cff2a367460df321a2b8d2e0a29d35d94463dd7b4ff148077ded41ff50a858a",
+    "imgsz": 1280,
+    "confidence": 0.001,
+    "iou": 0.7,
+    "max_detections": 500,
+    "half": true,
+    "rot90_views": [0]
+  },
+  "resolution_expert_pipeline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "batch_size": 4,
+    "fusion": "safe",
+    "score_threshold": 0.001,
+    "fine_nms_iou": 0.7,
+    "coarse_nms_iou": 0.85,
+    "cluster_eps": 50.0,
+    "merge_iou": 0.5,
+    "merge_ios": 0.75,
+    "border_margin": 8.0,
+    "nms_iou": 0.5,
+    "max_detections": 4000
+  },
+  "resolution_route": {
+    "primary_labels": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+    "expert_labels": [24],
+    "primary_threshold": 0.536,
+    "expert_threshold": 0.505
+  },
+  "aircraft_classifier_model": {
+    "method": "view_consistency_d4",
+    "weight_path": "/root/autodl-tmp/results/R1-5-AIRCRAFT-VIEW-CONSISTENCY-FULL-V1/training/final_checkpoint.pt",
+    "expected_sha256": "5f1b175f8b2c310a3c0583e652f5cf7cfd444d0b0d74d794a9ac59e4537832d5",
+    "imagenet_weight_path": "/root/autodl-tmp/pretrained/convnext_tiny-983f1562.pth",
+    "imagenet_expected_sha256": "983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d",
+    "batch_objects": 16,
+    "relabel_min_probability": 0.9,
+    "nms_iou": 0.5
+  }
+}

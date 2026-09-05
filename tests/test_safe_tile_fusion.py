@@ -133,6 +133,100 @@ def test_complete_proposal_is_canonical_and_fields_stay_consistent() -> None:
     assert fused.labels == [4]
 
 
+def test_threshold_safe_mode_prevents_support_candidate_inversion() -> None:
+    legacy = _fuse(
+        [
+            Prediction(0, [[500, 100, 600, 200]], [0.80], [4]),
+            Prediction(1, [[90, 100, 190, 200]], [0.40], [4]),
+        ],
+        score_threshold=0.001,
+    )
+    assert legacy.scores == [0.40]
+
+    fused, audit = fuse_safe_tile_predictions(
+        [
+            Prediction(0, [[500, 100, 600, 200]], [0.80], [4]),
+            Prediction(1, [[90, 100, 190, 200]], [0.40], [4]),
+        ],
+        _tiles(),
+        parent_image_id=9,
+        image_width=1000,
+        image_height=600,
+        score_threshold=0.001,
+        output_score_threshold=0.536,
+        return_audit=True,
+    )
+    assert fused.scores == [0.80]
+    assert audit.threshold_inversion_count == 1
+
+
+def test_threshold_safe_category_ownership_leaves_aircraft_legacy() -> None:
+    predictions = [
+        Prediction(
+            0,
+            [[500, 100, 600, 200], [500, 300, 600, 400]],
+            [0.80, 0.80],
+            [0, 4],
+        ),
+        Prediction(
+            1,
+            [[90, 100, 190, 200], [90, 300, 190, 400]],
+            [0.40, 0.40],
+            [0, 4],
+        ),
+    ]
+    fused, audit = fuse_safe_tile_predictions(
+        predictions,
+        _tiles(),
+        parent_image_id=9,
+        image_width=1000,
+        image_height=600,
+        score_threshold=0.001,
+        output_score_threshold=0.536,
+        threshold_safe_category_ids=[0, 1, 2, 3, 24],
+        audit_score_threshold=0.536,
+        return_audit=True,
+    )
+    assert fused.labels == [0, 4]
+    assert fused.scores == [0.80, 0.40]
+    assert audit.threshold_inversion_count == 2
+    assert audit.threshold_inversion_applied_count == 1
+
+
+def test_owner_preference_is_bounded_by_logit_slack() -> None:
+    predictions = [
+        Prediction(0, [[500, 100, 600, 200]], [0.80], [4]),
+        Prediction(1, [[90, 100, 190, 200]], [0.78], [4]),
+    ]
+    fused = fuse_safe_tile_predictions(
+        predictions,
+        _tiles(),
+        parent_image_id=9,
+        image_width=1000,
+        image_height=600,
+        score_threshold=0.001,
+        output_score_threshold=0.536,
+        owner_logit_slack=0.20,
+    )
+    assert fused.scores == [0.78]
+
+    far_apart = [
+        Prediction(0, [[500, 100, 600, 200]], [0.80], [4]),
+        Prediction(1, [[90, 100, 190, 200]], [0.60], [4]),
+    ]
+    fused = fuse_safe_tile_predictions(
+        far_apart,
+        _tiles(),
+        parent_image_id=9,
+        image_width=1000,
+        image_height=600,
+        score_threshold=0.001,
+        output_score_threshold=0.536,
+        owner_logit_slack=0.20,
+    )
+    assert fused.scores == [0.80]
+
+
 def test_same_tile_candidates_do_not_enter_same_duplicate_cluster() -> None:
     fused = _fuse(
         [

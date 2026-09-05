@@ -28,6 +28,15 @@ from rsdet.pipeline.large_image import PipelineConfig, run_pipeline
 from rsdet.postprocess.nms import nms
 from rsdet.postprocess.thresholds import normalize_fine_thresholds
 from rsdet.submission.agreement import apply_label_agreement
+from rsdet.submission.aircraft_d4 import (
+    AircraftD4ClassifierRuntime,
+    filter_prediction_by_score,
+)
+from rsdet.submission.class_resolution_router import (
+    DualPipelineResolutionRuntime,
+    PrimaryLabelRescue,
+    ResolutionLabelRoute,
+)
 from rsdet.submission.vehicle_rescue import (
     SelectiveVehicleRescueDetector,
     VehicleRescueConfig,
@@ -51,6 +60,92 @@ def _as_mapping(value: Any, name: str) -> dict[str, Any]:
     return dict(value)
 
 
+def _validate_yolo_model_section(model: Mapping[str, Any], name: str) -> None:
+    if str(model.get("family", "")).lower() != "yolo":
+        raise ValueError(f"{name}.family 只允许 yolo")
+    adapter = str(model.get("inference_adapter", "legacy_tta"))
+    if adapter not in {"legacy_tta", "shared_offline"}:
+        raise ValueError(f"{name}.inference_adapter 非法")
+    if adapter == "shared_offline" and model.get("rot90_views", [0]) != [0]:
+        raise ValueError("shared_offline 只允许恒等视图，不能悄悄忽略 TTA")
+    weight_path = Path(str(model.get("weight_path", "")))
+    if not weight_path.is_absolute():
+        raise ValueError(f"{name}.weight_path 必须是容器内绝对路径")
+    expected_sha = str(model.get("expected_sha256", "")).strip().lower()
+    if len(expected_sha) != 64 or any(
+        character not in "0123456789abcdef" for character in expected_sha
+    ):
+        raise ValueError(f"{name}.expected_sha256 必须是 64 位十六进制 SHA256")
+    if int(model.get("imgsz", 0)) <= 0:
+        raise ValueError(f"{name}.imgsz 必须 > 0")
+    if not 0.0 <= float(model.get("confidence", -1.0)) <= 1.0:
+        raise ValueError(f"{name}.confidence 必须在 [0, 1]")
+    if not 0.0 <= float(model.get("iou", -1.0)) <= 1.0:
+        raise ValueError(f"{name}.iou 必须在 [0, 1]")
+    if int(model.get("max_detections", 0)) <= 0:
+        raise ValueError(f"{name}.max_detections 必须 > 0")
+    rot90_views = model.get("rot90_views", [0])
+    if (
+        not isinstance(rot90_views, list)
+        or not rot90_views
+        or any(isinstance(value, bool) or not isinstance(value, int) for value in rot90_views)
+        or any(value not in {0, 1, 2, 3} for value in rot90_views)
+        or len(set(rot90_views)) != len(rot90_views)
+    ):
+        raise ValueError(f"{name}.rot90_views 必须是 [0,1,2,3] 的非空无重复子集")
+    if 0 not in rot90_views:
+        raise ValueError(f"{name}.rot90_views 必须包含恒等视图 0")
+    if not 0.0 <= float(model.get("tta_nms_iou", 0.55)) <= 1.0:
+        raise ValueError(f"{name}.tta_nms_iou 必须在 [0, 1]")
+
+
+def _validate_pipeline_section(pipeline: Mapping[str, Any], name: str) -> None:
+    tile_size = int(pipeline.get("tile_size", 0))
+    overlap = int(pipeline.get("overlap", -1))
+    if tile_size <= 0 or not 0 <= overlap < tile_size:
+        raise ValueError(f"{name} 必须满足 tile_size > overlap >= 0")
+    if int(pipeline.get("batch_size", 0)) <= 0:
+        raise ValueError(f"{name}.batch_size 必须 > 0")
+    if str(pipeline.get("fusion", "")) not in {"tile", "global", "safe"}:
+        raise ValueError(f"{name}.fusion 只允许 tile、global 或 safe")
+    if not 0.0 <= float(pipeline.get("score_threshold", -1.0)) <= 1.0:
+        raise ValueError(f"{name}.score_threshold 必须在 [0, 1]")
+    output_threshold = pipeline.get("output_score_threshold")
+    owner_slack = pipeline.get("owner_logit_slack")
+    safe_category_ids = pipeline.get("threshold_safe_category_ids")
+    if output_threshold is not None:
+        value = float(output_threshold)
+        if (
+            str(pipeline.get("fusion")) != "safe"
+            or not math.isfinite(value)
+            or not float(pipeline["score_threshold"]) <= value <= 1.0
+        ):
+            raise ValueError(
+                f"{name}.output_score_threshold 仅适用于 safe，且必须不低于候选底阈值"
+            )
+    if owner_slack is not None:
+        value = float(owner_slack)
+        if output_threshold is None or not math.isfinite(value) or value < 0.0:
+            raise ValueError(
+                f"{name}.owner_logit_slack 必须非负且要求 output_score_threshold"
+            )
+    if safe_category_ids is not None:
+        if (
+            output_threshold is None
+            or not isinstance(safe_category_ids, list)
+            or not safe_category_ids
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value < 0
+                for value in safe_category_ids
+            )
+            or len(set(safe_category_ids)) != len(safe_category_ids)
+        ):
+            raise ValueError(
+                f"{name}.threshold_safe_category_ids 必须是非空、无重复的"
+                "非负整数列表，且要求 output_score_threshold"
+            )
+
+
 def load_submission_config(path: str | Path) -> dict[str, Any]:
     """读取并校验部署配置；不允许运行时静默猜测权重或设备。"""
     config_path = Path(path)
@@ -65,39 +160,11 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
     model = _as_mapping(config.get("model"), "model")
     pipeline = _as_mapping(config.get("pipeline"), "pipeline")
 
-    if str(model.get("family", "")).lower() != "yolo":
-        raise ValueError("当前赛事部署入口只允许 model.family=yolo")
-    weight_path = Path(str(model.get("weight_path", "")))
-    if not weight_path.is_absolute():
-        raise ValueError("model.weight_path 必须是容器内绝对路径")
-    expected_sha = str(model.get("expected_sha256", "")).strip().lower()
-    if len(expected_sha) != 64 or any(
-        character not in "0123456789abcdef" for character in expected_sha
-    ):
-        raise ValueError("model.expected_sha256 必须是 64 位十六进制 SHA256")
-    if int(model.get("imgsz", 0)) <= 0:
-        raise ValueError("model.imgsz 必须 > 0")
-    if not 0.0 <= float(model.get("confidence", -1.0)) <= 1.0:
-        raise ValueError("model.confidence 必须在 [0, 1]")
-    if not 0.0 <= float(model.get("iou", -1.0)) <= 1.0:
-        raise ValueError("model.iou 必须在 [0, 1]")
-    if int(model.get("max_detections", 0)) <= 0:
-        raise ValueError("model.max_detections 必须 > 0")
-    rot90_views = model.get("rot90_views", [0])
-    if (
-        not isinstance(rot90_views, list)
-        or not rot90_views
-        or any(isinstance(value, bool) or not isinstance(value, int) for value in rot90_views)
-        or any(value not in {0, 1, 2, 3} for value in rot90_views)
-        or len(set(rot90_views)) != len(rot90_views)
-    ):
-        raise ValueError("model.rot90_views 必须是 [0,1,2,3] 的非空无重复子集")
-    if 0 not in rot90_views:
-        raise ValueError("model.rot90_views 必须包含恒等视图 0")
-    tta_nms_iou = float(model.get("tta_nms_iou", 0.55))
-    if not 0.0 <= tta_nms_iou <= 1.0:
-        raise ValueError("model.tta_nms_iou 必须在 [0, 1]")
+    _validate_yolo_model_section(model, "model")
     agreement_model = config.get("agreement_model")
+    resolution_expert = config.get("resolution_expert_model")
+    if agreement_model is not None and resolution_expert is not None:
+        raise ValueError("agreement_model 与 resolution_expert_model 不允许同时启用")
     if agreement_model is not None:
         agreement_model = _as_mapping(agreement_model, "agreement_model")
         if str(agreement_model.get("family", "")).lower() != "dfine":
@@ -130,51 +197,131 @@ def load_submission_config(path: str | Path) -> dict[str, Any]:
             raise ValueError("agreement_model.apply_labels 不允许重复")
         agreement_mode = str(agreement_model.get("mode", "multiplicative"))
         if agreement_mode not in {"multiplicative", "vehicle_reject_rescue"}:
-            raise ValueError(
-                "agreement_model.mode 只允许 multiplicative 或 vehicle_reject_rescue"
-            )
+            raise ValueError("agreement_model.mode 只允许 multiplicative 或 vehicle_reject_rescue")
         if agreement_mode == "vehicle_reject_rescue":
             VehicleRescueConfig(
                 vehicle_label=int(agreement_model.get("vehicle_label", 24)),
                 core_threshold=float(agreement_model["core_threshold"]),
                 candidate_floor=float(agreement_model["candidate_floor"]),
                 support_iou=float(agreement_model["support_iou"]),
-                rescue_product_threshold=float(
-                    agreement_model["rescue_product_threshold"]
-                ),
+                rescue_product_threshold=float(agreement_model["rescue_product_threshold"]),
                 promoted_score=float(agreement_model["promoted_score"]),
             )
 
-    tile_size = int(pipeline.get("tile_size", 0))
-    overlap = int(pipeline.get("overlap", -1))
-    if tile_size <= 0 or not 0 <= overlap < tile_size:
-        raise ValueError("pipeline 必须满足 tile_size > overlap >= 0")
-    if int(pipeline.get("batch_size", 0)) <= 0:
-        raise ValueError("pipeline.batch_size 必须 > 0")
-    if str(pipeline.get("fusion", "")) not in {"tile", "global", "safe"}:
-        raise ValueError("pipeline.fusion 只允许 tile、global 或 safe")
-    if not 0.0 <= float(pipeline.get("score_threshold", -1.0)) <= 1.0:
-        raise ValueError("pipeline.score_threshold 必须在 [0, 1]")
+    _validate_pipeline_section(pipeline, "pipeline")
+    post_threshold = config.get("post_fusion_score_threshold")
+    if post_threshold is not None:
+        value = float(post_threshold)
+        if not math.isfinite(value) or not float(pipeline["score_threshold"]) <= value <= 1:
+            raise ValueError("post_fusion_score_threshold 必须有限且不低于候选底阈值")
+        if resolution_expert is not None or any(
+            pipeline.get(k) is not None
+            for k in ("score_threshold_by_coarse", "score_threshold_by_fine")
+        ):
+            raise ValueError("融合后统一阈值不能混合分辨率路由或类别阈值")
+        output_threshold = pipeline.get("output_score_threshold")
+        if output_threshold is not None and not math.isclose(
+            float(output_threshold), value, rel_tol=0.0, abs_tol=1e-12
+        ):
+            raise ValueError(
+                "BATIS output_score_threshold 必须与 post_fusion_score_threshold 相等"
+            )
     coarse_thresholds = pipeline.get("score_threshold_by_coarse")
     if coarse_thresholds is not None:
-        coarse_thresholds = _as_mapping(
-            coarse_thresholds, "pipeline.score_threshold_by_coarse"
-        )
+        coarse_thresholds = _as_mapping(coarse_thresholds, "pipeline.score_threshold_by_coarse")
         if set(coarse_thresholds) != set(COARSE_NAMES):
             raise ValueError(
                 "pipeline.score_threshold_by_coarse 必须恰好覆盖 ship/aircraft/vehicle"
             )
         for name, value in coarse_thresholds.items():
             if not 0.0 <= float(value) <= 1.0:
-                raise ValueError(
-                    f"pipeline.score_threshold_by_coarse.{name} 必须在 [0, 1]"
-                )
+                raise ValueError(f"pipeline.score_threshold_by_coarse.{name} 必须在 [0, 1]")
     fine_thresholds = pipeline.get("score_threshold_by_fine")
     if fine_thresholds is not None:
         normalize_fine_thresholds(
             _as_mapping(fine_thresholds, "pipeline.score_threshold_by_fine"),
             require_complete=True,
         )
+    if resolution_expert is not None:
+        expert = _as_mapping(resolution_expert, "resolution_expert_model")
+        _validate_yolo_model_section(expert, "resolution_expert_model")
+        expert_pipeline = _as_mapping(
+            config.get("resolution_expert_pipeline"), "resolution_expert_pipeline"
+        )
+        _validate_pipeline_section(expert_pipeline, "resolution_expert_pipeline")
+        route = _as_mapping(config.get("resolution_route"), "resolution_route")
+        parsed_route = ResolutionLabelRoute(
+            primary_labels=frozenset(route.get("primary_labels", [])),
+            expert_labels=frozenset(route.get("expert_labels", [])),
+            primary_threshold=float(route.get("primary_threshold", -1.0)),
+            expert_threshold=float(route.get("expert_threshold", -1.0)),
+        )
+        rescue_raw = config.get("resolution_primary_rescue")
+        if rescue_raw is not None:
+            rescue = _as_mapping(rescue_raw, "resolution_primary_rescue")
+            parsed_rescue = PrimaryLabelRescue(
+                labels=frozenset(rescue.get("labels", [])),
+                threshold=float(rescue.get("threshold", -1.0)),
+                dedup_iou=float(rescue.get("dedup_iou", -1.0)),
+            )
+            if not parsed_rescue.labels <= parsed_route.expert_labels:
+                raise ValueError(
+                    "resolution_primary_rescue.labels 必须属于 resolution_route.expert_labels"
+                )
+            if float(pipeline["score_threshold"]) > parsed_rescue.threshold:
+                raise ValueError(
+                    "pipeline.score_threshold 不能高于 primary rescue threshold"
+                )
+        for section_name, section, threshold in (
+            ("pipeline", pipeline, parsed_route.primary_threshold),
+            (
+                "resolution_expert_pipeline",
+                expert_pipeline,
+                parsed_route.expert_threshold,
+            ),
+        ):
+            if (
+                section.get("score_threshold_by_coarse") is not None
+                or section.get("score_threshold_by_fine") is not None
+            ):
+                raise ValueError(
+                    f"{section_name} 的类别阈值必须关闭；分支阈值只能由 resolution_route 在融合后执行"
+                )
+            if float(section["score_threshold"]) > threshold:
+                raise ValueError(
+                    f"{section_name}.score_threshold 不能高于对应的 resolution_route 融合后阈值"
+                )
+    elif config.get("resolution_primary_rescue") is not None:
+        raise ValueError("resolution_primary_rescue 只能与 resolution_expert_model 一起启用")
+    aircraft_classifier = config.get("aircraft_classifier_model")
+    if aircraft_classifier is not None:
+        aircraft_classifier = _as_mapping(
+            aircraft_classifier, "aircraft_classifier_model"
+        )
+        full_state = bool(aircraft_classifier.get("checkpoint_contains_full_state", False))
+        path_fields = ["weight_path"]
+        sha_fields = ["expected_sha256"]
+        if not full_state:
+            path_fields.append("imagenet_weight_path")
+            sha_fields.append("imagenet_expected_sha256")
+        for field in path_fields:
+            if not Path(str(aircraft_classifier.get(field, ""))).is_absolute():
+                raise ValueError(f"aircraft_classifier_model.{field} 必须是容器内绝对路径")
+        for field in sha_fields:
+            value = str(aircraft_classifier.get(field, "")).lower()
+            if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+                raise ValueError(f"aircraft_classifier_model.{field} 必须是 SHA256")
+        if str(aircraft_classifier.get("method", "")) != "view_consistency_d4":
+            raise ValueError("aircraft_classifier_model.method 只允许 view_consistency_d4")
+        if int(aircraft_classifier.get("batch_objects", 0)) <= 0:
+            raise ValueError("aircraft_classifier_model.batch_objects 必须 > 0")
+        for field in ("channels_last", "tensorized_views"):
+            value = aircraft_classifier.get(field, False)
+            if not isinstance(value, bool):
+                raise ValueError(f"aircraft_classifier_model.{field} 必须是布尔值")
+        for field in ("relabel_min_probability", "nms_iou"):
+            if not 0.0 <= float(aircraft_classifier.get(field, -1.0)) <= 1.0:
+                raise ValueError(f"aircraft_classifier_model.{field} 必须在 [0, 1]")
     return config
 
 
@@ -257,9 +404,7 @@ class _SubmissionYoloDetector(BaseDetector):
         restored[3] = min(max(restored[3], 0.0), float(height))
         return restored
 
-    def _predict_view(
-        self, batch: Sequence[InferenceSample], rotation: int
-    ) -> list[Any]:
+    def _predict_view(self, batch: Sequence[InferenceSample], rotation: int) -> list[Any]:
         if self.model is None:
             raise RuntimeError("YOLO 权重尚未加载")
         sources = []
@@ -496,6 +641,63 @@ class _SubmissionAgreementDetector(BaseDetector):
         ]
 
 
+def _pipeline_config_from_mapping(pipeline: Mapping[str, Any], name: str) -> PipelineConfig:
+    return PipelineConfig(
+        tile_size=int(pipeline["tile_size"]),
+        overlap=int(pipeline["overlap"]),
+        batch_size=int(pipeline["batch_size"]),
+        score_threshold=float(pipeline["score_threshold"]),
+        score_threshold_by_coarse=(
+            None
+            if pipeline.get("score_threshold_by_coarse") is None
+            else {
+                str(key): float(value)
+                for key, value in _as_mapping(
+                    pipeline["score_threshold_by_coarse"],
+                    f"{name}.score_threshold_by_coarse",
+                ).items()
+            }
+        ),
+        score_threshold_by_fine=normalize_fine_thresholds(
+            None
+            if pipeline.get("score_threshold_by_fine") is None
+            else _as_mapping(
+                pipeline["score_threshold_by_fine"],
+                f"{name}.score_threshold_by_fine",
+            ),
+            require_complete=pipeline.get("score_threshold_by_fine") is not None,
+        ),
+        fine_nms_iou=float(pipeline.get("fine_nms_iou", 0.55)),
+        coarse_nms_iou=(
+            None
+            if pipeline.get("coarse_nms_iou") is None
+            else float(pipeline.get("coarse_nms_iou", 0.85))
+        ),
+        max_detections=int(pipeline.get("max_detections", 2000)),
+        fusion=str(pipeline["fusion"]),
+        cluster_eps=float(pipeline.get("cluster_eps", 50.0)),
+        merge_iou=float(pipeline.get("merge_iou", 0.3)),
+        nms_iou=float(pipeline.get("nms_iou", 0.5)),
+        merge_ios=float(pipeline.get("merge_ios", 0.75)),
+        border_margin=float(pipeline.get("border_margin", 8.0)),
+        output_score_threshold=(
+            None
+            if pipeline.get("output_score_threshold") is None
+            else float(pipeline["output_score_threshold"])
+        ),
+        owner_logit_slack=(
+            None
+            if pipeline.get("owner_logit_slack") is None
+            else float(pipeline["owner_logit_slack"])
+        ),
+        threshold_safe_category_ids=(
+            None
+            if pipeline.get("threshold_safe_category_ids") is None
+            else tuple(int(value) for value in pipeline["threshold_safe_category_ids"])
+        ),
+    )
+
+
 class CompetitionDetector:
     """一次加载权重、逐图返回官方 objects 列表。"""
 
@@ -513,8 +715,25 @@ class CompetitionDetector:
             raise RuntimeError(
                 f"模型权重 SHA256 不匹配: expected={expected_sha}, actual={actual_sha}"
             )
-        primary = _SubmissionYoloDetector(model_config, self.device)
-        primary.load(str(weight_path))
+        if model_config.get("inference_adapter") == "shared_offline":
+            # Opt-in only: reproduce the candidate generator that made the
+            # frozen offline ledger. In particular, do not append legacy TTA NMS.
+            from rsdet.models.ultralytics_adapter import UltralyticsDetector
+
+            primary = UltralyticsDetector(
+                family="yolo", imgsz=int(model_config["imgsz"]),
+                confidence=float(model_config["confidence"]),
+                iou=float(model_config["iou"]),
+                max_detections=int(model_config["max_detections"]),
+                half=bool(model_config.get("half", True)), agnostic_nms=False,
+            )
+            primary.load(str(weight_path))
+            raw_names = getattr(primary._model, "names", {})
+            if tuple(str(raw_names[i]) for i in range(len(raw_names))) != FINE_NAMES:
+                raise RuntimeError("权重类别表与赛事 25 类合同不一致")
+        else:
+            primary = _SubmissionYoloDetector(model_config, self.device)
+            primary.load(str(weight_path))
         agreement_config_raw = self.config.get("agreement_model")
         if agreement_config_raw is None:
             self.detector = primary
@@ -560,57 +779,87 @@ class CompetitionDetector:
                     specialist,
                     support_iou=float(agreement_config["support_iou"]),
                     apply_labels=[
-                        int(label)
-                        for label in agreement_config.get("apply_labels", [24])
+                        int(label) for label in agreement_config.get("apply_labels", [24])
                     ],
                 )
-        self.detector.to(self.device)
-        self.detector.eval()
+        self.resolution_runtime: DualPipelineResolutionRuntime | None = None
         pipeline = _as_mapping(self.config["pipeline"], "pipeline")
-        self.pipeline_config = PipelineConfig(
-            tile_size=int(pipeline["tile_size"]),
-            overlap=int(pipeline["overlap"]),
-            batch_size=int(pipeline["batch_size"]),
-            score_threshold=float(pipeline["score_threshold"]),
-            score_threshold_by_coarse=(
-                None
-                if pipeline.get("score_threshold_by_coarse") is None
-                else {
-                    str(name): float(value)
-                    for name, value in _as_mapping(
-                        pipeline["score_threshold_by_coarse"],
-                        "pipeline.score_threshold_by_coarse",
-                    ).items()
-                }
-            ),
-            score_threshold_by_fine=normalize_fine_thresholds(
-                None
-                if pipeline.get("score_threshold_by_fine") is None
-                else _as_mapping(
-                    pipeline["score_threshold_by_fine"],
-                    "pipeline.score_threshold_by_fine",
+        self.pipeline_config = _pipeline_config_from_mapping(pipeline, "pipeline")
+        resolution_config_raw = self.config.get("resolution_expert_model")
+        if resolution_config_raw is None:
+            self.detector.to(self.device)
+            self.detector.eval()
+        else:
+            expert_config = _as_mapping(resolution_config_raw, "resolution_expert_model")
+            expert_weight = Path(str(expert_config["weight_path"]))
+            if not expert_weight.is_file():
+                raise FileNotFoundError(
+                    f"resolution_expert_model.weight_path 不存在: {expert_weight}"
+                )
+            expert_sha = _sha256(expert_weight)
+            if expert_sha != str(expert_config["expected_sha256"]).lower():
+                raise RuntimeError("resolution expert 权重 SHA256 不匹配")
+            expert = _SubmissionYoloDetector(expert_config, self.device)
+            expert.load(str(expert_weight))
+            expert_pipeline_raw = _as_mapping(
+                self.config["resolution_expert_pipeline"],
+                "resolution_expert_pipeline",
+            )
+            route_raw = _as_mapping(self.config["resolution_route"], "resolution_route")
+            rescue_raw = self.config.get("resolution_primary_rescue")
+            primary_rescue = None
+            if rescue_raw is not None:
+                rescue_config = _as_mapping(rescue_raw, "resolution_primary_rescue")
+                primary_rescue = PrimaryLabelRescue(
+                    labels=frozenset(rescue_config["labels"]),
+                    threshold=float(rescue_config["threshold"]),
+                    dedup_iou=float(rescue_config["dedup_iou"]),
+                )
+            self.resolution_runtime = DualPipelineResolutionRuntime(
+                primary,
+                expert,
+                primary_pipeline=self.pipeline_config,
+                expert_pipeline=_pipeline_config_from_mapping(
+                    expert_pipeline_raw, "resolution_expert_pipeline"
                 ),
-                require_complete=pipeline.get("score_threshold_by_fine") is not None,
-            ),
-            fine_nms_iou=float(pipeline.get("fine_nms_iou", 0.55)),
-            coarse_nms_iou=(
-                None
-                if pipeline.get("coarse_nms_iou") is None
-                else float(pipeline.get("coarse_nms_iou", 0.85))
-            ),
-            max_detections=int(pipeline.get("max_detections", 2000)),
-            fusion=str(pipeline["fusion"]),
-            cluster_eps=float(pipeline.get("cluster_eps", 50.0)),
-            merge_iou=float(pipeline.get("merge_iou", 0.3)),
-            nms_iou=float(pipeline.get("nms_iou", 0.5)),
-            merge_ios=float(pipeline.get("merge_ios", 0.75)),
-            border_margin=float(pipeline.get("border_margin", 8.0)),
-        )
+                route=ResolutionLabelRoute(
+                    primary_labels=frozenset(route_raw["primary_labels"]),
+                    expert_labels=frozenset(route_raw["expert_labels"]),
+                    primary_threshold=float(route_raw["primary_threshold"]),
+                    expert_threshold=float(route_raw["expert_threshold"]),
+                ),
+                primary_rescue=primary_rescue,
+            )
+            self.resolution_runtime.to(self.device)
+            self.resolution_runtime.eval()
         if int(pipeline["tile_size"]) > int(model_config["imgsz"]):
             print(
                 "[submission][warning] tile is downscaled before inference: "
                 f"tile_size={pipeline['tile_size']} imgsz={model_config['imgsz']}",
                 flush=True,
+            )
+        self.aircraft_classifier: AircraftD4ClassifierRuntime | None = None
+        aircraft_classifier_raw = self.config.get("aircraft_classifier_model")
+        if aircraft_classifier_raw is not None:
+            aircraft_classifier = _as_mapping(
+                aircraft_classifier_raw, "aircraft_classifier_model"
+            )
+            asset_fields = [("weight_path", "expected_sha256")]
+            if not bool(
+                aircraft_classifier.get("checkpoint_contains_full_state", False)
+            ):
+                asset_fields.append(
+                    ("imagenet_weight_path", "imagenet_expected_sha256")
+                )
+            for path_field, sha_field in asset_fields:
+                path = Path(str(aircraft_classifier[path_field]))
+                if not path.is_file():
+                    raise FileNotFoundError(f"aircraft classifier asset missing: {path}")
+                actual = _sha256(path)
+                if actual != str(aircraft_classifier[sha_field]).lower():
+                    raise RuntimeError(f"aircraft classifier asset SHA mismatch: {path}")
+            self.aircraft_classifier = AircraftD4ClassifierRuntime(
+                aircraft_classifier, self.device
             )
         print(
             f"[submission] model loaded: {weight_path.name} sha256={actual_sha} "
@@ -620,12 +869,26 @@ class CompetitionDetector:
 
     def predict(self, image: Image.Image) -> list[dict[str, Any]]:
         rgb = np.asarray(image, dtype=np.uint8).copy()
-        prediction, _ = run_pipeline(
-            rgb,
-            self.detector,
-            config=self.pipeline_config,
-            parent_image_id=0,
-        )
+        if self.resolution_runtime is None:
+            prediction, _ = run_pipeline(
+                rgb,
+                self.detector,
+                config=self.pipeline_config,
+                parent_image_id=0,
+            )
+        else:
+            prediction, _ = self.resolution_runtime.predict_image(rgb, parent_image_id=0)
+        aircraft_classifier = getattr(self, "aircraft_classifier", None)
+        if aircraft_classifier is not None:
+            # D4 never changes scores and its same-class NMS is score-descending.
+            # Filtering the final workpoint first is therefore output-equivalent,
+            # while avoiding crop/classification work for rejected proposals.
+            post_threshold = self.config.get("post_fusion_score_threshold")
+            if post_threshold is not None:
+                prediction = filter_prediction_by_score(
+                    prediction, float(post_threshold)
+                )
+            prediction = aircraft_classifier.refine(rgb, prediction)
         objects: list[dict[str, Any]] = []
         order = sorted(
             range(len(prediction.scores)),
@@ -640,6 +903,9 @@ class CompetitionDetector:
                 raise ValueError(f"模型输出非法 category_id={label}")
             if not math.isfinite(score) or not 0.0 <= score <= 1.0:
                 raise ValueError(f"模型输出非法 score={score}")
+            post_threshold = self.config.get("post_fusion_score_threshold")
+            if post_threshold is not None and score < float(post_threshold):
+                continue
             if len(box) != 4 or not all(math.isfinite(value) for value in box):
                 raise ValueError(f"模型输出非法 bbox={box}")
             x1 = max(0.0, min(box[0], float(width)))
@@ -665,7 +931,11 @@ def discover_images(input_dir: str | Path) -> list[Path]:
     if not root.is_dir():
         raise NotADirectoryError(f"输入目录不存在: {root}")
     paths = sorted(
-        path for path in root.iterdir() if path.is_file() and path.suffix.lower() in IMAGE_EXTS
+        path
+        for path in root.iterdir()
+        if path.is_file()
+        and not path.name.startswith(".")
+        and path.suffix.lower() in IMAGE_EXTS
     )
     stems = [path.stem for path in paths]
     if len(stems) != len(set(stems)):

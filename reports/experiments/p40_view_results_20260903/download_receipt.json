@@ -1,0 +1,334 @@
+{
+  "captured_utc": "2026-09-03T16:19:30.603403+00:00",
+  "transport": "authenticated SSH; original run files not modified",
+  "files": {
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/base/fold_0/predictions.json": {
+      "sha256": "2d74dc8b3d567e33bf973ad46c322c033f66b1387dd68e0f8e11963a1f488922",
+      "bytes": 1307184
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/base/fold_1/predictions.json": {
+      "sha256": "f48432a18aef3700629a6ff63997fc365c37954836c2f8525bebed883b8f5a31",
+      "bytes": 1167748
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/base/fold_2/predictions.json": {
+      "sha256": "322cb241c250102d193d9842e644b1761bc686f60058889173e6b2c3f8b35003",
+      "bytes": 1474635
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/base/predictions.json": {
+      "sha256": "69e7bf44fe2dad9a8830da07029db6f71386aaac0bcf88f057df029badb5c7ba",
+      "bytes": 3949561
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/base/run_summary.json": {
+      "sha256": "779bc5a2b0a9f0b9d20c88c39a9597b6c297a0c80fc05a10179c9787ff6c2667",
+      "bytes": 4229
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/base.log": {
+      "sha256": "660e24f43df15b3ff2673d657b17f76df01d41b3470dba5b29f1cf4a1ddf82ab",
+      "bytes": 5489
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/candidate_predictions.json": {
+      "sha256": "ee2700d7113b003e399ca6c9f6c790b54b8c81ac904169953661cfe33309716a",
+      "bytes": 362689
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/comparison.json": {
+      "sha256": "f21050df1e60d5ca96784de775cefea996562dea338711de6d5829b0baa7c687",
+      "bytes": 21162
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/preflight.json": {
+      "sha256": "e9b8f24bbc9dc01357e5408a827c791f932e2b6e4d3c678411e9c96c3632682d",
+      "bytes": 94383
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/status.txt": {
+      "sha256": "1da67a258ebd31b7e7791948c98e42c73dee2dd57b4a10e639bab1e525678858",
+      "bytes": 36
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/zoom/fold_0/predictions.json": {
+      "sha256": "a7e5b934051be5a6ab86d1a4c5c3b12b2672c8038cf9846d14fc0cd800e8031e",
+      "bytes": 1718787
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/zoom/fold_1/predictions.json": {
+      "sha256": "7322bd320adf1fc93c4a81a81e8837a72ab77675ff99804dff49a5323374b92e",
+      "bytes": 1717042
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/zoom/fold_2/predictions.json": {
+      "sha256": "2600ec9838c98ec155a3c03a62a1ec9fa8d2109a16597b1ed26bc49bef9a2d4a",
+      "bytes": 1713999
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/zoom/predictions.json": {
+      "sha256": "5d7c0ec498c680d1655a1d7b1c89a0b1c6fff3af0b2971cbc4fb7638e5576118",
+      "bytes": 5149822
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/zoom/run_summary.json": {
+      "sha256": "42c74f0d6f40d40247e3902c4071f304aee9ea2ccc2107ba89d89a0a2e80b142",
+      "bytes": 4246
+    },
+    "P40-VEHICLE-ZOOM-RESCUE-V1/hard/zoom.log": {
+      "sha256": "281df2512421b88a8eabf4e59104f6c67b0377e00ec340b4b8cd7a32f21f9c68",
+      "bytes": 5512
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/base/fold_0/predictions.json": {
+      "sha256": "2d74dc8b3d567e33bf973ad46c322c033f66b1387dd68e0f8e11963a1f488922",
+      "bytes": 1307184
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/base/fold_1/predictions.json": {
+      "sha256": "f48432a18aef3700629a6ff63997fc365c37954836c2f8525bebed883b8f5a31",
+      "bytes": 1167748
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/base/fold_2/predictions.json": {
+      "sha256": "322cb241c250102d193d9842e644b1761bc686f60058889173e6b2c3f8b35003",
+      "bytes": 1474635
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/base/predictions.json": {
+      "sha256": "69e7bf44fe2dad9a8830da07029db6f71386aaac0bcf88f057df029badb5c7ba",
+      "bytes": 3949561
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/base/run_summary.json": {
+      "sha256": "77549e7b972fc2d9f78b9b04778a7acedf01e33dee91c772a6ec4e61919990f6",
+      "bytes": 4248
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/base.log": {
+      "sha256": "f21d094f5af5a009d962842a9cdf988eb30138434915c50882a35ad43c868913",
+      "bytes": 5508
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/candidate_predictions.json": {
+      "sha256": "30ee1aca90397ef0c34f317be1e97a7554e545d9580cf208463915203cf6f2e2",
+      "bytes": 398731
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/comparison.json": {
+      "sha256": "475149d23ad5cb0260cf8eb12705094a6c91b3b9ebd243dcb2aa2da1bbd1a399",
+      "bytes": 15456
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/preflight.json": {
+      "sha256": "84cd1226672f4de3569f8cdefe47186f59e9aa41508e50b41871ed767c6448f8",
+      "bytes": 95106
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/rot90/fold_0/predictions.json": {
+      "sha256": "467eb510fab850df9df0082f410cf78dfe9e23078e364460b3db74250ce5bcda",
+      "bytes": 1324332
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/rot90/fold_1/predictions.json": {
+      "sha256": "d3b41566510e224ebe58a590db887195ac2d2bcf2286f6903d33827bd194d73d",
+      "bytes": 1212145
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/rot90/fold_2/predictions.json": {
+      "sha256": "b65bb36d39e3079e1065db162ea2f7506ceb3f78a312e6ce182376b341e44e64",
+      "bytes": 1530379
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/rot90/predictions.json": {
+      "sha256": "11943e7d2a49561e2bd407ae217ba97a372a11a194935f846e3bd04800dbfcc2",
+      "bytes": 4066850
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/rot90/run_summary.json": {
+      "sha256": "a8344c4e494aadfcda83752a07c7046078639ddd55d218a95eb094e461c0920a",
+      "bytes": 4248
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/rot90.log": {
+      "sha256": "30ba3ed0758e458145ad82e91e75aad8ded72a97879d1709259b7b5b78a860b7",
+      "bytes": 5508
+    },
+    "P40-ROT90-COMPLEMENT-V1/hard/status.txt": {
+      "sha256": "25a7620cc36f0b2b126ce32594de77135de37cf73a36b32ffeff03af55875c99",
+      "bytes": 36
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/calibration/models.json": {
+      "sha256": "bae678f27ca698d442f344ea125931d69477840020cb1b113f57cac0190034f3",
+      "bytes": 9321
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/fold_0_predictions.json": {
+      "sha256": "655bf445063260371896f7a407d33e3ac68f6402e75f6c3dc64048da6a83807c",
+      "bytes": 5261585
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/fold_1_predictions.json": {
+      "sha256": "94dea2f23e475a9953f20bb686c5873a394afa686e182d7e05936054257fac01",
+      "bytes": 4556427
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/fold_2_predictions.json": {
+      "sha256": "a08348b286f710433c94df12ed32e7b3ce7ed8ace9bd0e713fe00d5e6d70702b",
+      "bytes": 5068373
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/hard/comparison.json": {
+      "sha256": "b9bd769fa11530a2d1732c28c5e17de4a4772ea8249a2e40c20da8a1853d84be",
+      "bytes": 14482
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/predictions.json": {
+      "sha256": "8a8a63dedeb5b55bb0c51ee1b887f9b20fec51b8ae33cc637ffb73cab8927e0b",
+      "bytes": 14886383
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/preflight.json": {
+      "sha256": "26e0b43940d9735f18c1aecddc909430ad48877f85610b5b76cd0f9c5ee843c2",
+      "bytes": 610174
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/status.txt": {
+      "sha256": "eb6d2ba32571abecac7efe479f5d345c4cb7bf7a9ec454ba40a573f878a6474c",
+      "bytes": 52
+    },
+    "P40-ROT90-SUPPORTED-RESCUE-V1/summary.json": {
+      "sha256": "a45ce871a40675d3b41f6efdd1b9551b97ba2573f389f088de26748959cdf00e",
+      "bytes": 305
+    },
+    "P40-AIRCRAFT-CE-D4-V1/comparison.json": {
+      "sha256": "896804eceb740af8d128c0e53d458dd16946174eea7c4442cd49370ba08a303f",
+      "bytes": 19760
+    },
+    "P40-AIRCRAFT-CE-D4-V1/preflight.json": {
+      "sha256": "8d6d4d1636a6015f530276f901c3747b1abeb0f8c2f2d5c7ab2967331b5060b4",
+      "bytes": 95104
+    },
+    "P40-AIRCRAFT-CE-D4-V1/probabilities.json": {
+      "sha256": "68e3627d648224b135da8d354f26ad84bfb58469238f1233456255ead289847c",
+      "bytes": 510940
+    },
+    "P40-AIRCRAFT-CE-D4-V1/sentinel/comparison.json": {
+      "sha256": "f760cb10548b5a381c88d8046c3d095d19a4dd4a121473f89d314508bd54a6cd",
+      "bytes": 19710
+    },
+    "P40-AIRCRAFT-CE-D4-V1/sentinel/preflight.json": {
+      "sha256": "66ec9b9534c2b8833b853e3b1fcde5fa7439af3e2f40ae9a636f0f6073e42d51",
+      "bytes": 95104
+    },
+    "P40-AIRCRAFT-CE-D4-V1/sentinel/probabilities.json": {
+      "sha256": "8038cf8443295076333dd81e0762375688193fae003d003629361d931dca23af",
+      "bytes": 450273
+    },
+    "P40-AIRCRAFT-CE-D4-V1/sentinel/status.txt": {
+      "sha256": "e9376567eb124953300a7dd3c453b292b7ec3656d960bdaf8387f9b165e8112c",
+      "bytes": 41
+    },
+    "P40-AIRCRAFT-CE-D4-V1/status.txt": {
+      "sha256": "4977e642bcb807757d173d6b21eccb18968f0aff32e8075c14dc0b026ea22a17",
+      "bytes": 34
+    },
+    "P40-AIRCRAFT-CE-D4-NORMAL-V1/comparison.json": {
+      "sha256": "ce50139c7709e2d701eed3cc9a997a716dea4ffde7c33265485fdbd98eddcfe2",
+      "bytes": 19705
+    },
+    "P40-AIRCRAFT-CE-D4-NORMAL-V1/preflight.json": {
+      "sha256": "d66fd7986a6e3bf06803ddfb5a9c825e1fd92c2cc803e2172521f2678955467f",
+      "bytes": 95104
+    },
+    "P40-AIRCRAFT-CE-D4-NORMAL-V1/probabilities.json": {
+      "sha256": "02024166b182de48d2b76806e6cfb2b7c1fec14a86e5ce0898e502941c02335c",
+      "bytes": 8824981
+    },
+    "P40-AIRCRAFT-CE-D4-NORMAL-V1/status.txt": {
+      "sha256": "fccbb5e99fcf60e2fd1e9435a6e9fc41da35afdf2b1274e3f253b0843688b0f4",
+      "bytes": 57
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/hard/comparison.json": {
+      "sha256": "27fd3d1eff2372fe6e7405bac504ad23de76fc544c8362c34f2c2395a3fdaffc",
+      "bytes": 19791
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/hard/preflight.json": {
+      "sha256": "eb0ccd137b58d2001dc24b0d9ecdadf4e3d3e2618231640041392a5641d39c3b",
+      "bytes": 95150
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/hard/probabilities.json": {
+      "sha256": "ae99ede82abee11ffa3b30f23acffb550c92ca46720397f183be95238fe2d06e",
+      "bytes": 511213
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/hard/status.txt": {
+      "sha256": "4977e642bcb807757d173d6b21eccb18968f0aff32e8075c14dc0b026ea22a17",
+      "bytes": 34
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/hard.log": {
+      "sha256": "4d194952a4a06d3379388d40bfa88fcf1a518bdbb78a31dd72ad3f0ec2ae977a",
+      "bytes": 382
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/sentinel/comparison.json": {
+      "sha256": "bf3103200e06fbf069f5aa33b9f5e4ed0f1a81fbfe59010b3b0be6cf44c06b2c",
+      "bytes": 19745
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/sentinel/preflight.json": {
+      "sha256": "fd71df79200251e67e16c38548a5c6facdb6b7bc68e4432ced9beebd73804efc",
+      "bytes": 95150
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/sentinel/probabilities.json": {
+      "sha256": "8429d82dfeade39665b9536244eba6701e306e0db4a7e13cfcffd07a197f64af",
+      "bytes": 450436
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/sentinel/status.txt": {
+      "sha256": "e9376567eb124953300a7dd3c453b292b7ec3656d960bdaf8387f9b165e8112c",
+      "bytes": 41
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/sentinel.log": {
+      "sha256": "b42f10f536fdef49143c44dfbf608d5c0c55c94d6eda838e3a87ad4e9e81fe31",
+      "bytes": 395
+    },
+    "P40-AIRCRAFT-CE-IDENTITY-V1/status.txt": {
+      "sha256": "2257c05537a032e7c132323893bcfaf82121df196b90910e5279e9aaf0f24aab",
+      "bytes": 48
+    },
+    "P40-AIRCRAFT-RUNTIME-V1/preflight.json": {
+      "sha256": "a5bca86433ae8e90195d036fd952627ec117de503a31961ff4c7c547f068e662",
+      "bytes": 95525
+    },
+    "P40-AIRCRAFT-RUNTIME-V1/runtime.json": {
+      "sha256": "0f1477be19999fb4eca3e2d6ad0798651c6ed4d8393be2d558c5bc5a59056ac7",
+      "bytes": 21331
+    },
+    "P40-AIRCRAFT-RUNTIME-V1/status.txt": {
+      "sha256": "6b9a44c28c511bc8d9faafe22d663b9af96b48be1724180ae346a9272cd05c35",
+      "bytes": 40
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/hard/comparison.json": {
+      "sha256": "d97ce51c0812c16c15cbd306263611f8a61b696c221cbd77bc0c98c6c03f679c",
+      "bytes": 21106
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/hard/preflight.json": {
+      "sha256": "8d5ae2b7c5cd8e46ba8f31a92608f451895f408756ca2aa0fbb9c51c634ec4ff",
+      "bytes": 95792
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/hard/probabilities.json": {
+      "sha256": "b60e81bc7164947e3203efd3bb2688c0ea4e0f52ec837942f3194db4781cb6c1",
+      "bytes": 511044
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/hard/status.txt": {
+      "sha256": "4977e642bcb807757d173d6b21eccb18968f0aff32e8075c14dc0b026ea22a17",
+      "bytes": 34
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/hard.log": {
+      "sha256": "05b09863f508809c140c2885b1cc424efab9f11f1fbb5d40856f0ec3623f9fa6",
+      "bytes": 385
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/sentinel/comparison.json": {
+      "sha256": "f1e82fd83101d37473989656be373f033636468afa0076cf7abcb7ebb2081656",
+      "bytes": 21053
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/sentinel/preflight.json": {
+      "sha256": "b5b730d82aea9cca40bf0dafefd812cb8252fe412b3ceafd7c112a5a94edae4a",
+      "bytes": 95792
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/sentinel/probabilities.json": {
+      "sha256": "5bee26ba7eaa1134770290e448edec3bebe0800ccdfef76e34a41db9978711ad",
+      "bytes": 450472
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/sentinel/status.txt": {
+      "sha256": "e9376567eb124953300a7dd3c453b292b7ec3656d960bdaf8387f9b165e8112c",
+      "bytes": 41
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/sentinel.log": {
+      "sha256": "74c97c1d73ad6133adbb49873570ee8c5f7bfb02ea1b72096beed775e75c91a8",
+      "bytes": 393
+    },
+    "P40-AIRCRAFT-VIEW-CONSISTENCY-V1/status.txt": {
+      "sha256": "89757e9069fef3729ffd885b4c89e3de21725adece5d3b71e17d545e17c8e2fc",
+      "bytes": 53
+    },
+    "P40-AIRCRAFT-CONSISTENCY-NORMAL-V1/comparison.json": {
+      "sha256": "4523694acdda7f3ab6d9e82044dc6132e690bf2b737602c000db701c26a0b11b",
+      "bytes": 20987
+    },
+    "P40-AIRCRAFT-CONSISTENCY-NORMAL-V1/preflight.json": {
+      "sha256": "55faa9eff8656e6a51babf5f26269cca4e5b1605e5f6b85bd133efda2e1690dc",
+      "bytes": 95596
+    },
+    "P40-AIRCRAFT-CONSISTENCY-NORMAL-V1/probabilities.json": {
+      "sha256": "486d42daa68214d161ba7cc02a67959622236ba5e7ba960dfb595997e60f3947",
+      "bytes": 8824646
+    },
+    "P40-AIRCRAFT-CONSISTENCY-NORMAL-V1/status.txt": {
+      "sha256": "fccbb5e99fcf60e2fd1e9435a6e9fc41da35afdf2b1274e3f253b0843688b0f4",
+      "bytes": 57
+    }
+  }
+}

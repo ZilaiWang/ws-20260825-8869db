@@ -1,0 +1,67 @@
+{
+  "schema_version": "hera_guard_batis_plan_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "baseline": {
+    "tile_size": 1024,
+    "overlap": 256,
+    "network_imgsz": 1280,
+    "candidate_floor": 0.001,
+    "output_threshold": 0.536,
+    "merge_iou": 0.5,
+    "merge_ios": 0.75,
+    "fine_nms_iou": 0.7,
+    "border_margin": 8.0
+  },
+  "experiments": [
+    {"id": "E0", "change": "instrumentation_only"},
+    {
+      "id": "E1A",
+      "change": "move_output_threshold_before_safe_fusion",
+      "candidate_floor": 0.536,
+      "output_threshold": 0.536
+    },
+    {
+      "id": "E1B",
+      "change": "low_floor_cluster_threshold_safe_canonical",
+      "candidate_floor": 0.001,
+      "output_threshold": 0.536,
+      "threshold_safe_category_ids": [0, 1, 2, 3, 24]
+    },
+    {
+      "id": "E2",
+      "change": "voronoi_owner_near_best_preference",
+      "candidate_floor": 0.001,
+      "output_threshold": 0.536,
+      "owner_logit_slack": 0.2,
+      "threshold_safe_category_ids": [0, 1, 2, 3, 24]
+    },
+    {
+      "id": "E3",
+      "change": "boundary_sparse_recenter",
+      "max_windows": 8,
+      "selected_labels": [0, 1, 2, 3, 24]
+    },
+    {
+      "id": "E4",
+      "change": "boundary_sparse_recenter",
+      "max_windows": 16,
+      "selected_labels": [0, 1, 2, 3, 24]
+    },
+    {"id": "E5", "change": "dense_overlap_control", "overlap": 320}
+  ],
+  "admission": {
+    "every_outer_fold_delta_score_gt": 0.0,
+    "source_group_bootstrap_p10_gt": 0.0,
+    "max_any_coarse_recall_drop_pp": 0.5,
+    "aircraft_d4_parity_required": true,
+    "background_fp_growth_max_fraction": 0.05,
+    "phase_worst_not_below_baseline": true,
+    "latency_target_seconds": 6.0,
+    "latency_hard_limit_seconds": 8.0
+  },
+  "stop_rules": {
+    "do_not_run_sparse_recenter_without_measured_fusion_or_phase_gap": true,
+    "pseudo10k_role": "engineering_only_not_semantic_admission",
+    "do_not_package_or_submit_automatically": true
+  }
+}

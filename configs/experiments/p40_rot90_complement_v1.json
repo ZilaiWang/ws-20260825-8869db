@@ -1,0 +1,28 @@
+{
+  "experiment_id": "P40-ROT90-COMPLEMENT-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "weights_sha256": [
+    "48434e5206058ed767abea1b2f1fbd5252daf131e09b095a68678c6e39ead5c1",
+    "1d65e9fde45e5f7d2c7909ef02baa81628f117453ed1d713cb9b96a433f97281",
+    "09787a83a6564dbcb084a2d90ca9f7468c19528d7d19203588c8e528f4f8decb"
+  ],
+  "frontier_sha256": "545e02b2d252909400ff5cf8f9ea7768bb8438dd99c6e26269fc0807132c81be",
+  "fdr_level": "0.150",
+  "ground_truth_sha256": {
+    "hard": "e02e139e5b7f440ee1107fa49c1673d9dc5dc40ed2b3e92de74af6460b885195",
+    "sentinel": "eb1f8850624d77252b568b3515b1953d57adbd6234eed1dec6b467ff5f48c211"
+  },
+  "base": {"imgsz": 1280, "tile_size": 1024, "overlap": 256, "tile_rotation": 0},
+  "auxiliary_view": "rot90",
+  "rot90": {"imgsz": 1280, "tile_size": 1024, "overlap": 256, "tile_rotation": 90},
+  "batch_size": 4,
+  "score_floor": 0.001,
+  "rescue_categories": "all_fine",
+  "dedup_rule": "same fine category, IoU>=0.50 ship/aircraft and >=0.35 vehicle",
+  "incumbent_policy": "Preserve all thresholded incumbent detections; append non-overlapping same-threshold rotated-view detections",
+  "threshold_source": "P40 Normal OOF crossfit FDR15, no target tuning",
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "exploration_only": true,
+  "no_training_no_full_no_docker_no_submission": true
+}

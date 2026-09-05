@@ -30,13 +30,15 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _metrics_payload(metrics: Any, ranking: Any, protocol: Any) -> dict[str, Any]:
+def _metrics_payload(
+    metrics: Any, ranking: Any, protocol: Any, latency_seconds: float | None = None
+) -> dict[str, Any]:
     platform = platform_metrics_payload(
         build_platform_observed_metrics(
             ranking,
             recall_min=protocol.recall_min,
             fdr_max=protocol.fdr_max,
-            latency_seconds=None,
+            latency_seconds=latency_seconds,
             latency_max_seconds=protocol.latency_max_seconds,
         )
     )
@@ -82,6 +84,11 @@ def main() -> int:
     parser.add_argument("--pred", type=Path, required=True)
     parser.add_argument("--threshold", type=float, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--latency-seconds", type=float)
+    parser.add_argument(
+        "--diagnostic-only", action="store_true",
+        help="Mark seen-source or exploratory results; never use these for admission.",
+    )
     parser.add_argument("--project-config", type=Path, default=Path("configs/project.yaml"))
     args = parser.parse_args()
     if not 0.0 <= args.threshold <= 1.0:
@@ -90,6 +97,10 @@ def main() -> int:
     protocol = parse_evaluation_protocol(load_config(args.project_config))
     gt = load_coco_ground_truth(args.gt)
     raw = load_coco_predictions(args.pred)
+    unknown = set(raw) - set(gt)
+    if unknown:
+        raise ValueError(f"predictions contain image ids outside GT: {sorted(unknown)[:10]}")
+    gt_document = json.loads(args.gt.read_text(encoding="utf-8"))
     pred = {
         image_id: [row for row in raw.get(image_id, []) if float(row["score"]) >= args.threshold]
         for image_id in gt
@@ -113,12 +124,21 @@ def main() -> int:
         "status": "complete",
         "protocol": "fixed_external_global_score_threshold_platform_observed_v2",
         "threshold": args.threshold,
+        "diagnostic_only": args.diagnostic_only,
+        "latency_seconds": args.latency_seconds,
+        "image_coverage": {
+            "images_manifest_present": isinstance(gt_document.get("images"), list),
+            "evaluated_images": len(gt),
+            "empty_gt_images": sum(not rows for rows in gt.values()),
+            "negative_coverage_known": isinstance(gt_document.get("images"), list),
+            "prediction_ids_outside_gt": 0,
+        },
         "input_sha256": {"gt": _sha256(args.gt), "pred": _sha256(args.pred)},
         "legacy_fields": (
             "recall/fdr and per_coarse are pooled diagnostics; macro_recall/macro_fdr "
             "are the 25-fine average and are not the platform gate"
         ),
-        **_metrics_payload(metrics, ranking, protocol),
+        **_metrics_payload(metrics, ranking, protocol, args.latency_seconds),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

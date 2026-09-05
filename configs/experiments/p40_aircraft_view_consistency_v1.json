@@ -1,0 +1,22 @@
+{
+  "experiment_id": "P40-AIRCRAFT-VIEW-CONSISTENCY-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "scope": "Only replace existing CE classifier by existing R1-5 view-consistency classifier; compare against CE-D4, not bare P40",
+  "parent_p40_contract": "configs/experiments/p40_rot90_complement_v1.json",
+  "classifier_contract": "configs/experiments/r1_aircraft_view_consistency_v1.yaml",
+  "classifier_method": "view_consistency",
+  "view_mode": "d4",
+  "relabel_min_probability": 0.9,
+  "preserve_detector_scores_and_boxes": true,
+  "ship_vehicle_bypass": true,
+  "aircraft_nms_iou": 0.5,
+  "batch_objects": 16,
+  "require_positive_reference": true,
+  "reference_sha256": {
+    "hard": "896804eceb740af8d128c0e53d458dd16946174eea7c4442cd49370ba08a303f",
+    "sentinel": "f760cb10548b5a381c88d8046c3d095d19a4dd4a121473f89d314508bd54a6cd"
+  },
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "no_training_no_full_no_docker_no_submission": true
+}

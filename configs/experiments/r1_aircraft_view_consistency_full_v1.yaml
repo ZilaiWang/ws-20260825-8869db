@@ -1,0 +1,37 @@
+contract_version: r1_aircraft_view_consistency_full_v1
+experiment_id: R1-5-AIRCRAFT-VIEW-CONSISTENCY-FULL
+
+inputs:
+  training_manifest_sha256: bf1bc8fe3db193dfaac6900ec35f0c1c9df16be25ed782535e13490de148e5a4
+  convnext_weight_sha256: 983f1562536e84ff750a1576fb08e54de751dbf2e17c0d8a4a13704341fdcd3d
+  p03_full_checkpoint_sha256: a2392b3434e92480ca8218adb47837f921fdc7383851f8d3451a95aa1a3014db
+  expected_training_aircraft_rows: 17948
+
+training:
+  initialization: P03_APEX_FULL_fixed_epoch30
+  epochs: 5
+  checkpoint_selection: fixed_epoch_last_no_validation
+  seed: 42
+  backbone_lr: 2.0e-5
+  head_lr: 1.0e-4
+  weight_decay: 0.05
+  label_smoothing: 0.05
+  grad_clip_norm: 1.0
+  view_consistency:
+    loss: symmetric_kl
+    loss_weight: 0.20
+    temperature: 1.0
+    pair_sampling: two_distinct_uniform_D4_views
+    schedule: constant
+
+runtime:
+  torch_version: 2.5.1
+  torchvision_version: 0.20.1
+  train_batch_size: 48
+  num_workers: 8
+  amp: fp16
+
+scientific_scope:
+  source_experiment: R1-5-AIRCRAFT-VIEW-CONSISTENCY
+  purpose: deployable full-data aircraft-only adapter
+  validation_or_checkpoint_selection: none

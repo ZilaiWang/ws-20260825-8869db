@@ -105,6 +105,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--imgsz", type=int, default=1024)
     parser.add_argument("--tile-size", type=int, default=1024)
     parser.add_argument("--overlap", type=int, default=256)
+    parser.add_argument("--tile-rotation", type=int, choices=(0, 90), default=0)
     parser.add_argument(
         "--score-transform",
         choices=("coarse_purity_sqrt",),
@@ -189,6 +190,9 @@ def main() -> int:
         detector.load(str(weight))
         detector.to(args.device)
         detector.eval()
+        if args.tile_rotation == 90:
+            from rsdet.models.rot90_view import Rot90ViewDetector
+            detector = Rot90ViewDetector(detector)
         print(
             f"[pseudo-eval] fold={fold} family={args.family} "
             f"images={len(image_paths)} weight_sha256={_sha256(weight)}",
@@ -276,6 +280,10 @@ def main() -> int:
         "status": "cv3_oof_pseudo_inference_complete",
         "protocol": "fold_heldout_multifamily_safe1024_pseudo10k_v1",
         "family": args.family,
+        "imgsz": args.imgsz,
+        "tile_rotation": args.tile_rotation,
+        "detector_max_detections": 300 if args.family == "rtdetr" else 500,
+        "half": True,
         "score_floor": args.score_floor,
         "coarse_label_space": bool(args.coarse_label_space),
         "score_transform": args.score_transform,

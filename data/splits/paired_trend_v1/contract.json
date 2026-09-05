@@ -1,0 +1,73 @@
+{
+  "version": "paired_trend_review_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "status": "data_frozen_baseline_training_pending",
+  "files": {
+    "confirmation_gt.json": "a10a3b4efd9f7e94efa735d73b9e6ba8ad105dfeddcab504e0e3f6ce22505234",
+    "development_gt.json": "a5ed05fed6f0eaed3ef276b12937f40afb0b9ace9f8d8f9d05aabb243e7f3159",
+    "manifest.json": "408c08f4a392ce67638981ea089795f986a25c63cac58c75c0d5fe74efa2b70e",
+    "support.json": "5ab5ed5c22ccea0b35a7075b92508e8bee80142755f462ec39ec119fc6863fa7",
+    "train_gt.json": "8618a430f64ca175753d644f9bed4984219d905b22b2884214f5b091f2e957f0"
+  },
+  "project_config_sha256": "25a73a9f1a4a96201ebb0a00ed81b1535b03b5c880703cdbc0795125c68a20c7",
+  "source_group_sha256": "27b2eef4d757d91c7759d5fde64232718ea423385f0cf63ff823fa338b577331",
+  "source_gt_sha256": "bbf8c42537e19de48cbc34c53c30b6137ef15d052dc37eebeacdbd61a8b0cdf8",
+  "split_audit": {
+    "selection_inputs": "source groups and GT labels only; no predictions",
+    "solver_status": 0,
+    "solver_message": "Optimization terminated successfully. (HiGHS Status 7: Optimal)",
+    "mip_gap": 0.009919321705020495,
+    "seed": 20260903,
+    "train_minimum_fraction_per_fine": 0.5,
+    "group_count": 255
+  },
+  "new_unseen_blind_dataset": false,
+  "limitation": "historically inspected official sources; fresh model holdouts, not new data",
+  "threshold_grid": {
+    "start": 0.001,
+    "stop": 1.0,
+    "step": 0.005
+  },
+  "deadband": 0.5,
+  "negative_images_in_score_test": 0,
+  "deployment_regression": {
+    "background_manifest_sha256": "ed3cbbe6952ea5a7792821a316bd3b0ed93888f74a50eda2630f630c9c9020e7",
+    "background_images": 382,
+    "background_megapixels": 100.139008,
+    "background_is_known_stress_test": true
+  },
+  "baseline": {
+    "official_initial_weight_sha256": "646f8bc3fe0a656803d95c294f7852321748cb29d13466a1af8862e2db384a1b",
+    "model": "YOLO26s",
+    "seed": 42,
+    "rotate90_p": 1.0,
+    "foundation": {
+      "epochs": 160,
+      "imgsz": 1024,
+      "batch": 12,
+      "lr0": 0.002,
+      "lrf": 0.01,
+      "warmup_epochs": 3,
+      "close_mosaic": 20
+    },
+    "adaptation": {
+      "epochs": 40,
+      "imgsz": 1280,
+      "batch": 8,
+      "lr0": 0.0002,
+      "lrf": 0.1,
+      "warmup_epochs": 1,
+      "close_mosaic": 40,
+      "mosaic": 0.0
+    },
+    "batch_note": "single-GPU stable reference; same maturity, not bitwise historical DDP"
+  },
+  "inference": {
+    "imgsz": 1280,
+    "score_floor": 0.001,
+    "iou": 0.7,
+    "max_det": 500,
+    "batch": 4,
+    "half": true
+  }
+}

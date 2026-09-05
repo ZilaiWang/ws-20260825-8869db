@@ -1,7 +1,7 @@
 # S1280 全量候选、风险边界与方案14闭环
 
 日期：2026-09-02  
-状态：`full_training_running_no_submission_authorized`
+状态：`full_and_cv3_complete_purity_rejected_no_submission_authorized`
 
 ## 1. 当前判断
 
@@ -72,6 +72,60 @@ S1280 fold1/2，GPU2 串行补 S1024 fold1/2；四个确认折仍是 40e/seed42/
 随后生成两模型各自的 4,481 图 outer-fold frontier 和逐细类配对报告，并单独复核
 `coarse_purity_sqrt`。该队列不修改 full 权重，不进行 Docker 打包或正式提交；任何
 中间失败均 fail closed，不会覆盖或 resume。
+
+2026-09-03 复核：full 已完成 160/160，`training_result.json` 和固定 last.pt 均存在，
+last.pt SHA256 为 `539ab9c9…ed0460`，结果 CSV SHA256 为 `7a8ad52a…4ed0460`。
+S1024/S1280 的 fold1/2 四个确认训练、推理和单折 frontier 也全部完成。原控制器随后
+在不影响上述产物的 `coarse_purity_sqrt` 推理中因 FP16/FP32 `torch.allclose` dtype
+不一致 fail closed；代码已统一转成 FP32 比较并通过专项测试，当前只恢复该推理和三折
+aggregate，没有重训任何模型。
+
+确认折各自 FDR15 单折 oracle 结果如下；这些阈值仍使用本折标签，只说明方向：
+
+| fold | S1024 R/FDR | S1280 R/FDR | Recall 差值 |
+|---|---|---|---:|
+| 0 | 51.143% / 14.251% | 59.406% / 14.718% | +8.263pp |
+| 1 | 54.261% / 14.558% | 60.431% / 14.601% | +6.170pp |
+| 2 | 39.139% / 7.528% | 41.787% / 14.370% | +2.648pp |
+
+三个折的 Recall 方向一致，但 fold2 付出明显 FDR 代价。是否准入必须读取即将生成的
+outer-fold cross-fit 结果，不能把三行 oracle 直接平均。
+
+### 4.1 最终 outer-fold cross-fit 结论
+
+恢复链已经完成，三折阈值均只由另外两折选择，`selection_uses_held_out_labels=false`。
+这里的 `FDR15` 是训练折选择目标，不表示 held-out 汇总 FDR 必然不超过 15%。最终结果：
+
+| 条件 | cross-fit 阈值 fold0/1/2 | Gate Recall | Gate FDR |
+|---|---|---:|---:|
+| S1024 | 0.646 / 0.646 / 0.481 | 43.440% | 17.119% |
+| S1280 | 0.706 / 0.706 / 0.436 | 47.544% | 17.869% |
+| S1280 - S1024 | — | **+4.104pp** | **+0.750pp** |
+
+按官方平台三个粗类宏平均口径拆分：
+
+| 粗类 | Recall 差值 | FDR 差值 | 判断 |
+|---|---:|---:|---|
+| Ship | -0.485pp | +1.529pp | 轻微退化 |
+| Aircraft | -3.870pp | -0.743pp | 精度改善但召回明显退化 |
+| Vehicle | +16.667pp | +1.463pp | 尺度增益强且跨折存在 |
+
+因此 S1280 不是“所有类别共同提升”的正式替代品，也不通过原始逐粗类退化不超过
+0.5pp 的严格准入门。它证明了 Vehicle 的尺度瓶颈真实存在，但同时把问题转移为
+Aircraft 召回损失和 Ship 稳定性风险。
+
+在两者假定相同时延时，按 2026-08-31 平台确认的七项等权绝对计分公式，S1280 的
+纯质量分只比 S1024 高约 `0.926` 分；其质量收益可容忍的额外时延上限约为 `6.481s`。
+这个计算只用于同一代理集内比较，不能当作隐藏集绝对分预测。正式候选仍需完成
+RTX 3090 Docker 时延和逐框一致性后才能决定是否值得消耗提交机会。
+
+### 4.2 `coarse_purity_sqrt` 最终结论
+
+独立恢复后的 purity 原型已完整运行。在 fold0 各自 oracle FDR15 工作点，相对 S1280
+identity 的 Gate Recall 为 `-1.611pp`，Gate FDR 为 `+0.078pp`；其中 Aircraft Recall
+`-6.075pp`，Vehicle FDR `+2.455pp`。该变换没有获得准入资格，永久停止，不进入 full
+权重、Docker 或任何组合。原始 R1 的失败仅是 FP16/FP32 一致性断言 dtype 不同；修复
+后 R2 完成，且确认失败结论来自算法指标而不是工程异常。
 
 ## 5. 完成后提交前的硬验收
 

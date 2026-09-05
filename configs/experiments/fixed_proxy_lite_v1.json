@@ -1,0 +1,17 @@
+{
+  "protocol": "fixed_proxy_lite_v1",
+  "metric_protocol": "platform_observed_20260831",
+  "primary": "existing Hard, fold-heldout P40-compatible lineage",
+  "confirmation": "existing source-disjoint Sentinel; historically inspected, not blind",
+  "normal_role": "calibration source and lineage check; reuse cached OOF when the method permits",
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "hard_gt_sha256": "e02e139e5b7f440ee1107fa49c1673d9dc5dc40ed2b3e92de74af6460b885195",
+  "sentinel_gt_sha256": "eb1f8850624d77252b568b3515b1953d57adbd6234eed1dec6b467ff5f48c211",
+  "full_training_automatic": false,
+  "deployment_automatic": false,
+  "threshold_selection_on_hard_or_sentinel": false,
+  "require_all_six_rates_improve": false,
+  "deployment_checks": "Only finalists: audited background, latency, output parity; reuse unchanged assets by SHA",
+  "known_limit": "Pragmatic reuse of historical stress proxies; not validated as a reliable official score predictor. Retain failed paired-A anchor."
+}

@@ -1,0 +1,54 @@
+{
+  "experiment_id": "HERA-GUARD-APEX-A0-A1-P40-CV3-V1",
+  "plan": "improvement_plan_16",
+  "purpose": "paired frozen-backbone screen before any expensive APEX fine-tuning",
+  "detector": "P40 progressive-resolution YOLO26-s CV3",
+  "proposal_targets": [0, 1, 2, 3, 24],
+  "candidate_floor": {
+    "ship": 0.003,
+    "vehicle": 0.001
+  },
+  "arms": {
+    "a0": "real proposal positives and negatives only",
+    "a1": "a0 plus LMP jitter hard negatives and fine/scale prototype margins",
+    "a1m": "a1 with weighted BCE and within-source score-near TP>FP ranking MLP",
+    "a2": "a0 plus MPSR-style object-scale positives",
+    "a3m": "matched MLP plus fully reviewed Background-100MP active-FP negatives",
+    "a4": "a1 plus a2; forbidden unless a1 and a2 independently pass"
+  },
+  "jitter_policy": {
+    "per_ground_truth": 3,
+    "ship_iou_band": [0.1, 0.42],
+    "vehicle_iou_band": [0.05, 0.28],
+    "other_ground_truth_iou_max": 0.1,
+    "training_only": true
+  },
+  "calibration": {
+    "split": "stable source-group hash modulo 5 equals zero",
+    "ship_rescue_precision_min": 0.95,
+    "vehicle_rescue_precision_min": 0.9,
+    "minimum_true_positives": 2,
+    "fail_closed_threshold": 1.1
+  },
+  "evaluation": {
+    "metric_protocol": "platform_observed_20260831",
+    "order": ["Normal-OOF", "Hard", "Sentinel-B"],
+    "reference": "same-fine NMS-only control",
+    "sentinel_requires_positive_hard_direction": true
+  },
+  "invariants": {
+    "boxes": "immutable",
+    "detector_scores": "immutable",
+    "fine_labels": "immutable",
+    "operation": "tail rescue only"
+  },
+  "coarse_module_policy": "ship and vehicle are admitted independently; a failed vehicle arm cannot invalidate or silently enter a passing ship arm",
+  "d4_policy": "D4 mean embedding is evaluated only after the identity Ship module is positive on Normal, Hard and Sentinel-B",
+  "background_policy": {
+    "required_review_status": "pass",
+    "visible_or_ambiguous_targets_remaining": 0,
+    "role": "classifier hard negative only",
+    "not_claimed_as": "mask-based Domain-RAG composite"
+  },
+  "not_formal_admission": true
+}

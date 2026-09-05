@@ -1,0 +1,53 @@
+{
+  "captured_at": "2026-09-03T18:56:51.443474+08:00",
+  "stages": {
+    "foundation": {
+      "rows": 10,
+      "last_epoch": 10,
+      "finite_losses": true,
+      "last_losses": {
+        "train/box_loss": "1.20999",
+        "train/cls_loss": "1.12653",
+        "train/dfl_loss": "0.00713"
+      },
+      "last_checkpoint_bytes": 80461240,
+      "args": {
+        "model": "/workspace/cv3-model-assets/yolo26s.pt",
+        "epochs": 160,
+        "batch": 12,
+        "imgsz": 1024,
+        "seed": 42,
+        "lr0": 0.002,
+        "lrf": 0.01,
+        "warmup_epochs": 3,
+        "close_mosaic": 20,
+        "mosaic": 1.0,
+        "val": false,
+        "resume": false,
+        "augmentations": [
+          "RandomRotate90(p=1.0)"
+        ],
+        "optimizer": "AdamW",
+        "cos_lr": true,
+        "amp": true,
+        "deterministic": true,
+        "data": "/root/autodl-tmp/results/PAIRED-TREND-BASELINE-V1/dataset.yaml"
+      },
+      "recent_epoch_seconds": 53.19999999999999,
+      "stage_remaining_minutes_estimate": 132.99999999999997
+    },
+    "adaptation": {
+      "status": "not_started"
+    }
+  },
+  "statuses": {
+    "PAIRED-TREND-REFERENCE-OPS-V1": "baseline_160_plus_40_and_quality_review",
+    "PAIRED-TREND-ANCHOR-OPS-V1": "waiting_for_reference_and_regression"
+  },
+  "gpu": "NVIDIA GeForce RTX 3090, 85 %, 9850 MiB, 24576 MiB",
+  "identity": {
+    "/root/autodl-tmp/results/PAIRED-TREND-BASELINE-V1/plan.json": "7e02c6b70083f8cd092c03f00bbcb5a44bee61b46244ee989ba9b2f7a363bea8",
+    "/root/autodl-tmp/results/PAIRED-TREND-ANCHOR-AUDIT-V1/contract.json": "694412a4b42c568fa573d5c6de0cf34adde05432269211b3e5dfc2c9766cfb48",
+    "/root/autodl-tmp/xh-paired-trend-v1/data/splits/paired_trend_v1/contract.json": "7b15b38136f1895aadcbd04fa86e5d618090c168c32007be3808b77a3f0e2846"
+  }
+}

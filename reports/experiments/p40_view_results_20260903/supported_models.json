@@ -1,0 +1,354 @@
+{
+  "status": "normal_only_crossfit_fit_complete",
+  "models": {
+    "0": {
+      "ship": {
+        "status": "fit",
+        "mean": [
+          0.6832234243328652,
+          0.9179507488638897,
+          0.24435861458939112,
+          4.745187826019038,
+          4.927145683035682
+        ],
+        "scale": [
+          0.08643764118207894,
+          0.09636354937105096,
+          0.2066080440213722,
+          0.6187441610549473,
+          0.5828325696394945
+        ],
+        "coef": [
+          0.29009763361628876,
+          0.18521542210052716,
+          0.17714608114471003,
+          0.33474088647451516,
+          0.22379446085498977
+        ],
+        "intercept": 0.9490695236006661,
+        "iterations": 5
+      },
+      "aircraft": {
+        "status": "fit",
+        "mean": [
+          0.7525803210178875,
+          0.9462091037396517,
+          0.2625624512082673,
+          4.607877430049239,
+          4.558767632673798
+        ],
+        "scale": [
+          0.11380616936221415,
+          0.07169610835737197,
+          0.17569794070886635,
+          0.45709847838249884,
+          0.4778070905199334
+        ],
+        "coef": [
+          0.6411339008830504,
+          0.2877227544548083,
+          0.18993348385013992,
+          0.4775680385315126,
+          -0.2060308076149964
+        ],
+        "intercept": 0.6234326012982188,
+        "iterations": 8
+      },
+      "vehicle": {
+        "status": "fit",
+        "mean": [
+          0.6491615032327587,
+          0.8856087997875284,
+          0.20278779391584725,
+          3.7823155430364213,
+          3.813140835292015
+        ],
+        "scale": [
+          0.07154021303258232,
+          0.06906368574563315,
+          0.18485368763515167,
+          0.2758671961009526,
+          0.27103979235898984
+        ],
+        "coef": [
+          1.0898875995409132,
+          -0.17027586557550525,
+          -0.4332629517099829,
+          0.25690465515131006,
+          -0.5650334901376117
+        ],
+        "intercept": 0.46806099424852904,
+        "iterations": 5
+      }
+    },
+    "1": {
+      "ship": {
+        "status": "fit",
+        "mean": [
+          0.6511941964285715,
+          0.9176313282617329,
+          0.24870120457240513,
+          4.813259396911139,
+          4.923099475365095
+        ],
+        "scale": [
+          0.09622171835247947,
+          0.05957541861820413,
+          0.18465052176432736,
+          0.5724076015098974,
+          0.5627700806749921
+        ],
+        "coef": [
+          0.4715926410926407,
+          0.18710443911499194,
+          0.017039797167233778,
+          0.15745607502318748,
+          0.16755150629435098
+        ],
+        "intercept": 0.9627542773083629,
+        "iterations": 5
+      },
+      "aircraft": {
+        "status": "fit",
+        "mean": [
+          0.7225775954445773,
+          0.9408005540006238,
+          0.24512059304512668,
+          4.591360532218259,
+          4.55329269059928
+        ],
+        "scale": [
+          0.12387775290787481,
+          0.0783327471393066,
+          0.17246629128019172,
+          0.4661365599670113,
+          0.46632677580783805
+        ],
+        "coef": [
+          0.7056295427140519,
+          0.1463903575573227,
+          0.3370744847451272,
+          0.2190570438031578,
+          0.027837001547600666
+        ],
+        "intercept": 0.500090533711999,
+        "iterations": 7
+      },
+      "vehicle": {
+        "status": "fit",
+        "mean": [
+          0.6237095424107143,
+          0.8834482847811496,
+          0.2632622037615095,
+          3.6328225361491544,
+          3.6584386254508794
+        ],
+        "scale": [
+          0.0801228306213995,
+          0.06954792790384084,
+          0.1701716204733718,
+          0.2942626332472364,
+          0.2856229508222372
+        ],
+        "coef": [
+          0.8003948934854643,
+          -0.05684554724754446,
+          -0.07369740882018154,
+          -0.1951959864488407,
+          0.4214279364021909
+        ],
+        "intercept": -0.0883326011087881,
+        "iterations": 7
+      }
+    },
+    "2": {
+      "ship": {
+        "status": "fit",
+        "mean": [
+          0.6513081644917582,
+          0.905802319644159,
+          0.22592781402252532,
+          4.712410812568617,
+          4.92037099115987
+        ],
+        "scale": [
+          0.09578670448265218,
+          0.10234649607623299,
+          0.18433946501544035,
+          0.622644177778944,
+          0.5759042102334134
+        ],
+        "coef": [
+          0.405107962686397,
+          0.24517375680893105,
+          0.20159517657309756,
+          0.14684170040632047,
+          0.2827686523743917
+        ],
+        "intercept": 0.7761619986895884,
+        "iterations": 5
+      },
+      "aircraft": {
+        "status": "fit",
+        "mean": [
+          0.7113969457431102,
+          0.9455819172817054,
+          0.2608514864613691,
+          4.474961593463497,
+          4.449115579410839
+        ],
+        "scale": [
+          0.12782320903604846,
+          0.06341724878612577,
+          0.16309198697884236,
+          0.4166801350027201,
+          0.42673472978265725
+        ],
+        "coef": [
+          0.7356563671766188,
+          0.03633065018755771,
+          0.1754621625171461,
+          -0.037361408447400095,
+          0.07079275432442127
+        ],
+        "intercept": 0.7339863280430513,
+        "iterations": 8
+      },
+      "vehicle": {
+        "status": "fit",
+        "mean": [
+          0.6111762152777778,
+          0.8790594286950139,
+          0.19260406494140625,
+          3.6958126440959025,
+          3.7101349949884663
+        ],
+        "scale": [
+          0.08418769436665502,
+          0.0734162976024792,
+          0.17017396654196376,
+          0.3303230350147521,
+          0.34408230709441856
+        ],
+        "coef": [
+          0.3614643040175476,
+          0.25232951514289426,
+          -0.21914633413611467,
+          0.041017076622126336,
+          -0.023564549721680247
+        ],
+        "intercept": 0.33221672398320246,
+        "iterations": 6
+      }
+    }
+  },
+  "support": {
+    "0": {
+      "ship": {
+        "positive": 126,
+        "negative": 52,
+        "fitting_images": 2974,
+        "excluded_fold": 0
+      },
+      "aircraft": {
+        "positive": 374,
+        "negative": 213,
+        "fitting_images": 2974,
+        "excluded_fold": 0
+      },
+      "vehicle": {
+        "positive": 17,
+        "negative": 12,
+        "fitting_images": 2974,
+        "excluded_fold": 0
+      }
+    },
+    "1": {
+      "ship": {
+        "positive": 124,
+        "negative": 51,
+        "fitting_images": 2868,
+        "excluded_fold": 1
+      },
+      "aircraft": {
+        "positive": 380,
+        "negative": 247,
+        "fitting_images": 2868,
+        "excluded_fold": 1
+      },
+      "vehicle": {
+        "positive": 20,
+        "negative": 22,
+        "fitting_images": 2868,
+        "excluded_fold": 1
+      }
+    },
+    "2": {
+      "ship": {
+        "positive": 122,
+        "negative": 60,
+        "fitting_images": 3120,
+        "excluded_fold": 2
+      },
+      "aircraft": {
+        "positive": 333,
+        "negative": 175,
+        "fitting_images": 3120,
+        "excluded_fold": 2
+      },
+      "vehicle": {
+        "positive": 26,
+        "negative": 19,
+        "fitting_images": 3120,
+        "excluded_fold": 2
+      }
+    }
+  },
+  "thresholds": {
+    "0": 0.546,
+    "1": 0.516,
+    "2": 0.501
+  },
+  "config": {
+    "experiment_id": "P40-ROT90-SUPPORTED-RESCUE-V1",
+    "stage": "normal_oof_auxiliary_collection_then_frozen_crossfit_rescue",
+    "parent_contract": "configs/experiments/p40_rot90_complement_v1.json",
+    "normal_gt_sha256": "c4290b542ffdafe62d5dbcb575f0b3431d46721bbcb366f8ef05291653fcb975",
+    "images": 4481,
+    "imgsz": 1280,
+    "rotation": 90,
+    "score_floor": 0.001,
+    "batch_size": 4,
+    "weight_selection": "fixed P40 CV3 last, by heldout image fold",
+    "base_predictions": "existing P40 Normal OOF, never full weights",
+    "planned_rescue": {
+      "incumbent": "all existing frozen-threshold detections unchanged",
+      "candidates": "rot90 above same fold threshold, not overlapping incumbent same-fine at official IoU",
+      "features": [
+        "rot90_score",
+        "best_identity_same_fine_iou",
+        "identity_score_at_best_iou",
+        "log1p_width",
+        "log1p_height"
+      ],
+      "learner": "StandardScaler + LogisticRegression C=1 max_iter=1000 seed=42, one per coarse",
+      "crossfit": "fit other two Normal folds only, apply to held-out fold and its Hard/Sentinel images",
+      "minimum_positive_and_negative": 10,
+      "on_insufficient_support": "abstain_from_rescue",
+      "probability_threshold": 0.9,
+      "no_parameter_grid": true
+    },
+    "hard_quality_delta_min_exclusive": 0.5,
+    "sentinel_quality_delta_min_exclusive": 0.0,
+    "no_full_no_docker_no_submission": true
+  },
+  "config_sha256": "c795388ad3aa64b40c1cbc348fdd1a74eabc31c4fc3fa593e4de46f249479437",
+  "inputs_sha256": {
+    "gt": "c4290b542ffdafe62d5dbcb575f0b3431d46721bbcb366f8ef05291653fcb975",
+    "base": "e96870c9e10bdd8022846b03ed40ec7700c822be81433d74c4245cad7cedfdbc",
+    "auxiliary": "8a8a63dedeb5b55bb0c51ee1b887f9b20fec51b8ae33cc637ffb73cab8927e0b"
+  },
+  "fit_hard_sentinel": false,
+  "not_nested_detector_retraining": true,
+  "formal_admission": false
+}

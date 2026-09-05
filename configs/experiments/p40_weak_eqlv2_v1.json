@@ -1,0 +1,45 @@
+{
+  "experiment_id": "P40-WEAK-EQLV2-V1",
+  "metric_protocol": "platform_observed_20260831",
+  "baseline": "P40 CV3 40+40 natural-sampling adaptation",
+  "evidence": "RFS raised weak-class recall but failed quality; at incumbent thresholds Ship macro recall rose 3.81pp with slightly lower Ship FDR, motivating loss-side rather than sampling-side gradient balance",
+  "only_factor": "classification loss elements for fine classes 0,1,2,3,24 use targeted EQLv2; all other classes use exact BCE",
+  "source_weight_sha256": [
+    "928a333f416f47f109b283644ef8f4a120b98b9310357fceddeb856e3eb9368d",
+    "76d63f51b50f5b43969371f8852376b6136eb683b0f38f962c9257ab6ac42946",
+    "d4bddcabd44cb53d85c7007c2623337b3ddd18ad528fafd3c5905722aa7ce6e4"
+  ],
+  "classification_loss": {
+    "method": "targeted_eqlv2_v1",
+    "focus_class_indices": [0, 1, 2, 3, 24],
+    "gamma": 12.0,
+    "mu": 0.8,
+    "alpha": 4.0,
+    "soft_task_aligned_targets_preserved": true,
+    "gradient_statistics": "weighted absolute logit gradient, accumulated independently in one2many and one2one branches",
+    "other_class_elements": "unchanged_bce"
+  },
+  "sampling": "natural_unchanged_no_replacement",
+  "epochs": 40,
+  "imgsz": 1280,
+  "batch": 8,
+  "workers": 4,
+  "seed": 42,
+  "lr0": 0.0002,
+  "lrf": 0.10,
+  "optimizer": "AdamW",
+  "mosaic": 0.0,
+  "rotate90_p": 1.0,
+  "selection": "fixed last epoch; no validation selection",
+  "normal_role": "candidate OOF calibration with the same other-two-fold FDR15 selector",
+  "hard_quality_delta_min_exclusive": 0.5,
+  "sentinel_quality_delta_min_exclusive": 0.0,
+  "no_threshold_fit_on_hard_or_sentinel": true,
+  "no_full_no_docker_no_submission": true,
+  "single_factor": true,
+  "limitations": [
+    "targeted application is an audited adaptation of EQLv2 to this 25-class sigmoid detector, not a claim of reproducing every reference implementation detail",
+    "40+40 research lineage differs from deployed full160+40",
+    "all 25-class outputs are evaluated; no posthoc class routing hides regressions"
+  ]
+}

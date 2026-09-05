@@ -1,0 +1,878 @@
+{
+  "status": "complete",
+  "experiment_id": "P40-AIRCRAFT-CE-D4-V1",
+  "original_baseline": {
+    "platform": {
+      "metric_protocol": "platform_observed_20260831",
+      "per_coarse": {
+        "ship": {
+          "macro_recall": 0.4256864863840153,
+          "macro_fdr": 0.07060338928470797
+        },
+        "aircraft": {
+          "macro_recall": 0.8016522334552472,
+          "macro_fdr": 0.1527650897415418
+        },
+        "vehicle": {
+          "macro_recall": 0.22826086956521738,
+          "macro_fdr": 0.2631578947368421
+        }
+      },
+      "gate_recall": 0.4851998631348266,
+      "gate_fdr": 0.1621754579210306,
+      "recall_pass": false,
+      "fdr_pass": true,
+      "latency_pass": null,
+      "absolute_score": null,
+      "score_payload": null,
+      "ranking_overall_is_not_platform_gate": true,
+      "pooled_counts_are_diagnostic_only": true
+    },
+    "pooled_diagnostic": {
+      "recall": 0.6686746987951807,
+      "fdr": 0.14463544754001187,
+      "per_class": {
+        "ship": {
+          "tp": 557,
+          "fp": 104,
+          "fn": 397
+        },
+        "aircraft": {
+          "tp": 844,
+          "fp": 125,
+          "fn": 176
+        },
+        "vehicle": {
+          "tp": 42,
+          "fp": 15,
+          "fn": 142
+        }
+      },
+      "details": {
+        "tp": 1443,
+        "fp": 244,
+        "fn": 715,
+        "total_gt": 2158,
+        "total_pred": 1687,
+        "matching_policy": "same_fine_category_id",
+        "aggregation_policy": "fine_match_then_coarse_and_overall",
+        "iou_thresholds": {
+          "ship": 0.5,
+          "aircraft": 0.5,
+          "vehicle": 0.35
+        },
+        "empty_gt_recall_policy": 1.0,
+        "empty_prediction_fdr_policy": 0.0
+      }
+    },
+    "per_fine": {
+      "3": {
+        "category_id": 3,
+        "coarse_class": "ship",
+        "tp": 419,
+        "fp": 88,
+        "fn": 276
+      },
+      "2": {
+        "category_id": 2,
+        "coarse_class": "ship",
+        "tp": 131,
+        "fp": 16,
+        "fn": 99
+      },
+      "1": {
+        "category_id": 1,
+        "coarse_class": "ship",
+        "tp": 3,
+        "fp": 0,
+        "fn": 15
+      },
+      "0": {
+        "category_id": 0,
+        "coarse_class": "ship",
+        "tp": 4,
+        "fp": 0,
+        "fn": 7
+      },
+      "10": {
+        "category_id": 10,
+        "coarse_class": "aircraft",
+        "tp": 21,
+        "fp": 2,
+        "fn": 5
+      },
+      "7": {
+        "category_id": 7,
+        "coarse_class": "aircraft",
+        "tp": 48,
+        "fp": 0,
+        "fn": 5
+      },
+      "20": {
+        "category_id": 20,
+        "coarse_class": "aircraft",
+        "tp": 55,
+        "fp": 0,
+        "fn": 5
+      },
+      "21": {
+        "category_id": 21,
+        "coarse_class": "aircraft",
+        "tp": 11,
+        "fp": 1,
+        "fn": 3
+      },
+      "23": {
+        "category_id": 23,
+        "coarse_class": "aircraft",
+        "tp": 38,
+        "fp": 6,
+        "fn": 8
+      },
+      "11": {
+        "category_id": 11,
+        "coarse_class": "aircraft",
+        "tp": 43,
+        "fp": 1,
+        "fn": 7
+      },
+      "6": {
+        "category_id": 6,
+        "coarse_class": "aircraft",
+        "tp": 34,
+        "fp": 7,
+        "fn": 2
+      },
+      "17": {
+        "category_id": 17,
+        "coarse_class": "aircraft",
+        "tp": 50,
+        "fp": 3,
+        "fn": 12
+      },
+      "12": {
+        "category_id": 12,
+        "coarse_class": "aircraft",
+        "tp": 57,
+        "fp": 2,
+        "fn": 3
+      },
+      "19": {
+        "category_id": 19,
+        "coarse_class": "aircraft",
+        "tp": 100,
+        "fp": 5,
+        "fn": 4
+      },
+      "13": {
+        "category_id": 13,
+        "coarse_class": "aircraft",
+        "tp": 57,
+        "fp": 1,
+        "fn": 4
+      },
+      "22": {
+        "category_id": 22,
+        "coarse_class": "aircraft",
+        "tp": 41,
+        "fp": 12,
+        "fn": 14
+      },
+      "4": {
+        "category_id": 4,
+        "coarse_class": "aircraft",
+        "tp": 59,
+        "fp": 7,
+        "fn": 11
+      },
+      "16": {
+        "category_id": 16,
+        "coarse_class": "aircraft",
+        "tp": 61,
+        "fp": 9,
+        "fn": 10
+      },
+      "5": {
+        "category_id": 5,
+        "coarse_class": "aircraft",
+        "tp": 69,
+        "fp": 5,
+        "fn": 2
+      },
+      "15": {
+        "category_id": 15,
+        "coarse_class": "aircraft",
+        "tp": 16,
+        "fp": 8,
+        "fn": 0
+      },
+      "8": {
+        "category_id": 8,
+        "coarse_class": "aircraft",
+        "tp": 60,
+        "fp": 28,
+        "fn": 26
+      },
+      "9": {
+        "category_id": 9,
+        "coarse_class": "aircraft",
+        "tp": 6,
+        "fp": 0,
+        "fn": 16
+      },
+      "14": {
+        "category_id": 14,
+        "coarse_class": "aircraft",
+        "tp": 8,
+        "fp": 14,
+        "fn": 3
+      },
+      "18": {
+        "category_id": 18,
+        "coarse_class": "aircraft",
+        "tp": 10,
+        "fp": 14,
+        "fn": 36
+      },
+      "24": {
+        "category_id": 24,
+        "coarse_class": "vehicle",
+        "tp": 42,
+        "fp": 15,
+        "fn": 142
+      }
+    }
+  },
+  "nms_only_control": {
+    "platform": {
+      "metric_protocol": "platform_observed_20260831",
+      "per_coarse": {
+        "ship": {
+          "macro_recall": 0.4256864863840153,
+          "macro_fdr": 0.07060338928470797
+        },
+        "aircraft": {
+          "macro_recall": 0.8016522334552472,
+          "macro_fdr": 0.15185797798537343
+        },
+        "vehicle": {
+          "macro_recall": 0.22826086956521738,
+          "macro_fdr": 0.2631578947368421
+        }
+      },
+      "gate_recall": 0.4851998631348266,
+      "gate_fdr": 0.16187308733564118,
+      "recall_pass": false,
+      "fdr_pass": true,
+      "latency_pass": null,
+      "absolute_score": null,
+      "score_payload": null,
+      "ranking_overall_is_not_platform_gate": true,
+      "pooled_counts_are_diagnostic_only": true
+    },
+    "pooled_diagnostic": {
+      "recall": 0.6686746987951807,
+      "fdr": 0.14412811387900357,
+      "per_class": {
+        "ship": {
+          "tp": 557,
+          "fp": 104,
+          "fn": 397
+        },
+        "aircraft": {
+          "tp": 844,
+          "fp": 124,
+          "fn": 176
+        },
+        "vehicle": {
+          "tp": 42,
+          "fp": 15,
+          "fn": 142
+        }
+      },
+      "details": {
+        "tp": 1443,
+        "fp": 243,
+        "fn": 715,
+        "total_gt": 2158,
+        "total_pred": 1686,
+        "matching_policy": "same_fine_category_id",
+        "aggregation_policy": "fine_match_then_coarse_and_overall",
+        "iou_thresholds": {
+          "ship": 0.5,
+          "aircraft": 0.5,
+          "vehicle": 0.35
+        },
+        "empty_gt_recall_policy": 1.0,
+        "empty_prediction_fdr_policy": 0.0
+      }
+    },
+    "per_fine": {
+      "3": {
+        "category_id": 3,
+        "coarse_class": "ship",
+        "tp": 419,
+        "fp": 88,
+        "fn": 276
+      },
+      "2": {
+        "category_id": 2,
+        "coarse_class": "ship",
+        "tp": 131,
+        "fp": 16,
+        "fn": 99
+      },
+      "1": {
+        "category_id": 1,
+        "coarse_class": "ship",
+        "tp": 3,
+        "fp": 0,
+        "fn": 15
+      },
+      "0": {
+        "category_id": 0,
+        "coarse_class": "ship",
+        "tp": 4,
+        "fp": 0,
+        "fn": 7
+      },
+      "10": {
+        "category_id": 10,
+        "coarse_class": "aircraft",
+        "tp": 21,
+        "fp": 2,
+        "fn": 5
+      },
+      "7": {
+        "category_id": 7,
+        "coarse_class": "aircraft",
+        "tp": 48,
+        "fp": 0,
+        "fn": 5
+      },
+      "20": {
+        "category_id": 20,
+        "coarse_class": "aircraft",
+        "tp": 55,
+        "fp": 0,
+        "fn": 5
+      },
+      "21": {
+        "category_id": 21,
+        "coarse_class": "aircraft",
+        "tp": 11,
+        "fp": 1,
+        "fn": 3
+      },
+      "23": {
+        "category_id": 23,
+        "coarse_class": "aircraft",
+        "tp": 38,
+        "fp": 6,
+        "fn": 8
+      },
+      "11": {
+        "category_id": 11,
+        "coarse_class": "aircraft",
+        "tp": 43,
+        "fp": 1,
+        "fn": 7
+      },
+      "6": {
+        "category_id": 6,
+        "coarse_class": "aircraft",
+        "tp": 34,
+        "fp": 7,
+        "fn": 2
+      },
+      "17": {
+        "category_id": 17,
+        "coarse_class": "aircraft",
+        "tp": 50,
+        "fp": 2,
+        "fn": 12
+      },
+      "12": {
+        "category_id": 12,
+        "coarse_class": "aircraft",
+        "tp": 57,
+        "fp": 2,
+        "fn": 3
+      },
+      "19": {
+        "category_id": 19,
+        "coarse_class": "aircraft",
+        "tp": 100,
+        "fp": 5,
+        "fn": 4
+      },
+      "13": {
+        "category_id": 13,
+        "coarse_class": "aircraft",
+        "tp": 57,
+        "fp": 1,
+        "fn": 4
+      },
+      "22": {
+        "category_id": 22,
+        "coarse_class": "aircraft",
+        "tp": 41,
+        "fp": 12,
+        "fn": 14
+      },
+      "4": {
+        "category_id": 4,
+        "coarse_class": "aircraft",
+        "tp": 59,
+        "fp": 7,
+        "fn": 11
+      },
+      "16": {
+        "category_id": 16,
+        "coarse_class": "aircraft",
+        "tp": 61,
+        "fp": 9,
+        "fn": 10
+      },
+      "5": {
+        "category_id": 5,
+        "coarse_class": "aircraft",
+        "tp": 69,
+        "fp": 5,
+        "fn": 2
+      },
+      "15": {
+        "category_id": 15,
+        "coarse_class": "aircraft",
+        "tp": 16,
+        "fp": 8,
+        "fn": 0
+      },
+      "8": {
+        "category_id": 8,
+        "coarse_class": "aircraft",
+        "tp": 60,
+        "fp": 28,
+        "fn": 26
+      },
+      "9": {
+        "category_id": 9,
+        "coarse_class": "aircraft",
+        "tp": 6,
+        "fp": 0,
+        "fn": 16
+      },
+      "14": {
+        "category_id": 14,
+        "coarse_class": "aircraft",
+        "tp": 8,
+        "fp": 14,
+        "fn": 3
+      },
+      "18": {
+        "category_id": 18,
+        "coarse_class": "aircraft",
+        "tp": 10,
+        "fp": 14,
+        "fn": 36
+      },
+      "24": {
+        "category_id": 24,
+        "coarse_class": "vehicle",
+        "tp": 42,
+        "fp": 15,
+        "fn": 142
+      }
+    }
+  },
+  "candidate": {
+    "platform": {
+      "metric_protocol": "platform_observed_20260831",
+      "per_coarse": {
+        "ship": {
+          "macro_recall": 0.4256864863840153,
+          "macro_fdr": 0.07060338928470797
+        },
+        "aircraft": {
+          "macro_recall": 0.8508721761368072,
+          "macro_fdr": 0.07333057491777362
+        },
+        "vehicle": {
+          "macro_recall": 0.22826086956521738,
+          "macro_fdr": 0.2631578947368421
+        }
+      },
+      "gate_recall": 0.5016065106953466,
+      "gate_fdr": 0.13569728631310787,
+      "recall_pass": false,
+      "fdr_pass": true,
+      "latency_pass": null,
+      "absolute_score": null,
+      "score_payload": null,
+      "ranking_overall_is_not_platform_gate": true,
+      "pooled_counts_are_diagnostic_only": true
+    },
+    "pooled_diagnostic": {
+      "recall": 0.6946246524559777,
+      "fdr": 0.10614192009540847,
+      "per_class": {
+        "ship": {
+          "tp": 557,
+          "fp": 104,
+          "fn": 397
+        },
+        "aircraft": {
+          "tp": 900,
+          "fp": 59,
+          "fn": 120
+        },
+        "vehicle": {
+          "tp": 42,
+          "fp": 15,
+          "fn": 142
+        }
+      },
+      "details": {
+        "tp": 1499,
+        "fp": 178,
+        "fn": 659,
+        "total_gt": 2158,
+        "total_pred": 1677,
+        "matching_policy": "same_fine_category_id",
+        "aggregation_policy": "fine_match_then_coarse_and_overall",
+        "iou_thresholds": {
+          "ship": 0.5,
+          "aircraft": 0.5,
+          "vehicle": 0.35
+        },
+        "empty_gt_recall_policy": 1.0,
+        "empty_prediction_fdr_policy": 0.0
+      }
+    },
+    "per_fine": {
+      "3": {
+        "category_id": 3,
+        "coarse_class": "ship",
+        "tp": 419,
+        "fp": 88,
+        "fn": 276
+      },
+      "2": {
+        "category_id": 2,
+        "coarse_class": "ship",
+        "tp": 131,
+        "fp": 16,
+        "fn": 99
+      },
+      "1": {
+        "category_id": 1,
+        "coarse_class": "ship",
+        "tp": 3,
+        "fp": 0,
+        "fn": 15
+      },
+      "0": {
+        "category_id": 0,
+        "coarse_class": "ship",
+        "tp": 4,
+        "fp": 0,
+        "fn": 7
+      },
+      "10": {
+        "category_id": 10,
+        "coarse_class": "aircraft",
+        "tp": 21,
+        "fp": 2,
+        "fn": 5
+      },
+      "7": {
+        "category_id": 7,
+        "coarse_class": "aircraft",
+        "tp": 50,
+        "fp": 0,
+        "fn": 3
+      },
+      "20": {
+        "category_id": 20,
+        "coarse_class": "aircraft",
+        "tp": 55,
+        "fp": 0,
+        "fn": 5
+      },
+      "21": {
+        "category_id": 21,
+        "coarse_class": "aircraft",
+        "tp": 11,
+        "fp": 2,
+        "fn": 3
+      },
+      "23": {
+        "category_id": 23,
+        "coarse_class": "aircraft",
+        "tp": 38,
+        "fp": 4,
+        "fn": 8
+      },
+      "11": {
+        "category_id": 11,
+        "coarse_class": "aircraft",
+        "tp": 44,
+        "fp": 0,
+        "fn": 6
+      },
+      "6": {
+        "category_id": 6,
+        "coarse_class": "aircraft",
+        "tp": 34,
+        "fp": 4,
+        "fn": 2
+      },
+      "17": {
+        "category_id": 17,
+        "coarse_class": "aircraft",
+        "tp": 62,
+        "fp": 1,
+        "fn": 0
+      },
+      "12": {
+        "category_id": 12,
+        "coarse_class": "aircraft",
+        "tp": 57,
+        "fp": 2,
+        "fn": 3
+      },
+      "19": {
+        "category_id": 19,
+        "coarse_class": "aircraft",
+        "tp": 100,
+        "fp": 4,
+        "fn": 4
+      },
+      "13": {
+        "category_id": 13,
+        "coarse_class": "aircraft",
+        "tp": 57,
+        "fp": 0,
+        "fn": 4
+      },
+      "22": {
+        "category_id": 22,
+        "coarse_class": "aircraft",
+        "tp": 46,
+        "fp": 5,
+        "fn": 9
+      },
+      "4": {
+        "category_id": 4,
+        "coarse_class": "aircraft",
+        "tp": 61,
+        "fp": 6,
+        "fn": 9
+      },
+      "18": {
+        "category_id": 18,
+        "coarse_class": "aircraft",
+        "tp": 28,
+        "fp": 0,
+        "fn": 18
+      },
+      "16": {
+        "category_id": 16,
+        "coarse_class": "aircraft",
+        "tp": 62,
+        "fp": 2,
+        "fn": 9
+      },
+      "5": {
+        "category_id": 5,
+        "coarse_class": "aircraft",
+        "tp": 69,
+        "fp": 4,
+        "fn": 2
+      },
+      "15": {
+        "category_id": 15,
+        "coarse_class": "aircraft",
+        "tp": 16,
+        "fp": 7,
+        "fn": 0
+      },
+      "8": {
+        "category_id": 8,
+        "coarse_class": "aircraft",
+        "tp": 74,
+        "fp": 14,
+        "fn": 12
+      },
+      "9": {
+        "category_id": 9,
+        "coarse_class": "aircraft",
+        "tp": 7,
+        "fp": 0,
+        "fn": 15
+      },
+      "14": {
+        "category_id": 14,
+        "coarse_class": "aircraft",
+        "tp": 8,
+        "fp": 2,
+        "fn": 3
+      },
+      "24": {
+        "category_id": 24,
+        "coarse_class": "vehicle",
+        "tp": 42,
+        "fp": 15,
+        "fn": 142
+      }
+    }
+  },
+  "review": {
+    "stage": "hard",
+    "baseline_quality_contribution": 44.78844153594643,
+    "candidate_quality_contribution": 47.552847884157096,
+    "delta_quality": 2.764406348210663,
+    "minimum_exclusive": 0.5,
+    "direction_pass": true,
+    "next_action": "evaluate_frozen_sentinel",
+    "formal_admission": false,
+    "quality_excludes_latency": true,
+    "not_an_official_score_prediction": true
+  },
+  "changed_fine_labels": 69,
+  "aircraft_proposals": 969,
+  "elapsed_load_decode_classify_seconds": 19.255904858000576,
+  "not_end_to_end_latency": true,
+  "classifier_provenance": {
+    "0": {
+      "checkpoint_sha256": "ff58ecbbfa370b2e17157f2cd314371db4ebd1cf662234b6c153f0d36c72e8a7",
+      "source_p03_checkpoint_sha256": "243d96481f4c6b8c0048c72484b5f395cd2f0c5ba55d103c9b6b665ac4981f54",
+      "embedded_config": {
+        "contract_version": "r1_aircraft_refinement_v1",
+        "experiment_id": "R1-1-AIRCRAFT-PROPOSAL-REFINEMENT",
+        "held_out_fold": 0,
+        "selection_folds": [
+          1,
+          2
+        ],
+        "method": "ce",
+        "epochs": 5,
+        "source_p03_checkpoint_sha256": "243d96481f4c6b8c0048c72484b5f395cd2f0c5ba55d103c9b6b665ac4981f54",
+        "training_manifest_sha256": "bf1bc8fe3db193dfaac6900ec35f0c1c9df16be25ed782535e13490de148e5a4",
+        "training_rows": 11623,
+        "heldout_rows_loaded_or_evaluated": false,
+        "checkpoint_selection": "fixed_epoch_last_no_heldout_evaluation",
+        "augmentation": "uniform_random_D4",
+        "aircraft_class_ids": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ]
+      }
+    },
+    "1": {
+      "checkpoint_sha256": "0652509c78851b60f7b32bf599091b9266b5599a45ecb647776f2e1497275557",
+      "source_p03_checkpoint_sha256": "bd56974d6598d4f104f11d75fa38b5771e2c20acd55858d1becc26c7a66a7fb7",
+      "embedded_config": {
+        "contract_version": "r1_aircraft_refinement_v1",
+        "experiment_id": "R1-1-AIRCRAFT-PROPOSAL-REFINEMENT",
+        "held_out_fold": 1,
+        "selection_folds": [
+          0,
+          2
+        ],
+        "method": "ce",
+        "epochs": 5,
+        "source_p03_checkpoint_sha256": "bd56974d6598d4f104f11d75fa38b5771e2c20acd55858d1becc26c7a66a7fb7",
+        "training_manifest_sha256": "bf1bc8fe3db193dfaac6900ec35f0c1c9df16be25ed782535e13490de148e5a4",
+        "training_rows": 11728,
+        "heldout_rows_loaded_or_evaluated": false,
+        "checkpoint_selection": "fixed_epoch_last_no_heldout_evaluation",
+        "augmentation": "uniform_random_D4",
+        "aircraft_class_ids": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ]
+      }
+    },
+    "2": {
+      "checkpoint_sha256": "61b82e4ac761ea7300bbd9f3c7efe60f394fcc23f0609280fc917eb196b20e6b",
+      "source_p03_checkpoint_sha256": "eb0a13b3f97c42098ff5ba4bcef5deefcf8f0f5604b346e2c9289fa4246a1c10",
+      "embedded_config": {
+        "contract_version": "r1_aircraft_refinement_v1",
+        "experiment_id": "R1-1-AIRCRAFT-PROPOSAL-REFINEMENT",
+        "held_out_fold": 2,
+        "selection_folds": [
+          0,
+          1
+        ],
+        "method": "ce",
+        "epochs": 5,
+        "source_p03_checkpoint_sha256": "eb0a13b3f97c42098ff5ba4bcef5deefcf8f0f5604b346e2c9289fa4246a1c10",
+        "training_manifest_sha256": "bf1bc8fe3db193dfaac6900ec35f0c1c9df16be25ed782535e13490de148e5a4",
+        "training_rows": 12545,
+        "heldout_rows_loaded_or_evaluated": false,
+        "checkpoint_selection": "fixed_epoch_last_no_heldout_evaluation",
+        "augmentation": "uniform_random_D4",
+        "aircraft_class_ids": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ]
+      }
+    }
+  },
+  "ship_vehicle_exact_bypass": true
+}

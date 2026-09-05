@@ -38,6 +38,9 @@ data/groups/*
 data/splits/*
 !data/splits/README.md
 !data/splits/*.json
+!data/splits/paired_trend_v1/
+data/splits/paired_trend_v1/*
+!data/splits/paired_trend_v1/*.json
 
 # Outputs — keep .gitkeep only
 outputs/*
@@ -70,6 +73,7 @@ mlruns/
 # Build artifacts
 build/
 dist/
+deliverables/
 *.egg-info/
 
 # Backups
